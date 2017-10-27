@@ -7,13 +7,13 @@ output:
     html_document:
         toc: true
         toc_float: true
-        number_sections: true
+        number_sections: false
         theme: flatly
 header-includes: 
     - \usepackage{tikz}
     - \usetikzlibrary{arrows}
 vignette: >
-  %\VignetteIndexEntry{dodgr}
+  %\VignetteIndexEntry{1 dodgr}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -22,10 +22,10 @@ vignette: >
 devtools::load_all (".", export_all = FALSE)
 ```
 
-# Background: Directed Graphs
+# 1 Background: Directed Graphs
 
 `dodgr` is an **R** package for calculating **D**istances **O**n **D**irected
-**G**raphs. It does so very efficiently, and is able to process larger graphs
+**Gr**aphs. It does so very efficiently, and is able to process larger graphs
 than many other comparable **R** packages. Skip straight to the Intro if you
 know what directed graphs are (but maybe make a brief stop-in to Dual-Weighted
 Directed Graphs below.) Directed graphs are ones in which the "distance" (or
@@ -54,7 +54,7 @@ dodgr_dists (graph, from = c ("A", "C"), to = c ("B", "C", "D"))
 ```
 
 
-## Dual-Weighted Directed Graphs
+## 1.1 Dual-Weighted Directed Graphs
 
 Shortest-path distances on weighted graphs can be calculated using a number of
 other **R** packages, such as
@@ -94,7 +94,7 @@ A$\to$B$\to$D with a distance of only 2, that path has a weighted distance of
 1 + 3 = 4. The shortest *weighted* path is A$\to$B$\to$C$\to$D, with a distance
 both weighted and unweighted of 1 + 1 + 1 = 3. Thus `d(A,D) = 3` and not 2.
 
-# Introduction to `dodgr` 
+# 2 Introduction to `dodgr` 
 
 Although the package has been intentionally developed to be adaptable to any
 kinds of networks, most of the applications illustrated here concern street
@@ -125,7 +125,8 @@ cbind (x, y)
 Those points can simply be passed to `dodgr_dists()`:
 ```{r dodgr-dists-in-york, eval = FALSE}
 system.time(
-            d <- dodgr_dists (from = xy, wt_profile = "foot", quiet = FALSE)
+            d <- dodgr_dists (from = xy, to = xy,
+                              wt_profile = "foot", quiet = FALSE)
             )
 ```
 ```{r dists-york-message, echo = FALSE}
@@ -154,7 +155,7 @@ call to `dodgr_dists()` automatically downloaded the entire street network of Yo
 and calculated one million shortest-path distances, all in under 30 seconds.
 
 
-# Graphs and Street Networks
+# 3 Graphs and Street Networks
 
 Although the above code is short and fast, most users will probably want more
 control over their graphs and routing possibilities. Each of the steps indicated
@@ -169,18 +170,15 @@ Or with the equivalent version bundled with the package:
 ```{r hampi-call}
 class (hampi)
 ```
-```{r hampi-geom-class, eval = FALSE}
+```{r hampi-geom-class}
 class (hampi$geometry)
-```
-```{r hampi-geom-class-output, echo = FALSE}
-c ("sfc_LINESTRING", "sfc")
 ```
 ```{r hampi-dim}
 dim (hampi)
 ```
 The `streetnet` is an [`sf`](https://cran.r-project.org/package=sf) (Simple
-Features) object containing 182 `LINESTRING` geometries. In other words, it's
-got an `sf` representation of 182 street segments. The **R** package `osmplotr`
+Features) object containing 189 `LINESTRING` geometries. In other words, it's
+got an `sf` representation of 189 street segments. The **R** package `osmplotr`
 can be used to visualise this street network (with the help of `magrittr` pipe
 operator, `%>%`):
 ```{r hampi-osmplotr, eval = FALSE}
@@ -227,7 +225,7 @@ head(vt)
 dim (vt)
 ```
 From which we see that the OpenStreetMap representation of the streets of Hampi
-has 182 line segments with 2,814 unique points and 5,742 edges between those
+has 189 line segments with 2,987 unique points and 6,096 edges between those
 points.  The number of edges per vertex in the entire network is thus,
 ```{r hampi-edge2vert}
 nrow (graph) / nrow (vt)
@@ -239,7 +237,7 @@ calculate shortest path routes, as will be described below, following a brief
 description of weighting street networks.
 
 
-## Graph Components
+## 3.1 Graph Components
 
 The foregoing `graph` object returned from `weight_streetnet()` also includes a
 `$component` column enumerating all of the distinct inter-connected components of
@@ -249,7 +247,7 @@ table (graph$component)
 ```
 Components are numbered in order of decreasing size, with `$component = 1`
 always denoting the largest component. In this case, that component contains
-3,596 edges, representing 63% of the graph. There are clearly only three distinct
+3,934 edges, representing 65% of the graph. There are clearly only three distinct
 components, but this number may be much larger for larger graphs, and may be
 obtained from,
 ```{r hampi-num-components}
@@ -273,14 +271,15 @@ graph_connected <- graph [graph$component == 1, ]
 ```
 This is explored further below (under Distance Matrices).
 
-## Weighting Profiles
+## 3.2 Weighting Profiles
 
 Dual-weights for street networks are generally obtained by multiplying the
 distance of each segment by a weighting factor reflecting the type of highway.
 As demonstrated above, this can be done easily within `dodgr` with the
-`weight_streetnet()` function, which using the named weighting profiles included
-with the `dodgr` package. Each profile assigns weights to each distinct type of
-highway.
+`weight_streetnet()` function, which applies the named weighting profiles included
+with the `dodgr` package to OpenStreetMap networks extracted with the
+[`osmdata`](https://cran.r-project.org/package=osmdata) package. Each profile
+assigns weights to each distinct type of highway.
 ```{r weighting-profiles}
 names (weighting_profiles)
 class (weighting_profiles)
@@ -298,7 +297,30 @@ World Heritage area in which automobiles are generally prohibited. Accordingly,
 numbers of `"footway"`, `"path"`, and `"pedestrian"` ways far exceed typical
 categories denoting automobile traffic (`"primary", "residential", "tertiary"`)
 
-## Random Sub-Graphs
+It is also possible to use other types of (non-OpenStreetMap) street networks,
+an example of which is the `os_roads_bristol` data provided with the package.
+"OS" is the U.K. Ordnance Survey, and these data are provided as a Simple
+Features ([`sf`](https://cran.r-project.org/package=sf)) `data.frame` with a
+decidedly different structure to `osmdata data.frame` objects:
+```{r hampi-bristol-comp}
+names (hampi) # many fields manually removed to reduce size of this object
+names (os_roads_bristol)
+```
+The latter may be converted to a `dodgr` network by first specifying a weighting
+profile, here based on the `formOfWay` column:
+```{r wt-bristol}
+colnm <- "formOfWay"
+table (os_roads_bristol [[colnm]])
+wts <- c (0.1, 0.2, 0.8, 1)
+names (wts) <- unique (os_roads_bristol [[colnm]])
+net <- weight_streetnet (os_roads_bristol, wt_profile = wts,
+                         type_col = colnm, id_col = "identifier")
+```
+The resultant `net` object contains the street network of `os_roads_bristol`
+weighted by the specified profile, and in a format suitable for submission to
+any `dodgr` routine.
+
+## 3.3 Random Sub-Graphs
 
 The `dodgr` packages includes a function to select a random connected portion of
 graph including a specified number of vertices. This function is used in the
@@ -315,7 +337,7 @@ the statistics calculated above.
 nrow (dodgr_vertices (graph_sub))
 ```
 
-# Distance Matrices: `dodgr_dists()`
+# 4 Distance Matrices: `dodgr_dists()`
 
 As demonstrated at the outset, an entire network can simply be submitted to
 `dodgr_dists()`, in which case a square matrix will be returned containing
@@ -327,7 +349,7 @@ accepts additional arguments of `from` and `to` defining points from and to
 which distances are to be calculated. If only `from` is provided, a square
 matrix is returned of pair-wise distances between all listed points.
 
-## Aligning Routing Points to Graphs
+## 4.1 Aligning Routing Points to Graphs
 
 For spatial graphs---that is, those containing columns of latitudes and
 longitudes (or "x" and "y")---routing points can be represented by a simple
@@ -427,7 +449,7 @@ dim (d)
 ```
 The result is a 10-by-20 matrix of distances between these named graph vertices.
 
-## Shortest Path Calculations: Priority Queues
+## 4.2 Shortest Path Calculations: Priority Queues
 
 `dodgr` uses an internal library [@Saunders2003, @Saunders2004] for the calculation of shortest paths using a
 variety of priority queues [see @Miller1960 for an overview].  In the context of
@@ -487,7 +509,7 @@ d <- igraph::distances (igr, v = pts, to = pts, mode = "out")
 ```
 
 
-# Graph Contraction
+# 5 Graph Contraction
 
 A further unique feature of `dodgr` is the ability to remove redundant vertices
 from graphs (see Fig. 3), thereby speeding up routing calculations.
@@ -510,39 +532,29 @@ less redundant than less dense extra-urban or rural networks. The contracted
 version of a graph can be obtained with the function `dodgr_compact_graph()`,
 illustrated here with the York example from above.
 ```{r contract-graph}
-grc <- dodgr_contract_graph (graph)
+grc <- dodgr_contract_graph (graph)$graph
 ```
-The function `dodgr_compact_graph()` returns a list with both the original and
-compact graphs. Relative sizes are
+The function `dodgr_compact_graph()` returns a list with the compact graph and a
+table relating the contracted edges to the corresponding original edges in the
+full graph. Relative sizes are
 ```{r contract-graph-structure}
 nrow (graph); nrow (grc); nrow (grc) / nrow (graph)
 ```
-equivalent to the removal of just under half of all edges. In order to fairly
-compre differences in routing efficiency, these graphs can first be converted to
-a standardised minimal form used for routing with the `dodgr_convert_graph()`
-function:
-```{r convert-graph}
-graph <- dodgr_convert_graph (graph)$graph
-grc <- dodgr_convert_graph (grc)$graph
-names (grc)
-```
-The `dodgr_convert_graph()` function also returns a matrix of all vertices
-(`$xy`), with the graph again in a list item named `$graph`.  The difference in
-routing efficiency can then be seen with the following code
+equivalent to the removal of around 90% of all edges.  The difference in routing
+efficiency can then be seen with the following code
 ```{r benchmark1}
-from <- sample (grc$from, size = 100)
-to <- sample (grc$to, size = 100)
+from <- sample (grc$from_id, size = 100)
+to <- sample (grc$to_id, size = 100)
 rbenchmark::benchmark (
                        d2 <- dodgr_dists (grc, from = from, to = to),
                        d2 <- dodgr_dists (graph, from = from, to = to),
                        replications = 2)
 ```
-And reducing numbers of graph edges by half enables pairwise routing between
-100 points to be conducted around 4 times faster.  All routing algorithms scale
-non-linearly with size, and relative improvements in efficiency will be even
-greater for larger graphs. 
+And contracting the graph has a similar effect of speeding up pairwise routing
+between these 100 points.  All routing algorithms scale non-linearly with size,
+and relative improvements in efficiency will be even greater for larger graphs. 
 
-## Routing on Contracted Graphs
+## 5.1 Routing on Contracted Graphs
 
 Routing is often desired between defined points, and these points may
 inadvertedly be removed in graph contraction. The `dodgr_contract_graph()`
@@ -553,11 +565,11 @@ in the graph.
 The following code illustrates how to retain specific vertices within contracted
 graphs:
 ```{r contracted-with-verts}
-grc <- dodgr_contract_graph (graph)
+grc <- dodgr_contract_graph (graph)$graph
 nrow (grc)
 verts <- sample (dodgr_vertices (graph)$id, size = 100)
 head (verts) # a character vector
-grc <- dodgr_contract_graph (graph, verts)
+grc <- dodgr_contract_graph (graph, verts)$graph
 nrow (grc)
 ```
 Retaining the nominated vertices yields a graph with considerably more edges
@@ -565,5 +577,121 @@ than the fully contracted graph excluding these vertices. The `dodgr_dists()`
 function can be applied to the latter graph to obtain accurate distances
 precisely routed between these points, yet using the speed advantages of graph
 contraction.
+
+# 6 Shortest Paths
+
+Shortest paths can also be extracted with the `dodgr_paths()` function. For
+given vectors of `from` and `to` points, this returns a nested list so that if,
+```{r}
+dp <- dodgr_paths (graph, from = from, to = to)
+```
+then `dp [[i]] [[j]]` will contain the path from `from [i]` to `to [j]`. The
+paths are represented as sequences of vertex names. Consider the following
+example,
+```{r}
+graph <- weight_streetnet (hampi)
+head (graph)
+```
+The columns of `from_id` and `to_id` contain the names of the vertices. To
+extract shortest paths between some of these, first take some small samples of
+`from` and `to` points, and submit them to `dodgr_paths()`:
+```{r}
+from <- sample (graph$from_id, size = 10)
+to <- sample (graph$to_id, size = 5)
+dp <- dodgr_paths (graph, from = from, to = to)
+length (dp)
+```
+The result (`dp`) is a list of 10 items, each of which contains 5 vectors. An
+example is,
+```{r, eval = FALSE}
+dp [[1]] [[1]]
+```
+```{r, echo = FALSE}
+n <- 0
+i <- 0
+while (all (n == 0))
+{
+    i <- i + 1
+    n <- which (lapply (dp [[i]], length) > 0)
+}
+j <- n [1]
+dp [[i]] [[j]]
+```
+For spatial graphs, the coordinates of these paths can be obtained by extracting
+the vertices with `dodgr_vertices()` and matching the vertex IDs:
+```{r, eval = FALSE}
+verts <- dodgr_vertices (graph)
+path1 <- verts [match (dp [[1]] [[1]], verts$id), ]
+head (path1)
+```
+```{r, echo = FALSE}
+verts <- dodgr_vertices (graph)
+path1 <- verts [match (dp [[i]] [[j]], verts$id), ]
+head (path1)
+```
+Paths calculated on contracted graphs will of course have fewer vertices than
+those calculated on full graphs.
+
+# 7 Aggregated Flows
+
+The final major function of `dodgr` is `dodgr_flows()`, which aggregates
+''flows'' throughout a network from a set of origin (`from`) and destination
+(`to`) points.  Flows commonly arise in origin-destination matrices used in
+transport studies, but may be any kind of generic flows on graphs. A flow matrix
+specifies the flow between each pair of origin and destination points, and the
+`dodgr_flows()` function aggregates all of these flows throughout a network and
+assigns a resultant aggregate flow to each edge.
+
+For a set of `nf` points of origin and `nt` points of destination, flow are
+defined by a simple `nf`-by-`nt` matrix of values, as in the following code:
+```{r}
+graph <- weight_streetnet (hampi)
+from <- sample (graph$from_id, size = 10)
+to <- sample (graph$to_id, size = 10)
+flows <- matrix (10 * runif (length (from) * length (to)),
+                 nrow = length (from))
+```
+This `flows` matrix is then submitted to `dodgr_flows()`, which simply appends
+an additional column of `flows` to the submitted `graph`:
+```{r}
+graph_f <- dodgr_flows (graph, from = from, to = to, flows = flows)
+head (graph_f)
+```
+Most flows are zero because they have only been calculated between very few
+points in the graph.
+```{r}
+summary (graph_f$flow)
+```
+Note that these flows are *directed*, so the flow from 'A' to 'B' will not
+necessarily equal the flow from 'B' to 'A'. It is often desirable to aggregate
+flows in an undirected manner, for example for visualisations where plotting
+pairs of directed flows between each edge if often not feasible for large
+graphs. Directed flows can be aggregated to equivalent undirected flows with the
+`merge_directed_flows()` function:
+```{r}
+graph_undir <- merge_directed_flows (graph_f)
+```
+Resultant graphs produced by `merge_directed_flows()` only include those edges
+having non-zero flows, and so:
+```{r}
+nrow (graph_f); nrow (graph_undir) # the latter is much smaller
+```
+The resultant graph can readily be merged with the original graph to regain the
+original data on vertex coordinates through
+```{r}
+graph <- graph [graph_undir$edge_id, ]
+graph$flow <- graph_undir$flow
+```
+This graph may then be used to visalise flows, as in the following simple
+example:
+```{r, message = FALSE}
+library (ggplot2)
+ggplot() + labs (x = "longitude", y = "latitude") +
+        geom_segment (data = graph, size = 5 * graph$flow / max (graph$flow),
+                      aes (x = from_lon, y = from_lat, xend = to_lon, yend = to_lat,
+                           colour = flow, size = flow)) +
+        scale_colour_gradient (low = "lawngreen", high = "dodgerblue")
+```
+
 
 # Bibliography

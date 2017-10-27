@@ -1,6 +1,6 @@
 Package: dodgr
 Title: Distances on Directed Graphs
-Version: 0.0.1
+Version: 0.0.2
 Authors@R: c(
     person("Mark", "Padgham", email="mark.padgham@email.com", role=c("aut", "cre")),
     person("Andreas", "Peutschnig", role="aut"),
@@ -17,8 +17,8 @@ Depends: R (>= 3.2.0)
 License: GPL-3
 Imports: igraph, magrittr, methods, osmdata, rbenchmark, sp, Rcpp (>=
         0.12.6)
-Suggests: devtools, ggplot2, igraphdata, knitr, purrr, rmarkdown,
-        roxygen2, scales, testthat
+Suggests: devtools, ggplot2, igraphdata, knitr, purrr, RColorBrewer,
+        rmarkdown, roxygen2, scales, testthat
 LinkingTo: Rcpp
 SystemRequirements: C++11
 VignetteBuilder: knitr
@@ -28,11 +28,11 @@ LazyData: true
 URL: https://github.com/gmost/dodgr
 BugReports: https://github.com/gmost/dodgr/issues
 RoxygenNote: 6.0.1
-Packaged: 2017-09-27 20:04:16 UTC; markus
+Packaged: 2017-10-27 11:35:55 UTC; markus
 Author: Mark Padgham [aut, cre],
   Andreas Peutschnig [aut],
   Shane Saunders [cph] (Original author of included code for priority
     heaps)
 Maintainer: Mark Padgham <mark.padgham@email.com>
 Repository: CRAN
-Date/Publication: 2017-09-28 09:14:37 UTC
+Date/Publication: 2017-10-27 13:01:05 UTC

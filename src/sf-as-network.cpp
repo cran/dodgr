@@ -1,34 +1,3 @@
-/***************************************************************************
- *  Project:    osmdata
- *  File:       lines-as-network.cpp
- *  Language:   C++
- *
- *  osmdata is free software: you can redistribute it and/or modify it under
- *  the terms of the GNU General Public License as published by the Free
- *  Software Foundation, either version 3 of the License, or (at your option)
- *  any later version.
- *
- *  osmdata is distributed in the hope that it will be useful, but WITHOUT ANY
- *  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- *  FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
- *  details.
- *
- *  You should have received a copy of the GNU General Public License along with
- *  osm-router.  If not, see <http://www.gnu.org/licenses/>.
- *
- *  Author:     Mark Padgham 
- *  E-Mail:     mark.padgham@email.com 
- *
- *  Description:    Convert sf linestring collection to data.frame of network
- *                  connections
- *
- *  Limitations:
- *
- *  Dependencies:       none (rapidXML header included in osmdatar)
- *
- *  Compiler Options:   -std=c++11
- ***************************************************************************/
-
 #include <string>
 #include <cmath>
 
@@ -60,7 +29,7 @@ float haversine (float x1, float y1, float x2, float y2)
 //' @noRd
 // [[Rcpp::export]]
 Rcpp::List rcpp_sf_as_network (const Rcpp::List &sf_lines,
-        Rcpp::DataFrame pr)
+        const Rcpp::DataFrame &pr)
 {
     std::map <std::string, float> profile;
     Rcpp::StringVector hw = pr [1];
@@ -71,8 +40,6 @@ Rcpp::List rcpp_sf_as_network (const Rcpp::List &sf_lines,
     Rcpp::CharacterVector nms = sf_lines.attr ("names");
     if (nms [nms.size () - 1] != "geometry")
         throw std::runtime_error ("sf_lines have no geometry component");
-    if (nms [0] != "osm_id")
-        throw std::runtime_error ("sf_lines have no osm_id component");
     int one_way_index = -1;
     int one_way_bicycle_index = -1;
     int highway_index = -1;
@@ -106,7 +73,8 @@ Rcpp::List rcpp_sf_as_network (const Rcpp::List &sf_lines,
     }
 
     Rcpp::List geoms = sf_lines [nms.size () - 1];
-    std::vector<bool> isOneWay (geoms.length ());
+    std::vector <std::string> way_names = geoms.attr ("names");
+    std::vector <bool> isOneWay (geoms.length ());
     std::fill (isOneWay.begin (), isOneWay.end (), false);
     // Get dimension of matrix
     size_t nrows = 0;
@@ -129,8 +97,8 @@ Rcpp::List rcpp_sf_as_network (const Rcpp::List &sf_lines,
     }
 
     Rcpp::NumericMatrix nmat = Rcpp::NumericMatrix (Rcpp::Dimension (nrows, 6));
-    Rcpp::CharacterMatrix idmat = Rcpp::CharacterMatrix (Rcpp::Dimension (nrows,
-                3));
+    Rcpp::CharacterMatrix idmat =
+        Rcpp::CharacterMatrix (Rcpp::Dimension (nrows, 4));
 
     nrows = 0;
     ngeoms = 0;
@@ -169,6 +137,7 @@ Rcpp::List rcpp_sf_as_network (const Rcpp::List &sf_lines,
             idmat (nrows, 0) = rnms (i-1);
             idmat (nrows, 1) = rnms (i);
             idmat (nrows, 2) = hway;
+            idmat (nrows, 3) = way_names [ngeoms];
             nrows ++;
             if (isOneWay [ngeoms])
             {
@@ -181,17 +150,16 @@ Rcpp::List rcpp_sf_as_network (const Rcpp::List &sf_lines,
                 idmat (nrows, 0) = rnms (i);
                 idmat (nrows, 1) = rnms (i-1);
                 idmat (nrows, 2) = hway;
+                idmat (nrows, 3) = way_names [ngeoms];
                 nrows ++;
             }
         }
         ngeoms ++;
     }
 
-    Rcpp::List res (2);
-    res [0] = nmat;
-    res [1] = idmat;
-
-    return res;
+    return Rcpp::List::create (
+            Rcpp::Named ("numeric_values") = nmat,
+            Rcpp::Named ("character_values") = idmat);
 }
 
 //' rcpp_points_index

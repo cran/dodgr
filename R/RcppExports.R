@@ -10,6 +10,15 @@
 #' @noRd
 NULL
 
+#' same_hwy_type
+#'
+#' Determine whether two edges represent the same weight category (type of
+#' highway for street networks, for example). Categories are not retained in 
+#' converted graphs, but can be discerned by comparing ratios of weighted to
+#' non-weighted distances.
+#' @noRd
+NULL
+
 #' rcpp_contract_graph
 #'
 #' Removes nodes and edges from a graph that are not needed for routing
@@ -26,6 +35,20 @@ rcpp_contract_graph <- function(graph, vertlist_in) {
     .Call(`_dodgr_rcpp_contract_graph`, graph, vertlist_in)
 }
 
+#' rcpp_merge_flows
+#'
+#' Merge flows in directed graph to form aggregate undirected flows, and return
+#' a corresponding undirected graph useful for visualisation.
+#'
+#' @param graph The result of a call to \code{dodgr_flows}
+#' @return A single vector of aggregate flows with non-zero values only for
+#' those edges to be retained in the directed graph.
+#'
+#' @noRd
+rcpp_merge_flows <- function(graph) {
+    .Call(`_dodgr_rcpp_merge_flows`, graph)
+}
+
 #' graph_has_components
 #'
 #' Does a graph have a vector of connected component IDs? Only used in
@@ -38,6 +61,7 @@ NULL
 #' Convert a standard graph data.frame into an object of class graph. Graphs
 #' are standardised with the function \code{dodgr_convert_graph()$graph}, and contain
 #' only the four columns [from, to, d, w]
+#'
 #' @noRd
 NULL
 
@@ -56,7 +80,8 @@ NULL
 #'
 #' Get component numbers for each edge of graph
 #'
-#' @param graph graph to be processed
+#' @param graph graph to be processed; stripped down and standardised to five
+#' columns
 #'
 #' @return Two vectors: one of edge IDs and one of corresponding component
 #' numbers
@@ -102,11 +127,47 @@ rcpp_sample_graph <- function(graph, nverts_to_sample) {
     .Call(`_dodgr_rcpp_sample_graph`, graph, nverts_to_sample)
 }
 
-#' rcpp_get_sp
+#' rcpp_get_sp_dists
 #'
 #' @noRd
-rcpp_get_sp <- function(graph, vert_map_in, fromi, toi, heap_type) {
-    .Call(`_dodgr_rcpp_get_sp`, graph, vert_map_in, fromi, toi, heap_type)
+rcpp_get_sp_dists <- function(graph, vert_map_in, fromi, toi, heap_type) {
+    .Call(`_dodgr_rcpp_get_sp_dists`, graph, vert_map_in, fromi, toi, heap_type)
+}
+
+#' rcpp_get_paths
+#'
+#' @param graph The data.frame holding the graph edges
+#' @param vert_map_in map from <std::string> vertex ID to (0-indexed) integer
+#' index of vertices
+#' @param fromi Index into vert_map_in of vertex numbers
+#' @param toi Index into vert_map_in of vertex numbers
+#'
+#' @note The graph is constructed with 0-indexed vertex numbers contained in
+#' code{vert_map_in}. Both \code{fromi} and \code{toi} already map directly
+#' onto these. The graph has to be constructed by first constructing a
+#' \code{std::map} object (\code{vertmap}) for \code{vert_map_in}, then
+#' translating all \code{graph["from"/"to"]} values into these indices. This
+#' construction is done in \code{inst_graph}.
+#'
+#' @noRd
+rcpp_get_paths <- function(graph, vert_map_in, fromi, toi, heap_type) {
+    .Call(`_dodgr_rcpp_get_paths`, graph, vert_map_in, fromi, toi, heap_type)
+}
+
+#' rcpp_aggregate_flows
+#'
+#' @param graph The data.frame holding the graph edges
+#' @param vert_map_in map from <std::string> vertex ID to (0-indexed) integer
+#' index of vertices
+#' @param fromi Index into vert_map_in of vertex numbers
+#' @param toi Index into vert_map_in of vertex numbers
+#'
+#' @note The flow data to be used for aggregation is a matrix mapping flows
+#' betwen each pair of from and to points.
+#'
+#' @noRd
+rcpp_aggregate_flows <- function(graph, vert_map_in, fromi, toi, flows, heap_type) {
+    .Call(`_dodgr_rcpp_aggregate_flows`, graph, vert_map_in, fromi, toi, flows, heap_type)
 }
 
 #' rcpp_sf_as_network

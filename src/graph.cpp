@@ -1,8 +1,8 @@
 #include "graph.h"
 
 
-void add_to_v2e_map (vert2edge_map_t &vert2edge_map, vertex_id_t vid,
-        edge_id_t eid)
+void add_to_v2e_map (vert2edge_map_t &vert2edge_map, const vertex_id_t vid,
+        const edge_id_t eid)
 {
     std::unordered_set <edge_id_t> edge_ids;
     if (vert2edge_map.find (vid) == vert2edge_map.end ())
@@ -17,8 +17,8 @@ void add_to_v2e_map (vert2edge_map_t &vert2edge_map, vertex_id_t vid,
     }
 }
 
-void erase_from_v2e_map (vert2edge_map_t &vert2edge_map, vertex_id_t vid,
-        edge_id_t eid)
+void erase_from_v2e_map (vert2edge_map_t &vert2edge_map, const vertex_id_t vid,
+        const edge_id_t eid)
 {
     std::unordered_set <edge_id_t> edge_ids = vert2edge_map [vid];
     if (edge_ids.find (eid) != edge_ids.end ())
@@ -33,7 +33,7 @@ void erase_from_v2e_map (vert2edge_map_t &vert2edge_map, vertex_id_t vid,
 //' Does a graph have a vector of connected component IDs? Only used in
 //' \code{sample_one_vertex}
 //' @noRd
-bool graph_has_components (Rcpp::DataFrame graph)
+bool graph_has_components (const Rcpp::DataFrame &graph)
 {
     Rcpp::CharacterVector graph_names = graph.attr ("names");
     bool has_comps = false;
@@ -44,26 +44,25 @@ bool graph_has_components (Rcpp::DataFrame graph)
     return has_comps;
 }
 
+
 //' graph_from_df
 //'
 //' Convert a standard graph data.frame into an object of class graph. Graphs
 //' are standardised with the function \code{dodgr_convert_graph()$graph}, and contain
 //' only the four columns [from, to, d, w]
+//'
 //' @noRd
-void graph_from_df (Rcpp::DataFrame gr, vertex_map_t &vm,
+void graph_from_df (const Rcpp::DataFrame &gr, vertex_map_t &vm,
         edge_map_t &edge_map, vert2edge_map_t &vert2edge_map)
 {
-    if (!(gr.ncol () == 4 || gr.ncol () == 5 || gr.ncol () == 6))
-        throw std::runtime_error ("graph must have 4--6 columns: run dodgr_convert_graph() first");
-
-    Rcpp::StringVector edge_id = gr ["edge_id"];
+    Rcpp::StringVector edge_id = gr ["id"];
     Rcpp::StringVector from = gr ["from"];
     Rcpp::StringVector to = gr ["to"];
     Rcpp::NumericVector dist = gr ["d"];
     Rcpp::NumericVector weight = gr ["w"];
 
     std::set <edge_id_t> replacement_edges; // all empty here
-    
+
     for (int i = 0; i < to.length (); i ++)
     {
         vertex_id_t from_id = std::string (from [i]);
@@ -162,13 +161,14 @@ unsigned int identify_graph_components (vertex_map_t &v,
 //'
 //' Get component numbers for each edge of graph
 //'
-//' @param graph graph to be processed
+//' @param graph graph to be processed; stripped down and standardised to five
+//' columns
 //'
 //' @return Two vectors: one of edge IDs and one of corresponding component
 //' numbers
 //' @noRd
 // [[Rcpp::export]]
-Rcpp::List rcpp_get_component_vector (Rcpp::DataFrame graph)
+Rcpp::List rcpp_get_component_vector (const Rcpp::DataFrame &graph)
 {
     vertex_map_t vertices;
     edge_map_t edge_map;
@@ -188,7 +188,6 @@ Rcpp::List rcpp_get_component_vector (Rcpp::DataFrame graph)
         std::unordered_set <edge_id_t> edges = ve.second;
         for (edge_id_t e: edges)
             comp_nums.emplace (e, components.find (vi)->second);
-            //comp_nums.emplace (e, components [vi]);
     }
 
     Rcpp::StringVector edge_id (comp_nums.size ());

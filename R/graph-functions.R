@@ -1,117 +1,108 @@
-#' dodgr_convert_graph
+null_to_na <- function (x)
+{
+    if (length (x) == 0)
+        x <- NA
+    return (x)
+}
+
+#' get_graph_cols
 #'
-#' Convert a graph represented as an arbitarily-structured \code{data.frame} to
-#' standard 4 or 5-column format for submission to C++ routines
+#' Identify the essential columns of the graph table (data.frame, tibble,
+#' whatever) to be analysed in the C++ routines.
 #'
 #' @param graph A \code{data.frame} containing the edges of the graph
 #' @param components If FALSE, components are not calculated (will generally
 #' result in faster processing).
-#' @return A list of two components: (i) \code{graph}, a \code{data.frame} with
-#' the same number of rows but with columns of \code{edge_id}, \code{from},
-#' \code{to}, \code{d}, \code{w}, and \code{component}, not all of which may be
-#' included; and (ii) \code{xy}, a matrix of coordinates of all vertices in
-#' \code{graph}.
+#' @return A named vector of column numbers of \code{edge_id}, \code{from},
+#' \code{to}, \code{d}, \code{w}, \code{xfr}, \code{yfr}, \code{xto},
+#' \code{yto}, and \code{component}, some of which may be NA.
 #'
-#' @export
-#' @examples
-#' graph <- weight_streetnet (hampi)
-#' names (graph)
-#' names (dodgr_convert_graph (graph)$graph)
-dodgr_convert_graph <- function (graph, components = TRUE)
+#' @noRd
+dodgr_graph_cols <- function (graph)
 {
-    if (is (graph, "graph_converted"))
-        return (list (graph = graph))
-
-    if (any (grepl ("edge", names (graph))))
-        edge_id <- graph [, which (grepl ("edge", names (graph)))]
-    else
-        edge_id <- seq (nrow (graph))
-
-    component <- NULL
-    if (any (grepl ("comp", names (graph))))
+    nms <- names (graph)
+    component <- which (grepl ("comp", nms)) %>% null_to_na ()
+    if (is (graph, "dodgr_streetnet") & ncol (graph) >= 11)
     {
-        component <- graph [, which (grepl ("comp", names (graph)))]
-        components <- TRUE
-    }
-
-    d_col <- find_d_col (graph)
-    w_col <- find_w_col (graph)
-    if (length (w_col) == 0)
-        w_col <- d_col
-
-    fr_col <- find_fr_col (graph)
-    to_col <- find_to_col (graph)
-    if (length (fr_col) != length (to_col))
-        stop (paste0 ("from and to columns in graph appear ",
-                      "to have different strutures"))
-
-    xy <- NULL
-    # TODO: Modify for other complex but non-spatial types of graph
-    if (is_graph_spatial (graph))
-    {
-        spcols <- find_spatial_cols (graph)
-
-        xy_fr <- graph [, spcols$fr_col]
-        xy_to <- graph [, spcols$to_col]
-        if (!(all (apply (xy_fr, 2, is.numeric)) |
-              all (apply (xy_to, 2, is.numeric))))
-            stop (paste0 ("graph appears to have non-numeric ",
-                          "longitudes and latitudes"))
-
-        # This same indx is created in vert_map to ensure it follows
-        # same order as xy
-        indx <- which (!duplicated (c (spcols$xy_id$xy_fr_id,
-                                       spcols$xy_id$xy_to_id)))
-        xy <- data.frame ("x" = c (graph [, spcols$fr_col [1]],
-                                   graph [, spcols$to_col [1]]),
-                          "y" = c (graph [, spcols$fr_col [2]],
-                                   graph [, spcols$to_col [2]])) [indx, ]
-
-        # then replace 4 xy from/to cols with 2 from/to cols
-        graph <- data.frame ("edge_id" = edge_id,
-                             "from" = spcols$xy_id$xy_fr_id,
-                             "to" = spcols$xy_id$xy_to_id,
-                             "d" = graph [, d_col],
-                             "w" = graph [, w_col],
-                             stringsAsFactors = FALSE)
+        # columns are always identically structured
+        edge_id <- which (nms == "edge_id")
+        fr_col <- which (nms == "from_id")
+        to_col <- which (nms == "to_id")
+        d_col <- which (nms == "d")
+        w_col <- which (nms == "d_weighted")
+        xfr <- which (nms == "from_lon")
+        yfr <- which (nms == "from_lat")
+        xto <- which (nms == "to_lon")
+        yto <- which (nms == "to_lat")
     } else
     {
-        if (length (fr_col) != 1 & length (to_col) != 1)
-            stop ("Unable to determine from and to columns in graph")
+        edge_id <- which (grepl ("edge", nms)) %>% null_to_na ()
 
-        graph <- data.frame ("edge_id" = edge_id,
-                             "from" = graph [, fr_col],
-                             "to" = graph [, to_col],
-                             "d" = graph [, d_col],
-                             "w" = graph [, w_col],
-                             stringsAsFactors = FALSE)
+        d_col <- find_d_col (graph)
+        w_col <- find_w_col (graph)
+        if (length (w_col) == 0)
+            w_col <- d_col
+
+        fr_col <- find_fr_id_col (graph)
+        to_col <- find_to_id_col (graph)
+
+        xfr <- yfr <- xto <- yto <- NA
+        # TODO: Modify for other complex but non-spatial types of graph
+        if (is_graph_spatial (graph))
+        {
+            spcols <- find_spatial_cols (graph)
+
+            if (!(all (apply (graph [, spcols$fr_col], 2, is.numeric)) |
+                  all (apply (graph [, spcols$to_tol], 2, is.numeric))))
+                stop (paste0 ("graph appears to have non-numeric ",
+                              "longitudes and latitudes"))
+
+            xfr <- spcols$fr_col [1]
+            yfr <- spcols$fr_col [2]
+            xto <- spcols$to_col [1]
+            yto <- spcols$to_col [2]
+        } else
+        {
+            if (length (fr_col) != 1 & length (to_col) != 1)
+                stop ("Unable to determine from and to columns in graph")
+        }
     }
 
+    # This is NOT a list because it's much easier to pass as vector to C++
+    ret <- c (edge_id, fr_col, to_col, d_col, w_col, xfr, yfr, xto, yto)
+    names (ret) <- c ("edge_id", "from", "to", "d", "w", 
+                      "xfr", "yfr", "xto", "yto")
+    if (!is.na (component))
+    {
+        ret <- c (ret, component)
+        names (ret) [length (ret)] <- "component"
+    }
+    class (ret) <- c (class (ret), "graph_columns")
+
+    # Note that these are R-style 1-indexed, so need to be converted in C++ to
+    # equivalent 0-indexed forms
+    return (ret)
+}
+
+#' convert_graph
+#'
+#' Convert graph to a standard form suitable for submission to C++ routines
+#' @noRd
+convert_graph <- function (graph, gr_cols)
+{
+    indx <- which (!is.na (gr_cols [1:5]))
+    graph <- graph [, gr_cols [1:5] [indx]]
+    names (graph) <- c ("id", "from", "to", "d", "w") [indx]
+    if ("id" %in% names (graph))
+        if (!is.character (graph$id))
+            graph$id <- paste0 (graph$id)
     if (!is.character (graph$from))
         graph$from <- paste0 (graph$from)
     if (!is.character (graph$to))
         graph$to <- paste0 (graph$to)
-    if (!is.character (graph$edge_id))
-        graph$edge_id <- paste0 (graph$edge_id)
-
-    if (components)
-    {
-        if (is.null (component))
-        {
-            cns <- rcpp_get_component_vector (graph)
-            component <- cns$edge_component [match (paste0 (graph$edge_id),
-                                                    cns$edge_id)]
-            # Then re-number in order to decreasing component size:
-            component <- match (component, order (table (component),
-                                                  decreasing = TRUE))
-        }
-        graph$component <- component
-    }
-
-    class (graph) <- c (class (graph), "graph_converted")
-
-    return (list (graph = graph, xy = xy))
+    return (graph)
 }
+
 
 
 #' dodgr_vertices
@@ -132,34 +123,22 @@ dodgr_convert_graph <- function (graph, components = TRUE)
 #' v <- dodgr_vertices (graph)
 dodgr_vertices <- function (graph)
 {
-    fr_col <- find_fr_col (graph)
-    to_col <- find_to_col (graph)
-
+    cols <- dodgr_graph_cols (graph)
+    nms <- names (cols)
+    # cols are (edge_id, from, to, d, w, component, xfr, yfr, xto, yto)
     if (is_graph_spatial (graph))
-    {
-        spcols <- find_spatial_cols (graph)
-
-        xy_fr <- graph [, spcols$fr_col]
-        xy_to <- graph [, spcols$to_col]
-        if (!(all (apply (xy_fr, 2, is.numeric)) |
-              all (apply (xy_to, 2, is.numeric))))
-            stop (paste0 ("graph appears to have non-numeric ",
-                          "longitudes and latitudes"))
-
-        verts <- data.frame (id = c (spcols$xy_id$xy_fr_id,
-                                     spcols$xy_id$xy_to_id),
-                             x = c (xy_fr [, 1], xy_to [, 1]),
-                             y = c (xy_fr [, 2], xy_to [, 2]),
+        verts <- data.frame (id = c (graph [[cols [which (nms == "from")] ]],
+                                     graph [[cols [which (nms == "to")] ]]),
+                             x = c (graph [[cols [which (nms == "xfr")] ]],
+                                    graph [[cols [which (nms == "xto")] ]]),
+                             y = c (graph [[cols [which (nms == "yfr")] ]],
+                                    graph [[cols [which (nms == "yto")] ]]),
                              stringsAsFactors = FALSE)
-    } else # non-spatial graph
-    {
-        if (!(length (fr_col) == 1 & length (to_col) == 1))
-            stop ("Graph appears to be non-spatial, yet unable to ",
-                  "determine vertex columns")
-
-        verts <- data.frame (id = c (graph [, fr_col], graph [, to_col]),
+    else
+        verts <- data.frame (id = c (graph [[cols [which (nms == "from")] ]],
+                                     graph [[cols [which (nms == "to")] ]]),
                              stringsAsFactors = FALSE)
-    }
+
     indx <- which (!duplicated (verts))
     verts <- verts [indx, , drop = FALSE] #nolint
     verts$n <- seq (nrow (verts)) - 1
@@ -186,8 +165,15 @@ dodgr_components <- function (graph)
         message ("graph already has a component column")
     else
     {
-        component <- dodgr_convert_graph (graph, components = TRUE)
-        graph$component <- component$graph$component
+        gr_cols <- dodgr_graph_cols (graph)
+        graph2 <- convert_graph (graph, gr_cols)
+        cns <- rcpp_get_component_vector (graph2)
+
+        indx <- match (graph2$id, cns$edge_id)
+        component <- cns$edge_component [indx]
+        # Then re-number in order to decreasing component size:
+        graph$component <- match (component, order (table (component),
+                                                    decreasing = TRUE))
     }
 
     return (graph)
@@ -204,6 +190,10 @@ dodgr_components <- function (graph)
 #' @param nverts Number of vertices to sample
 #'
 #' @return A connected sub-component of \code{graph}
+#'
+#' @note Graphs may occassionally have \code{nverts + 1} vertices, rather than
+#' the requested \code{nverts}.
+#'
 #' @export
 #' @examples
 #' graph <- weight_streetnet (hampi)
@@ -218,8 +208,9 @@ dodgr_sample <- function (graph, nverts = 1000)
     verts <- unique (c (graph [, fr], graph [, to]))
     if (length (verts) > nverts)
     {
-        grc <- dodgr_convert_graph (graph)$graph
-        indx <- match (rcpp_sample_graph (grc, nverts), grc$edge_id)
+        gr_cols <- dodgr_graph_cols (graph)
+        graph2 <- convert_graph (graph, gr_cols)
+        indx <- match (rcpp_sample_graph (graph2, nverts), graph$edge_id)
         graph <- graph [sort (indx), ]
     }
 

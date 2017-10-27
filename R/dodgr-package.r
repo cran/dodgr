@@ -27,8 +27,6 @@
 #' \itemize{
 #' \item \code{\link{dodgr_components}}: Number all graph edges according to
 #' their presence in distinct connected components.
-#' \item \code{\link{dodgr_convert_graph}}: Convert a graph of arbitrary form
-#' into a standardised, minimal form for submission to \code{dodgr} routines.
 #' \item \code{\link{dodgr_contract_graph}}: Contract a graph by removing
 #' redundant edges.
 #' }
@@ -45,7 +43,7 @@
 #' @name dodgr
 #' @docType package
 #' @importFrom igraph distances E make_directed_graph
-#' @importFrom magrittr %>%
+#' @importFrom magrittr %>% extract2
 #' @importFrom methods is
 #' @importFrom osmdata add_osm_feature getbb opq osmdata_sf
 #' @importFrom rbenchmark benchmark
@@ -84,4 +82,49 @@ NULL
 #' cols <- c ("osm_id", "highway", "oneway", "geometry")
 #' hampi <- hampi [, which (names (hampi) %in% cols)]
 #' }
+#' # this 'sf data.frame' can be converted to a 'dodgr' network with
+#' net <- weight_streetnet (hampi, wt_profile = 'foot')
+NULL
+
+#' os_roads_bristol
+#'
+#' A sample street network for Bristol, U.K., from the Ordnance Survey.
+#'
+#' @name os_roads_bristol
+#' @docType data
+#' @keywords datasets
+#' @format A Simple Features \code{sf} \code{data.frame} representing
+#' motorways in Bristol, UK.
+#'
+#' @note Input data downloaded from 
+#' \url{https://www.ordnancesurvey.co.uk/opendatadownload/products.html}.
+#' To download the data from that page click on the tick box next to
+#' 'OS Open Roads', scroll to the bottom, click 'Continue' and complete
+#' the form on the subsequent page.
+#' This dataset is open access and can be used under the
+#' \href{https://www.ordnancesurvey.co.uk/business-and-government/licensing/using-creating-data-with-os-products/os-opendata.html}{Open Government License} and must be cited as follows:
+#' Contains OS data © Crown copyright and database right (2017)
+#'  
+#' @examples \dontrun{
+#' library(sf)
+#' library(dplyr)
+#' os_roads <- sf::read_sf("~/data/ST_RoadLink.shp") # data must be unzipped here
+#' u <- "https://opendata.arcgis.com/datasets/686603e943f948acaa13fb5d2b0f1275_4.kml"
+#' lads <- sf::read_sf(u)
+#' mapview::mapview(lads)
+#' bristol_pol <- dplyr::filter(lads, grepl("Bristol", lad16nm))
+#' os_roads <- st_transform(os_roads, st_crs(lads))
+#' os_roads_bristol <- os_roads[bristol_pol, ] %>% 
+#'   dplyr::filter(class == "Motorway" & roadNumber != "M32") %>% 
+#'   st_zm(drop = TRUE)
+#' mapview::mapview(os_roads_bristol)
+#' }
+#' # Converting this 'sf data.frame' to a 'dodgr' network requires manual
+#' # specification of weighting profile:
+#' colnm <- "formOfWay" # name of column used to determine weights
+#' wts <- c (0.1, 0.2, 0.8, 1)
+#' names (wts) <- unique (os_roads_bristol [[colnm]])
+#' net <- weight_streetnet (os_roads_bristol, wt_profile = wts,
+#'                          type_col = colnm, id_col = "identifier")
+#' # 'id_col' tells the function which column to use to attribute IDs of ways
 NULL

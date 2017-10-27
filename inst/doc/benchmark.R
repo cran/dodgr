@@ -43,7 +43,7 @@ data.frame (num_edges, num_vertices, ratio = num_edges / num_vertices)
 #                        compare_heaps (i, nverts = 100, replications = 10))
 #  saveRDS (benchmarks, file = "benchmark_data.rds")
 
-## ----fig.width = 12, fig.height = 8--------------------------------------
+## ------------------------------------------------------------------------
 benchmarks <- readRDS ("benchmark_data.rds")
 elapsed <- unlist (purrr::map (benchmarks, "elapsed"))
 tests <- unlist (purrr::map (benchmarks, "test"))
@@ -62,41 +62,24 @@ num_vertices <- rep (num_vertices, each = n_tests)
 num_edges <- rep (num_edges, each = n_tests)
 bm <- data.frame (num_vertices, num_edges, ratio, Test = tests, elapsed)
 
+## ----fig.width = 12, fig.height = 8--------------------------------------
 library (ggplot2)
+library (RColorBrewer)
 library (scales)
 
-## ------------------------------------------------------------------------
-ggplot (bm) +
-    geom_line (aes (x = num_vertices, y = elapsed, colour = Test)) +
-    geom_point (aes (x = num_vertices, y = elapsed, colour = Test)) +
-    scale_x_log10 (breaks = trans_breaks ("log10", function (x) 10^x),
-                   labels = trans_format ("log10", math_format (10^.x))) +
-    scale_y_log10 (breaks = trans_breaks ("log10", function (x) 10^x),
-                   labels = trans_format ("log10", math_format (10^.x))) +
-    labs (title = "dodgr benchmark results",
-          x = "Number of vertices (log scale)", y = "Runtime [s] (log scale)") +
-    theme_bw (base_family = "TeX Gyre Bonum") +
-    theme (plot.title = element_text(hjust = 0.5),
-                    legend.box.background = element_rect ())
+bm_igraph <- bm [bm$Test == "igraph", ]
+bm_heaps <- bm [bm$Test != "igraph", ]
+igr_legend_num <- which (sort (unique (bm$Test)) == "igraph")
+pal <- brewer_pal (n_tests, "Paired")
+legend_cols <- pal (n_tests)
+legend_cols [igr_legend_num] <- "#000000FF"
 
-## ------------------------------------------------------------------------
-ggplot (bm) +
-    geom_line (aes (x = num_edges, y = elapsed, colour = Test)) +
-    geom_point (aes (x = num_edges, y = elapsed, colour = Test)) +
-    scale_x_log10 (breaks = trans_breaks ("log10", function (x) 10^x),
-                   labels = trans_format ("log10", math_format (10^.x))) +
-    scale_y_log10 (breaks = trans_breaks ("log10", function (x) 10^x),
-                   labels = trans_format ("log10", math_format (10^.x))) +
-    labs (title = "dodgr benchmark results",
-          x = "Number of edges (log scale)", y = "Runtime [s] (log scale)") +
-    theme_bw (base_family = "TeX Gyre Bonum") +
-    theme (plot.title = element_text(hjust = 0.5),
-                    legend.box.background = element_rect ())
-
-## ------------------------------------------------------------------------
-ggplot (bm) +
-    geom_line (aes (x = ratio, y = elapsed, colour = Test)) +
-    geom_point (aes (x = ratio, y = elapsed, colour = Test)) +
+ggplot (bm_heaps) +
+    geom_line (size = 0.8, aes (x = ratio, y = elapsed, colour = Test)) +
+    geom_point (size = 1.5, aes (x = ratio, y = elapsed, colour = Test)) +
+    geom_line (data = bm_igraph, size = 1.1, aes (x = ratio, y = elapsed, colour = "igraph")) +
+    geom_point (data = bm_igraph, size = 1.5, aes (x = ratio, y = elapsed, colour = "igraph")) +
+    scale_color_manual (values = legend_cols) +
     scale_x_log10 (breaks = trans_breaks ("log10", function (x) 10^x),
                    labels = trans_format ("log10", math_format (10^.x))) +
     scale_y_log10 (breaks = trans_breaks ("log10", function (x) 10^x),

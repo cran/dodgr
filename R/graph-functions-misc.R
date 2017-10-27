@@ -9,8 +9,10 @@
 is_graph_spatial <- function (graph)
 {
     ncol (graph) > 4 &
-        (any (grepl ("x", names (graph), ignore.case = TRUE)) |
-         any (grepl ("y", names (graph), ignore.case = TRUE)) |
+        (any (grepl ("x", names (graph) [find_fr_col (graph)],
+                     ignore.case = TRUE)) |
+         any (grepl ("y", names (graph) [find_to_col (graph)],
+                     ignore.case = TRUE)) |
          any (grepl ("lon", names (graph), ignore.case = TRUE)) |
          any (grepl ("lat", names (graph), ignore.case = TRUE)))
 }
@@ -84,6 +86,10 @@ find_xy_col <- function (graph, indx, x = TRUE)
 }
 
 #' find_spatial_cols
+#'
+#' @return \code{fr_col} and \code{to_col} as vectors of 2 values of \code{x}
+#' then \code{y} coordinates
+#'
 #' @noRd
 find_spatial_cols <- function (graph)
 {
@@ -149,6 +155,36 @@ find_w_col <- function (graph)
     return (w_col)
 }
 
+#' find_xy_col_simple
+#'
+#' Find the x and y cols of a simple data.frame of verts of xy points (used only
+#' in match_pts_to_graph).
+#' @param dfr Either the result of \code{dodgr_vertices}, or a \code{data.frame}
+#' or equivalent structure (matrix, \pkg{tibble}) of spatial points.
+#' @return Vector of two values of location of x and y columns
+#' @noRd
+find_xy_col_simple <- function (dfr)
+{
+    nms <- names (dfr)
+    if (is.null (nms))
+        nms <- colnames (dfr)
+
+    if (!is.null (nms))
+    {
+        ix <- which (grepl ("x", nms, ignore.case = TRUE) |
+                     grepl ("lon", nms, ignore.case = TRUE))
+        iy <- which (grepl ("y", nms, ignore.case = TRUE) |
+                     grepl ("lat", nms, ignore.case = TRUE))
+    } else
+    {
+        # verts always has cols, so this can only happen for dfr = xy
+        message ("xy has no named columns; assuming order is x then y")
+        ix <- 1
+        iy <- 2
+    }
+    c (ix, iy)
+}
+
 #' match_pts_to_graph
 #'
 #' Match spatial points to a spatial graph which contains vertex coordindates
@@ -158,7 +194,20 @@ find_w_col <- function (graph)
 #' @param xy coordinates of points to be matched to the vertices
 #'
 #' @return A vector index into verts
-#' @noRd
+#' @export
+#' @examples
+#' net <- weight_streetnet (hampi, wt_profile = "foot")
+#' verts <- dodgr_vertices (net)
+#' # Then generate some random points to match to graph
+#' npts <- 10
+#' xy <- data.frame (
+#'                   x = min (verts$x) + runif (npts) * diff (range (verts$x)),
+#'                   y = min (verts$y) + runif (npts) * diff (range (verts$y))
+#'                   )
+#' pts <- match_pts_to_graph (verts, xy)
+#' pts # an index into verts
+#' pts <- verts$id [pts]
+#' pts # names of those vertices
 match_pts_to_graph <- function (verts, xy)
 {
     if (!(is.matrix (xy) | is.data.frame (xy)))
@@ -166,23 +215,12 @@ match_pts_to_graph <- function (verts, xy)
     if (ncol (xy) != 2)
         stop ("xy must have only two columns")
 
-    nms <- names (verts)
-    if (is.null (nms))
-        nms <- colnames (verts)
-    if (!is.null (nms))
-    {
-        ix <- which (grepl ("x", nms, ignore.case = TRUE) |
-                     grepl ("lon", nms, ignore.case = TRUE))
-        iy <- which (grepl ("y", nms, ignore.case = TRUE) |
-                     grepl ("lat", nms, ignore.case = TRUE))
-    } else
-    {
-        message ("xy has no named columns; assuming order is x then y")
-        ix <- 1
-        iy <- 2
-    }
-
-    verts <- data.frame (x = verts [, ix], y = verts [, iy])
+    xyi <- find_xy_col_simple (verts)
+    verts <- data.frame (x = verts [, xyi [1]], y = verts [, xyi [2]])
+    if (is (xy, "tbl"))
+        xy <- data.frame (xy)
+    xyi <- find_xy_col_simple (xy)
+    xy <- data.frame (x = xy [, xyi [1]], y = xy [, xyi [2]])
 
     rcpp_points_index (verts, xy)
 }

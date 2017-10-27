@@ -36,7 +36,8 @@ cbind (x, y)
 
 ## ----dodgr-dists-in-york, eval = FALSE-----------------------------------
 #  system.time(
-#              d <- dodgr_dists (from = xy, wt_profile = "foot", quiet = FALSE)
+#              d <- dodgr_dists (from = xy, to = xy,
+#                                wt_profile = "foot", quiet = FALSE)
 #              )
 
 ## ----dists-york-message, echo = FALSE------------------------------------
@@ -65,11 +66,8 @@ c (0.00000, 46.60609)
 ## ----hampi-call----------------------------------------------------------
 class (hampi)
 
-## ----hampi-geom-class, eval = FALSE--------------------------------------
-#  class (hampi$geometry)
-
-## ----hampi-geom-class-output, echo = FALSE-------------------------------
-c ("sfc_LINESTRING", "sfc")
+## ----hampi-geom-class----------------------------------------------------
+class (hampi$geometry)
 
 ## ----hampi-dim-----------------------------------------------------------
 dim (hampi)
@@ -132,6 +130,18 @@ weighting_profiles [weighting_profiles$name == "foot", ]
 
 ## ----hampi-highway-types-------------------------------------------------
 table (graph$highway)
+
+## ----hampi-bristol-comp--------------------------------------------------
+names (hampi) # many fields manually removed to reduce size of this object
+names (os_roads_bristol)
+
+## ----wt-bristol----------------------------------------------------------
+colnm <- "formOfWay"
+table (os_roads_bristol [[colnm]])
+wts <- c (0.1, 0.2, 0.8, 1)
+names (wts) <- unique (os_roads_bristol [[colnm]])
+net <- weight_streetnet (os_roads_bristol, wt_profile = wts,
+                         type_col = colnm, id_col = "identifier")
 
 ## ----dodgr-sample--------------------------------------------------------
 graph_sub <- dodgr_sample (graph, nverts = 100)
@@ -198,29 +208,93 @@ compare_heaps (graph, nverts = 100, replications = 1)
 #  d <- igraph::distances (igr, v = pts, to = pts, mode = "out")
 
 ## ----contract-graph------------------------------------------------------
-grc <- dodgr_contract_graph (graph)
+grc <- dodgr_contract_graph (graph)$graph
 
 ## ----contract-graph-structure--------------------------------------------
 nrow (graph); nrow (grc); nrow (grc) / nrow (graph)
 
-## ----convert-graph-------------------------------------------------------
-graph <- dodgr_convert_graph (graph)$graph
-grc <- dodgr_convert_graph (grc)$graph
-names (grc)
-
 ## ----benchmark1----------------------------------------------------------
-from <- sample (grc$from, size = 100)
-to <- sample (grc$to, size = 100)
+from <- sample (grc$from_id, size = 100)
+to <- sample (grc$to_id, size = 100)
 rbenchmark::benchmark (
                        d2 <- dodgr_dists (grc, from = from, to = to),
                        d2 <- dodgr_dists (graph, from = from, to = to),
                        replications = 2)
 
 ## ----contracted-with-verts-----------------------------------------------
-grc <- dodgr_contract_graph (graph)
+grc <- dodgr_contract_graph (graph)$graph
 nrow (grc)
 verts <- sample (dodgr_vertices (graph)$id, size = 100)
 head (verts) # a character vector
-grc <- dodgr_contract_graph (graph, verts)
+grc <- dodgr_contract_graph (graph, verts)$graph
 nrow (grc)
+
+## ------------------------------------------------------------------------
+dp <- dodgr_paths (graph, from = from, to = to)
+
+## ------------------------------------------------------------------------
+graph <- weight_streetnet (hampi)
+head (graph)
+
+## ------------------------------------------------------------------------
+from <- sample (graph$from_id, size = 10)
+to <- sample (graph$to_id, size = 5)
+dp <- dodgr_paths (graph, from = from, to = to)
+length (dp)
+
+## ---- eval = FALSE-------------------------------------------------------
+#  dp [[1]] [[1]]
+
+## ---- echo = FALSE-------------------------------------------------------
+n <- 0
+i <- 0
+while (all (n == 0))
+{
+    i <- i + 1
+    n <- which (lapply (dp [[i]], length) > 0)
+}
+j <- n [1]
+dp [[i]] [[j]]
+
+## ---- eval = FALSE-------------------------------------------------------
+#  verts <- dodgr_vertices (graph)
+#  path1 <- verts [match (dp [[1]] [[1]], verts$id), ]
+#  head (path1)
+
+## ---- echo = FALSE-------------------------------------------------------
+verts <- dodgr_vertices (graph)
+path1 <- verts [match (dp [[i]] [[j]], verts$id), ]
+head (path1)
+
+## ------------------------------------------------------------------------
+graph <- weight_streetnet (hampi)
+from <- sample (graph$from_id, size = 10)
+to <- sample (graph$to_id, size = 10)
+flows <- matrix (10 * runif (length (from) * length (to)),
+                 nrow = length (from))
+
+## ------------------------------------------------------------------------
+graph_f <- dodgr_flows (graph, from = from, to = to, flows = flows)
+head (graph_f)
+
+## ------------------------------------------------------------------------
+summary (graph_f$flow)
+
+## ------------------------------------------------------------------------
+graph_undir <- merge_directed_flows (graph_f)
+
+## ------------------------------------------------------------------------
+nrow (graph_f); nrow (graph_undir) # the latter is much smaller
+
+## ------------------------------------------------------------------------
+graph <- graph [graph_undir$edge_id, ]
+graph$flow <- graph_undir$flow
+
+## ---- message = FALSE----------------------------------------------------
+library (ggplot2)
+ggplot() + labs (x = "longitude", y = "latitude") +
+        geom_segment (data = graph, size = 5 * graph$flow / max (graph$flow),
+                      aes (x = from_lon, y = from_lat, xend = to_lon, yend = to_lat,
+                           colour = flow, size = flow)) +
+        scale_colour_gradient (low = "lawngreen", high = "dodgerblue")
 
