@@ -16,7 +16,7 @@
  * (points to a heap descriptor object) specifies then heap to be used by
  * Dijkstra's algorithm.
  */
-Dijkstra::Dijkstra(int n, HeapDesc *heapD)
+Dijkstra::Dijkstra(unsigned int n, HeapDesc *heapD)
 {
     heap = heapD->newInstance(n);    
     s = new bool[n];
@@ -42,7 +42,7 @@ void Dijkstra::init(const DGraph *g) {
  * This assumes that the array d has been initialised with d[v] = INFINITE_DIST
  * for all vertices v != v0.
  */
-void Dijkstra::run(float *d, float *w, int *prev, unsigned int v0)
+void Dijkstra::run(double *d, double *w, int *prev, unsigned int v0)
 {
     /* indexes, counters, pointers */
     const DGraphEdge *edge;
@@ -80,11 +80,11 @@ void Dijkstra::run(float *d, float *w, int *prev, unsigned int v0)
             unsigned int et = edge->target;
 
             if (!s[et]) {
-                float wt = w [v] + edge->wt;
+                double wt = w [v] + edge->wt;
                 if (wt < w [et]) {
                     d [et] = d [v] + edge->dist;
                     w [et] = wt;
-                    prev [et] = (int) v;
+                    prev [et] = static_cast <int> (v);
                     if (f [et]) {
                         heap->decreaseKey(et, wt);
                     }

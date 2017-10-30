@@ -1,6 +1,6 @@
 Package: dodgr
 Title: Distances on Directed Graphs
-Version: 0.0.2
+Version: 0.0.3
 Authors@R: c(
     person("Mark", "Padgham", email="mark.padgham@email.com", role=c("aut", "cre")),
     person("Andreas", "Peutschnig", role="aut"),
@@ -28,11 +28,11 @@ LazyData: true
 URL: https://github.com/gmost/dodgr
 BugReports: https://github.com/gmost/dodgr/issues
 RoxygenNote: 6.0.1
-Packaged: 2017-10-27 11:35:55 UTC; markus
+Packaged: 2017-10-30 18:36:50 UTC; markus
 Author: Mark Padgham [aut, cre],
   Andreas Peutschnig [aut],
   Shane Saunders [cph] (Original author of included code for priority
     heaps)
 Maintainer: Mark Padgham <mark.padgham@email.com>
 Repository: CRAN
-Date/Publication: 2017-10-27 13:01:05 UTC
+Date/Publication: 2017-10-30 19:49:00 UTC

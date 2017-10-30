@@ -5,13 +5,16 @@
  *  Shane Saunders
  */
 
+#include <stdexcept> // runtime_error
+
+
 /* --- Heap --- 
  * This is an abstract base class from which specific heap classes can be
  * derived.  Different heaps derived from this abstract base class can be used
  * interchangeably by algorithms that were written using the universal
  * interface it provides.
  *
- * This heap stores integer items, and associates with each item a float
+ * This heap stores integer items, and associates with each item a double
  * key.  Any derived heap heap must provide the following methods:
  *
  * deleteMin()    - removes the item with the minimum key from the heap, and
@@ -25,25 +28,25 @@
  */
 class Heap {
     public:
-        virtual ~Heap() { };
+        virtual ~Heap(){}
         virtual unsigned int deleteMin() = 0;
-        virtual void insert(int item, float key) = 0;
-        virtual void decreaseKey(int item, float newKey) = 0;
-        virtual int nItems() const = 0;
-        virtual long nComps() const = 0;
+        virtual void insert(unsigned int item, double key) = 0;
+        virtual void decreaseKey(unsigned int item, double newKey) = 0;
+        virtual unsigned int nItems() const = 0;
+        virtual long int nComps() const = 0;
         virtual void dump() const = 0;
 };
 
 class HeapDesc {
     public:
-        virtual ~HeapDesc() { };
-        virtual Heap *newInstance(int n) const = 0;
+        virtual ~HeapDesc(){}
+        virtual Heap *newInstance(unsigned int n) const = 0;
 };
 
 template <class T>
 class HeapD: public HeapDesc {
     public:
-        Heap *newInstance(int n) const { return new T(n); };
+        Heap *newInstance(unsigned int n) const { return new T(n); }
 };
 
 

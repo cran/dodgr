@@ -4,7 +4,7 @@
  */
 #include <cstdlib>
 #include <cmath>
-#if FHEAP_DUMP
+#if defined(FHEAP_DUMP) && FHEAP_DUMP > 0
 #include <cstdio>
 #endif
 #include "fheap.h"
@@ -14,20 +14,20 @@
 /* --- Constructor ---
  * Creates an FHeap object capable of holding up to $n$ items.
  */
-FHeap::FHeap(int n)
+FHeap::FHeap(unsigned int n)
 {
-    int i;
 #if FHEAP_DUMP
     Rcpp::Rcout << "new, ";
 #endif
-    maxTrees = 1 + (int)(1.44 * log((double) n)/log(2.0));
+    maxTrees = 1 + static_cast <unsigned int>(1.44 *
+            log(static_cast <double> (n)) / log (2.0));
     maxNodes = n;
 
     trees = new FHeapNode *[maxTrees];
-    for(i = 0; i < maxTrees; i++) trees[i] =0;
+    for(unsigned int i = 0; i < maxTrees; i++) trees[i] = std::nullptr_t ();
 
     nodes = new FHeapNode *[n];
-    for(i = 0; i < n; i++) nodes[i] = 0;
+    for(unsigned int i = 0; i < n; i++) nodes[i] =  std::nullptr_t ();
 
     itemCount = 0;
 
@@ -50,13 +50,11 @@ FHeap::FHeap(int n)
 */
 FHeap::~FHeap()
 {
-    int i;
-
 #if FHEAP_DUMP
     Rcpp::Rcout << "delete, ";
 #endif
 
-    for(i = 0; i < maxNodes; i++) delete nodes[i];
+    for(unsigned int i = 0; i < maxNodes; i++) delete nodes[i];
     delete [] nodes;
     delete [] trees;
 
@@ -68,7 +66,7 @@ FHeap::~FHeap()
 /* --- insert() ---
  * Inserts an item $item$ with associated key $k$ into the heap.
  */
-void FHeap::insert(int item, float k)
+void FHeap::insert(unsigned int item, double k)
 {
     FHeapNode *newNode;
 
@@ -78,7 +76,7 @@ void FHeap::insert(int item, float k)
 
     /* create an initialise the new node */
     newNode = new FHeapNode;
-    newNode->child = NULL;
+    newNode->child = std::nullptr_t ();
     newNode->left = newNode->right = newNode;
     newNode->rank = 0;
     newNode->item = item;
@@ -104,7 +102,7 @@ void FHeap::insert(int item, float k)
 unsigned int FHeap::deleteMin()
 {
     FHeapNode *minNode, *child, *next;
-    float k, k2;
+    double k, k2;
     unsigned int r, v, item;
 
 #if FHEAP_DUMP
@@ -113,11 +111,15 @@ unsigned int FHeap::deleteMin()
 
     /* First we determine the maximum rank in the heap. */
     v = treeSum;
-    r = -1;
+    // MP Note: r was an int formerly intialised at -1, but it's used as a
+    // direct array index below, so really should be unsigned! The r-- at end
+    // fixes that.
+    r = 0;
     while(v) {
         v = v >> 1;
         r++;
     };
+    r--;
 
     /* Now determine which root node is the minimum. */
     minNode = trees[r];
@@ -136,7 +138,7 @@ unsigned int FHeap::deleteMin()
 
     /* We remove the minimum node from the heap but keep a pointer to it. */
     r = minNode->rank;
-    trees[r] = NULL;
+    trees[r] = std::nullptr_t ();
     treeSum -= (1 << r);
 
     child = minNode->child;
@@ -144,7 +146,7 @@ unsigned int FHeap::deleteMin()
 
     /* Record the vertex no of the old minimum node before deleting it. */
     item = minNode->item;
-    nodes[item] = NULL;
+    nodes[item] = std::nullptr_t ();
     delete minNode;
     itemCount--;
 
@@ -159,10 +161,10 @@ unsigned int FHeap::deleteMin()
  * Decreases the key used for item $item$ to the value newValue.  It is left
  * for the user to ensure that newValue is in-fact less than the current value
  */
-void FHeap::decreaseKey(int item, float newValue)
+void FHeap::decreaseKey(unsigned int item, double newValue)
 {
     FHeapNode *cutNode, *parent, *newRoots, *r, *l;
-    int prevRank;
+    unsigned int prevRank;
 
 #if FHEAP_DUMP
     Rcpp::Rcout << "decreaseKey on vn = " << item << ", ";
@@ -205,7 +207,7 @@ void FHeap::decreaseKey(int item, float newValue)
             if(parent->child == cutNode) parent->child = r;
         }
         else {
-            parent->child = NULL;
+            parent->child = std::nullptr_t ();
         }
 
         /* Update the cutNode and parent pointers to the parent. */
@@ -233,7 +235,7 @@ void FHeap::decreaseKey(int item, float newValue)
      */
     if(!parent) {
         prevRank = cutNode->rank + 1;
-        trees[prevRank] = NULL;
+        trees[prevRank] = std::nullptr_t ();
         treeSum -= (1 << prevRank);
     }
     else {
@@ -244,7 +246,7 @@ void FHeap::decreaseKey(int item, float newValue)
             if(parent->child == cutNode) parent->child = r;
         }
         else {
-            parent->child = NULL;
+            parent->child = std::nullptr_t ();
         }
 
         parent->marked = 1;
@@ -266,7 +268,7 @@ void FHeap::decreaseKey(int item, float newValue)
 void FHeap::meld(FHeapNode *treeList)
 {
     FHeapNode *first, *next, *nodePtr, *newRoot, *temp, *temp2, *lc, *rc;
-    int r;
+    unsigned int r;
 
 #if FHEAP_DUMP
     Rcpp::Rcout << "meld: ";
@@ -290,7 +292,7 @@ void FHeap::meld(FHeapNode *treeList)
          */
         next = nodePtr->right;
         nodePtr->right = nodePtr->left = nodePtr;
-        nodePtr->parent = NULL;
+        nodePtr->parent = std::nullptr_t ();
 
         /* We merge the current node, nodePtr, by inserting it into the
          * root level of the heap.
@@ -312,7 +314,7 @@ void FHeap::meld(FHeapNode *treeList)
                 /* temp will be linked to newRoot and relocated so we no
                  * longer will have a tree of degree r.
                  */
-                trees[r] = NULL;
+                trees[r] = std::nullptr_t ();
                 treeSum -= (1 << r);
 
                 /* Swap temp and newRoot if necessary so that newRoot always
@@ -378,14 +380,14 @@ void FHeap::meld(FHeapNode *treeList)
  * Recursively print a text representation of the node subtree starting at the
  * node poined to by $node$, using an indentationlevel of $level$.
  */
-void FHeap::dumpNodes(FHeapNode *node, int level)
+void FHeap::dumpNodes(FHeapNode *node, unsigned int level)
 {
 #if FHEAP_DUMP
     FHeapNode *childNode, *partner;
-    int i, childCount;
+    unsigned int childCount;
 
     /* Print leading whitespace for this level. */
-    for(i = 0; i < level; i++)
+    for(unsigned int i = 0; i < level; i++)
         Rcpp::Rcout << "   ";
 
     Rcpp::Rcout << node->item << "(" << node->key << ")[" << node->rank <<
@@ -399,11 +401,11 @@ void FHeap::dumpNodes(FHeapNode *node, int level)
         do {
             dumpNodes(childNode, level+1);
             if(childNode->dim > node->dim) {
-                for(i = 0; i < level+1; i++) Rcpp::Rcout << "   ";
+                for(unsigned int i = 0; i < level+1; i++) Rcpp::Rcout << "   ";
                 throw std::runtime_error ("error(dim)");
             }
             if(childNode->parent != node) {
-                for(i = 0; i < level+1; i++) Rcpp::Rcout << "   ";
+                for(unsigned int i = 0; i < level+1; i++) Rcpp::Rcout << "   ";
                 throw std::runtime_error ("error(parent)");
             }
             childNode = childNode->right;
@@ -411,13 +413,13 @@ void FHeap::dumpNodes(FHeapNode *node, int level)
         } while(childNode != node->child->right);
 
         if(childCount != node->dim) {
-            for(i = 0; i < level; i++) Rcpp::Rcout << "   ";
+            for(unsigned int i = 0; i < level; i++) Rcpp::Rcout << "   ";
             throw std::runtime_error ("error(childCount)");
         }
     }
     else { 
         if(node->dim != 0) {
-            for(i = 0; i < level; i++) Rcpp::Rcout << "   ";
+            for(unsigned int i = 0; i < level; i++) Rcpp::Rcout << "   ";
             throw std::runtime_error ("error(dim)");
         }
     }
@@ -430,18 +432,17 @@ void FHeap::dumpNodes(FHeapNode *node, int level)
 void FHeap::dump() const
 {
 #if FHEAP_DUMP
-    int i;
     FHeapNode *node;
 
     Rcpp::Rcout << std::endl;
     Rcpp::Rcout << "treeSum = " << treeSum << std::endl;
     Rcpp::Rcout << "array entries 0..maxTrees =";
-    for(i = 0; i < maxTrees; i++) {
+    for(unsigned int i = 0; i < maxTrees; i++) {
         bool tempval = trees [i] ? 1 : 0;
         Rcpp::Rcout << " " << tempval;
     }
     Rcpp::Rcout << std::endl << std::endl;
-    for(i = 0; i < maxTrees; i++) {
+    for(unsigned int i = 0; i < maxTrees; i++) {
         if((node = trees[i])) {
             Rcpp::Rcout << "tree " << i;
             dumpNodes(node, 0);

@@ -14,11 +14,11 @@ class DGraph;    // Graph
  */
 class Dijkstra {
     public:
-        Dijkstra(int n, HeapDesc *heapD);
+        Dijkstra(unsigned int n, HeapDesc *heapD);
         ~Dijkstra();
 
         void init(const DGraph *g);
-        void run(float *d, float *w, int *prev, unsigned int s = 0);
+        void run(double *d, double *w, int *prev, unsigned int s = 0);
 
     private:
         Heap *heap;        // pointer: heap
