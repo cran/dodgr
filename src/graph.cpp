@@ -1,7 +1,6 @@
 #include "graph.h"
 
-
-void add_to_v2e_map (vert2edge_map_t &vert2edge_map, const vertex_id_t vid,
+void graph::add_to_v2e_map (vert2edge_map_t &vert2edge_map, const vertex_id_t vid,
         const edge_id_t eid)
 {
     std::unordered_set <edge_id_t> edge_ids;
@@ -17,8 +16,8 @@ void add_to_v2e_map (vert2edge_map_t &vert2edge_map, const vertex_id_t vid,
     }
 }
 
-void erase_from_v2e_map (vert2edge_map_t &vert2edge_map, const vertex_id_t vid,
-        const edge_id_t eid)
+void graph::erase_from_v2e_map (vert2edge_map_t &vert2edge_map,
+        const vertex_id_t vid, const edge_id_t eid)
 {
     std::unordered_set <edge_id_t> edge_ids = vert2edge_map [vid];
     if (edge_ids.find (eid) != edge_ids.end ())
@@ -33,29 +32,28 @@ void erase_from_v2e_map (vert2edge_map_t &vert2edge_map, const vertex_id_t vid,
 //' Does a graph have a vector of connected component IDs? Only used in
 //' \code{sample_one_vertex}
 //' @noRd
-bool graph_has_components (const Rcpp::DataFrame &graph)
+bool graph::graph_has_components (const Rcpp::DataFrame &graph)
 {
     Rcpp::CharacterVector graph_names = graph.attr ("names");
-    bool has_comps = false;
     for (auto n: graph_names)
         if (n == "component")
-            has_comps = true;
+            return true;
 
-    return has_comps;
+    return false;
 }
 
 
 //' graph_from_df
 //'
-//' Convert a standard graph data.frame into an object of class graph. Graphs
-//' are standardised with the function \code{dodgr_convert_graph()$graph}, and contain
-//' only the four columns [from, to, d, w]
+//' Convert a standard graph data.frame into an object of class graph. Graphs '
+//are standardised with the function \code{dodgr_convert_graph()$graph}, and
+//contain ' only the four columns [from, to, d, w]
 //'
 //' @noRd
-void graph_from_df (const Rcpp::DataFrame &gr, vertex_map_t &vm,
+void graph::graph_from_df (const Rcpp::DataFrame &gr, vertex_map_t &vm,
         edge_map_t &edge_map, vert2edge_map_t &vert2edge_map)
 {
-    Rcpp::StringVector edge_id = gr ["id"];
+    Rcpp::StringVector edge_id = gr ["edge_id"];
     Rcpp::StringVector from = gr ["from"];
     Rcpp::StringVector to = gr ["to"];
     Rcpp::NumericVector dist = gr ["d"];
@@ -65,6 +63,7 @@ void graph_from_df (const Rcpp::DataFrame &gr, vertex_map_t &vm,
 
     for (int i = 0; i < to.length (); i ++)
     {
+        Rcpp::checkUserInterrupt ();
         vertex_id_t from_id = std::string (from [i]);
         vertex_id_t to_id = std::string (to [i]);
 
@@ -88,12 +87,16 @@ void graph_from_df (const Rcpp::DataFrame &gr, vertex_map_t &vm,
 
         edge_id_t edge_id_str = Rcpp::as <edge_id_t> (edge_id [i]);
 
-        edge_t edge = edge_t (from_id, to_id, dist [i], weight [i],
+        double wt = weight [i];
+        if (weight [i] < 0.0)
+            wt = INFINITE_DOUBLE;
+
+        edge_t edge = edge_t (from_id, to_id, dist [i], wt,
                 edge_id_str, replacement_edges);
 
         edge_map.emplace (edge_id_str, edge);
-        add_to_v2e_map (vert2edge_map, from_id, edge_id_str);
-        add_to_v2e_map (vert2edge_map, to_id, edge_id_str);
+        graph::add_to_v2e_map (vert2edge_map, from_id, edge_id_str);
+        graph::add_to_v2e_map (vert2edge_map, to_id, edge_id_str);
     }
 }
 
@@ -106,7 +109,7 @@ void graph_from_df (const Rcpp::DataFrame &gr, vertex_map_t &vm,
 //' @param v unordered_map <vertex_id_t, vertex_t>
 //' @param com component map from each vertex to component numbers
 //' @noRd
-unsigned int identify_graph_components (vertex_map_t &v,
+unsigned int graph::identify_graph_components (vertex_map_t &v,
         std::unordered_map <vertex_id_t, unsigned int> &com)
 {
     // initialize components map
@@ -120,6 +123,7 @@ unsigned int identify_graph_components (vertex_map_t &v,
     unsigned int compnum = 0;
     while (all_verts.size () > 0)
     {
+        Rcpp::checkUserInterrupt ();
         vertex_id_t vt = (*nbs_todo.begin ());
         all_verts.erase (vt);
 
@@ -174,10 +178,11 @@ Rcpp::List rcpp_get_component_vector (const Rcpp::DataFrame &graph)
     edge_map_t edge_map;
     vert2edge_map_t vert2edge_map;
 
-    graph_from_df (graph, vertices, edge_map, vert2edge_map);
+    graph::graph_from_df (graph, vertices, edge_map, vert2edge_map);
 
     std::unordered_map <vertex_id_t, unsigned int> components;
-    unsigned int largest_component = identify_graph_components (vertices, components);
+    unsigned int largest_component =
+        graph::identify_graph_components (vertices, components);
     largest_component++; // suppress unused variable warning
 
     // Then map component numbers of vertices onto edges

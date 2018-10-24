@@ -4,12 +4,12 @@
 \alias{weight_streetnet}
 \title{weight_streetnet}
 \usage{
-weight_streetnet(sf_lines, wt_profile = "bicycle", type_col = "highway",
-  id_col = "osm_id")
+weight_streetnet(sf_lines, wt_profile = "bicycle",
+  type_col = "highway", id_col = "osm_id", keep_cols = NULL)
 }
 \arguments{
 \item{sf_lines}{A street network represented as \code{sf} \code{LINESTRING}
-objects, typically extracted with \code{get_streetnet}}
+objects, typically extracted with \code{dodgr_streetnet}}
 
 \item{wt_profile}{Name of weighting profile, or vector of values with names
 corresponding to names in \code{type_col}}
@@ -21,6 +21,10 @@ which designates different types of highways to be used for weighting
 \item{id_col}{Specify column of the code{sf} \code{data.frame} object which
 provides unique identifiers for each highway (default works with
 \code{osmdata} objects).}
+
+\item{keep_cols}{Vectors of columns from \code{sf_lines} to be kept in the
+resultant \code{dodgr} network; vector can be either names or indices of
+desired columns.}
 }
 \value{
 A \code{data.frame} of edges representing the street network, along

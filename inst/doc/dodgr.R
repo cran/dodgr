@@ -84,7 +84,6 @@ dim (hampi)
 library (magrittr)
 
 ## ----hampi-osmplotr-to-file, echo = FALSE, eval = FALSE------------------
-#  devtools::load_all ("../../osmplotr", export_all = FALSE)
 #  map <- osm_basemap (hampi, bg = "gray95") %>%
 #      add_osm_objects (hampi, col = "gray5") %>%
 #      add_axes () %>%
@@ -246,15 +245,21 @@ length (dp)
 #  dp [[1]] [[1]]
 
 ## ---- echo = FALSE-------------------------------------------------------
-n <- 0
-i <- 0
-while (all (n == 0))
+# make sure there are some paths:
+maxlen <- max (unlist (lapply (dp, function (i)
+                               max (unlist (lapply (i, length))))))
+if (maxlen > 0)
 {
-    i <- i + 1
-    n <- which (lapply (dp [[i]], length) > 0)
+    n <- 0
+    i <- 0
+    while (all (n == 0))
+    {
+        i <- i + 1
+        n <- which (lapply (dp [[i]], length) > 0)
+    }
+    j <- n [1]
+    dp [[i]] [[j]]
 }
-j <- n [1]
-dp [[i]] [[j]]
 
 ## ---- eval = FALSE-------------------------------------------------------
 #  verts <- dodgr_vertices (graph)
@@ -274,10 +279,15 @@ flows <- matrix (10 * runif (length (from) * length (to)),
                  nrow = length (from))
 
 ## ------------------------------------------------------------------------
-graph_f <- dodgr_flows (graph, from = from, to = to, flows = flows)
+graph_f <- dodgr_flows_aggregate (graph, from = from, to = to, flows = flows)
 head (graph_f)
 
 ## ------------------------------------------------------------------------
+summary (graph_f$flow)
+
+## ------------------------------------------------------------------------
+dens <- rep (1, length (from)) # uniform densities
+graph_f <- dodgr_flows_disperse (graph, from = from, dens = dens)
 summary (graph_f$flow)
 
 ## ------------------------------------------------------------------------
@@ -290,11 +300,7 @@ nrow (graph_f); nrow (graph_undir) # the latter is much smaller
 graph <- graph [graph_undir$edge_id, ]
 graph$flow <- graph_undir$flow
 
-## ---- message = FALSE----------------------------------------------------
-library (ggplot2)
-ggplot() + labs (x = "longitude", y = "latitude") +
-        geom_segment (data = graph, size = 5 * graph$flow / max (graph$flow),
-                      aes (x = from_lon, y = from_lat, xend = to_lon, yend = to_lat,
-                           colour = flow, size = flow)) +
-        scale_colour_gradient (low = "lawngreen", high = "dodgerblue")
+## ------------------------------------------------------------------------
+graph_f <- graph_f [graph_f$flow > 0, ]
+dodgr_flowmap (graph_f, linescale = 5)
 

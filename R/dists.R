@@ -17,10 +17,12 @@
 #' Fibonacci Heap (default; \code{FHeap}), Binary Heap (\code{BHeap}),
 #' \code{Radix}, Trinomial Heap (\code{TriHeap}), Extended Trinomial Heap
 #' (\code{TriHeapExt}, and 2-3 Heap (\code{Heap23}).
+#' @param parallel If \code{TRUE}, perform routing calculation in parallel (see
+#' details)
 #' @param quiet If \code{FALSE}, display progress messages on screen.
 #' @return square matrix of distances between nodes
 #'
-#' @note \code{graph} must minimally contain four columns of \code{from},
+#' @note \code{graph} must minimally contain three columns of \code{from},
 #' \code{to}, \code{dist}. If an additional column named \code{weight} or
 #' \code{wt} is present, shortest paths are calculated according to values
 #' specified in that column; otherwise according to \code{dist} values. Either
@@ -45,7 +47,12 @@
 #' \code{to} are specified, pairwise distances are calculated between all nodes
 #' in \code{graph}.
 #'
-#' @export
+#' Calculations in parallel (\code{parallel = TRUE}) ought very generally be
+#' advantageous. For small graphs, Calculating distances in parallel is likely
+#' to offer relatively little gain in speed, but increases from parallel
+#' computation will generally markedly increase with increasing graph sizes.
+#'
+#' @export 
 #' @examples
 #' # A simple graph
 #' graph <- data.frame (from = c ("A", "B", "B", "B", "C", "C", "D", "D"),
@@ -59,8 +66,37 @@
 #' to <- sample (graph$to_id, size = 50)
 #' d <- dodgr_dists (graph, from = from, to = to)
 #' # d is a 100-by-50 matrix of distances between \code{from} and \code{to}
-dodgr_dists <- function (graph, from, to, wt_profile = "bicycle",
-                         expand = 0, heap = 'BHeap', quiet = TRUE)
+#'
+#' \dontrun{
+#' # a more complex street network example, thanks to @chrijo; see
+#' # https://github.com/ATFutures/dodgr/issues/47
+#'
+#' xy <- rbind (c (7.005994, 51.45774), # limbeckerplatz 1 essen germany
+#'              c (7.012874, 51.45041)) # hauptbahnhof essen germany
+#' xy <- data.frame (lon = xy [, 1], lat = xy [, 2])
+#' essen <- dodgr_streetnet (pts = xy, expand = 0.2, quiet = FALSE)
+#' graph <- weight_streetnet (essen, wt_profile = "foot")
+#' d <- dodgr_dists (graph, from = xy, to = xy)
+#' # First reason why this does not work is because the graph has multiple,
+#' # disconnected components.
+#' table (graph$component)
+#' # reduce to largest connected component, which is always number 1
+#' graph <- graph [which (graph$component == 1), ]
+#' d <- dodgr_dists (graph, from = xy, to = xy)
+#' # should work, but even then note that
+#' table (essen$level)
+#' # There are parts of the network on different building levels (because of
+#' # shopping malls and the like). These may or may not be connected, so it may be
+#' # necessary to filter out particular levels
+#' levs <- paste0 (essen$level) # because sf data are factors
+#' index <- which (! (levs == "-1" | levs == "1")) # for example
+#' library (sf) # needed for following sub-select operation
+#' essen <- essen [index, ]
+#' graph <- weight_streetnet (essen, wt_profile = "foot")
+#' d <- dodgr_dists (graph, from = xy, to = xy)
+#' }
+dodgr_dists <- function (graph, from, to, wt_profile = "bicycle", expand = 0,
+                         heap = 'BHeap', parallel = TRUE, quiet = TRUE)
 {
     if (missing (graph) & (!missing (from) | !missing (to)))
         graph <- graph_from_pts (from, to, expand = expand,
@@ -74,17 +110,28 @@ dodgr_dists <- function (graph, from, to, wt_profile = "bicycle",
     vert_map <- make_vert_map (graph, gr_cols)
 
     index_id <- get_index_id_cols (graph, gr_cols, vert_map, from)
-    from_index <- index_id$index
+    from_index <- index_id$index - 1 # 0-based
     from_id <- index_id$id
     index_id <- get_index_id_cols (graph, gr_cols, vert_map, to)
-    to_index <- index_id$index
+    to_index <- index_id$index - 1 # 0-based
     to_id <- index_id$id
 
     graph <- convert_graph (graph, gr_cols)
 
     if (!quiet)
         message ("Calculating shortest paths ... ", appendLF = FALSE)
-    d <- rcpp_get_sp_dists (graph, vert_map, from_index, to_index, heap)
+
+    if (parallel & heap == "TriHeapExt")
+    {
+        message ("Extended TriHeaps can not be calculated in parallel; ",
+                 "reverting to serial calculation")
+        parallel <- FALSE
+    }
+
+    if (parallel)
+        d <- rcpp_get_sp_dists_par (graph, vert_map, from_index, to_index, heap)
+    else
+        d <- rcpp_get_sp_dists (graph, vert_map, from_index, to_index, heap)
 
     if (!is.null (from_id))
         rownames (d) <- from_id
@@ -101,10 +148,25 @@ dodgr_dists <- function (graph, from, to, wt_profile = "bicycle",
     return (d)
 }
 
+#' dodgr_distances
+#'
+#' Alias for \link{dodgr_dists}
+#' @inherit dodgr_dists
+#' @export
+dodgr_distances <- function (graph, from, to, wt_profile = "bicycle", expand = 0,
+                         heap = 'BHeap', parallel = TRUE, quiet = TRUE)
+{
+    dodgr_dists (graph, from, to, wt_profile = wt_profile, expand = expand,
+                 heap = heap, parallel = parallel, quiet = quiet)
+}
+
 #' get_index_id_cols
 #'
 #' Get an index of \code{pts} matching \code{vert_map}, as well as the
 #' corresonding names of those \code{pts}
+#'
+#' @return list of \code{index}, which is 0-based for C++, and corresponding
+#' \code{id} values.
 #' @noRd
 get_index_id_cols <- function (graph, gr_cols, vert_map, pts)
 {
@@ -113,9 +175,15 @@ get_index_id_cols <- function (graph, gr_cols, vert_map, pts)
     if (!missing (pts))
     {
         index <- get_pts_index (graph, gr_cols, vert_map, pts)
+        if (is.vector (pts) & length (pts == 2) & is.numeric (pts) &
+            ( (any (grepl ("x", names (pts), ignore.case = TRUE)) &
+             any (grepl ("y", names (pts), ignore.case = TRUE))) |
+             (any (grepl ("lon", names (pts), ignore.case = TRUE) &
+                   (any (grepl ("lat", names (pts), ignore.case = TRUE)))))))
+            names (pts) <- NULL
         id <- get_id_cols (pts)
         if (is.null (id))
-            id <- vert_map$vert [index + 1] # from_index is 0-based
+            id <- vert_map$vert [index] # from_index is 1-based
     }
     list (index = index, id = id)
 }
@@ -123,7 +191,7 @@ get_index_id_cols <- function (graph, gr_cols, vert_map, pts)
 
 #' get_id_cols
 #'
-#' Get the ID columns from a matrix or data.frame of from or two points
+#' Get the ID columns from a matrix or data.frame of from or to points
 #' @param pts The \code{from} or \code{to} args passed to \code{dodgr_dists}
 #' @return Character vector of names of points, if they exist in \code{pts}
 #' @noRd
@@ -176,7 +244,18 @@ make_vert_map <- function (graph, gr_cols)
 get_pts_index <- function (graph, gr_cols, vert_map, pts)
 {
     if (!(is.matrix (pts) | is.data.frame (pts)))
-        pts <- matrix (pts, ncol = 1)
+    {
+        if (!is.numeric (pts))
+            pts <- matrix (pts, ncol = 1)
+        else
+        {
+            nms <- names (pts)
+            if (is.null (nms))
+                nms <- c ("x", "y")
+            pts <- matrix (pts, nrow = 1) # vector of (x,y) vals
+            colnames (pts) <- nms
+        }
+    }
 
     if (ncol (pts) == 1)
     {
@@ -212,11 +291,12 @@ get_pts_index <- function (graph, gr_cols, vert_map, pts)
         names (pts) [ix] <- "x"
         names (pts) [iy] <- "y"
 
-        pts <- rcpp_points_index (dodgr_vertices (graph), pts)
+        # Result of rcpp_points_index is 0-indexed for C++
+        pts <- rcpp_points_index (dodgr_vertices (graph), pts) + 1
         # xy has same order as vert_map
     }
 
-    pts - 1 # 0-indexed for C++
+    pts
 }
 
 #' get_heap

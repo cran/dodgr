@@ -193,7 +193,6 @@ map <- osm_basemap (hampi, bg = "gray95") %>%
 library (magrittr)
 ```
 ```{r hampi-osmplotr-to-file, echo = FALSE, eval = FALSE}
-devtools::load_all ("../../osmplotr", export_all = FALSE)
 map <- osm_basemap (hampi, bg = "gray95") %>%
     add_osm_objects (hampi, col = "gray5") %>%
     add_axes () %>%
@@ -255,7 +254,7 @@ length (unique (graph$component))
 ```
 Component numbers can be determined for any types of graph with the
 `dodgr_components()` function. For example, the following lines reduce the
-previous graph to a minmial (non-spatial) structure of four columns, and then
+previous graph to a minimal (non-spatial) structure of four columns, and then
 (re-)calculate a fifth column of `$component`s:
 ```{r hampi-graph-min}
 cols <- c ("edge_id", "from_id", "to_id", "d")
@@ -557,7 +556,7 @@ and relative improvements in efficiency will be even greater for larger graphs.
 ## 5.1 Routing on Contracted Graphs
 
 Routing is often desired between defined points, and these points may
-inadvertedly be removed in graph contraction. The `dodgr_contract_graph()`
+inadvertently be removed in graph contraction. The `dodgr_contract_graph()`
 function accepts an additional argument specifying vertices to keep within the
 contracted graph. This list of vertices must directly match the vertex ID values
 in the graph.
@@ -607,15 +606,21 @@ example is,
 dp [[1]] [[1]]
 ```
 ```{r, echo = FALSE}
-n <- 0
-i <- 0
-while (all (n == 0))
+# make sure there are some paths:
+maxlen <- max (unlist (lapply (dp, function (i)
+                               max (unlist (lapply (i, length))))))
+if (maxlen > 0)
 {
-    i <- i + 1
-    n <- which (lapply (dp [[i]], length) > 0)
+    n <- 0
+    i <- 0
+    while (all (n == 0))
+    {
+        i <- i + 1
+        n <- which (lapply (dp [[i]], length) > 0)
+    }
+    j <- n [1]
+    dp [[i]] [[j]]
 }
-j <- n [1]
-dp [[i]] [[j]]
 ```
 For spatial graphs, the coordinates of these paths can be obtained by extracting
 the vertices with `dodgr_vertices()` and matching the vertex IDs:
@@ -634,15 +639,20 @@ those calculated on full graphs.
 
 # 7 Aggregated Flows
 
-The final major function of `dodgr` is `dodgr_flows()`, which aggregates
-''flows'' throughout a network from a set of origin (`from`) and destination
-(`to`) points.  Flows commonly arise in origin-destination matrices used in
-transport studies, but may be any kind of generic flows on graphs. A flow matrix
-specifies the flow between each pair of origin and destination points, and the
-`dodgr_flows()` function aggregates all of these flows throughout a network and
-assigns a resultant aggregate flow to each edge.
+The final major functions of `dodgr` are `dodgr_flows_aggregate()` and
+`dodgr_flows_disperse()`.
 
-For a set of `nf` points of origin and `nt` points of destination, flow are
+## 7.1 Direct Aggregation
+
+The former of the above functions aggregates ''flows'' throughout a
+network from a set of origin (`from`) and destination (`to`) points.  Flows
+commonly arise in origin-destination matrices used in transport studies, but may
+be any kind of generic flows on graphs. A flow matrix specifies the flow between
+each pair of origin and destination points, and the `dodgr_flows_aggregate()`
+function aggregates all of these flows throughout a network and assigns a
+resultant aggregate flow to each edge.
+
+For a set of `nf` points of origin and `nt` points of destination, flows are
 defined by a simple `nf`-by-`nt` matrix of values, as in the following code:
 ```{r}
 graph <- weight_streetnet (hampi)
@@ -651,10 +661,10 @@ to <- sample (graph$to_id, size = 10)
 flows <- matrix (10 * runif (length (from) * length (to)),
                  nrow = length (from))
 ```
-This `flows` matrix is then submitted to `dodgr_flows()`, which simply appends
-an additional column of `flows` to the submitted `graph`:
+This `flows` matrix is then submitted to `dodgr_flows_aggregate()`, which simply
+appends an additional column of `flows` to the submitted `graph`:
 ```{r}
-graph_f <- dodgr_flows (graph, from = from, to = to, flows = flows)
+graph_f <- dodgr_flows_aggregate (graph, from = from, to = to, flows = flows)
 head (graph_f)
 ```
 Most flows are zero because they have only been calculated between very few
@@ -662,12 +672,30 @@ points in the graph.
 ```{r}
 summary (graph_f$flow)
 ```
-Note that these flows are *directed*, so the flow from 'A' to 'B' will not
-necessarily equal the flow from 'B' to 'A'. It is often desirable to aggregate
-flows in an undirected manner, for example for visualisations where plotting
-pairs of directed flows between each edge if often not feasible for large
-graphs. Directed flows can be aggregated to equivalent undirected flows with the
-`merge_directed_flows()` function:
+
+## 7.2 Flow Dispersal
+
+The second function, `dodgr_flows_disperse()`, uses only a vector a origin
+(`from`) points, and aggregates flows as they disperse throughout the network
+according to a simple exponential model. In place of the matrix of flows
+required by `dodgr_flows_aggregate()`, dispersal requires an equivalent vector
+of densities dispersing from all origin (`from`) points. This is illustrated in
+the following code, using the same graph as the previous example.
+```{r}
+dens <- rep (1, length (from)) # uniform densities
+graph_f <- dodgr_flows_disperse (graph, from = from, dens = dens)
+summary (graph_f$flow)
+```
+
+## 7.3 Merging directed flows
+
+Note that flows from both `dodgr_flows_aggregate()` and `dodgr_flows_disperse()`
+are *directed*, so the flow from 'A' to 'B' will not necessarily equal the flow
+from 'B' to 'A'. It is often desirable to aggregate flows in an undirected
+manner, for example for visualisations where plotting pairs of directed flows
+between each edge if often not feasible for large graphs. Directed flows can be
+aggregated to equivalent undirected flows with the `merge_directed_flows()`
+function:
 ```{r}
 graph_undir <- merge_directed_flows (graph_f)
 ```
@@ -682,15 +710,10 @@ original data on vertex coordinates through
 graph <- graph [graph_undir$edge_id, ]
 graph$flow <- graph_undir$flow
 ```
-This graph may then be used to visalise flows, as in the following simple
-example:
-```{r, message = FALSE}
-library (ggplot2)
-ggplot() + labs (x = "longitude", y = "latitude") +
-        geom_segment (data = graph, size = 5 * graph$flow / max (graph$flow),
-                      aes (x = from_lon, y = from_lat, xend = to_lon, yend = to_lat,
-                           colour = flow, size = flow)) +
-        scale_colour_gradient (low = "lawngreen", high = "dodgerblue")
+This graph may then be used to visalise flows with the `dodgr_flowmap` function:
+```{r}
+graph_f <- graph_f [graph_f$flow > 0, ]
+dodgr_flowmap (graph_f, linescale = 5)
 ```
 
 

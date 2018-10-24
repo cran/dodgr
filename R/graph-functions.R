@@ -36,7 +36,7 @@ dodgr_graph_cols <- function (graph)
         yto <- which (nms == "to_lat")
     } else
     {
-        edge_id <- which (grepl ("edge", nms)) %>% null_to_na ()
+        edge_id <- which (grepl ("edge_id", nms)) %>% null_to_na ()
 
         d_col <- find_d_col (graph)
         w_col <- find_w_col (graph)
@@ -70,7 +70,7 @@ dodgr_graph_cols <- function (graph)
 
     # This is NOT a list because it's much easier to pass as vector to C++
     ret <- c (edge_id, fr_col, to_col, d_col, w_col, xfr, yfr, xto, yto)
-    names (ret) <- c ("edge_id", "from", "to", "d", "w", 
+    names (ret) <- c ("edge_id", "from", "to", "d", "w",
                       "xfr", "yfr", "xto", "yto")
     if (!is.na (component))
     {
@@ -92,10 +92,10 @@ convert_graph <- function (graph, gr_cols)
 {
     indx <- which (!is.na (gr_cols [1:5]))
     graph <- graph [, gr_cols [1:5] [indx]]
-    names (graph) <- c ("id", "from", "to", "d", "w") [indx]
-    if ("id" %in% names (graph))
-        if (!is.character (graph$id))
-            graph$id <- paste0 (graph$id)
+    names (graph) <- c ("edge_id", "from", "to", "d", "w") [indx]
+    if ("edge_id" %in% names (graph))
+        if (!is.character (graph$edge_id))
+            graph$edge_id <- paste0 (graph$edge_id)
     if (!is.character (graph$from))
         graph$from <- paste0 (graph$from)
     if (!is.character (graph$to))
@@ -126,18 +126,29 @@ dodgr_vertices <- function (graph)
     cols <- dodgr_graph_cols (graph)
     nms <- names (cols)
     # cols are (edge_id, from, to, d, w, component, xfr, yfr, xto, yto)
+    # NOTE: c (x, y), where x and y are both factors gives junk, so explicit
+    # conversion required here: TODO: Find a better way?
+    from_id <- graph [[cols [which (nms == "from")] ]]
+    to_id <- graph [[cols [which (nms == "to")] ]]
+    if (is.factor (from_id))
+        from_id <- paste0 (from_id)
+    if (is.factor (to_id))
+        to_id <- paste0 (to_id)
     if (is_graph_spatial (graph))
-        verts <- data.frame (id = c (graph [[cols [which (nms == "from")] ]],
-                                     graph [[cols [which (nms == "to")] ]]),
+        verts <- data.frame (id = c (from_id, to_id),
                              x = c (graph [[cols [which (nms == "xfr")] ]],
                                     graph [[cols [which (nms == "xto")] ]]),
                              y = c (graph [[cols [which (nms == "yfr")] ]],
                                     graph [[cols [which (nms == "yto")] ]]),
+                             component = rep (graph [[cols [which (nms ==
+                                                "component")] ]]),
                              stringsAsFactors = FALSE)
     else
-        verts <- data.frame (id = c (graph [[cols [which (nms == "from")] ]],
-                                     graph [[cols [which (nms == "to")] ]]),
-                             stringsAsFactors = FALSE)
+    {
+        verts <- data.frame (id = c (from_id, to_id))
+        if ("component" %in% nms)
+            verts <- cbind (verts, rep (graph$component, 2))
+    }
 
     indx <- which (!duplicated (verts))
     verts <- verts [indx, , drop = FALSE] #nolint
@@ -169,7 +180,7 @@ dodgr_components <- function (graph)
         graph2 <- convert_graph (graph, gr_cols)
         cns <- rcpp_get_component_vector (graph2)
 
-        indx <- match (graph2$id, cns$edge_id)
+        indx <- match (graph2$edge_id, cns$edge_id)
         component <- cns$edge_component [indx]
         # Then re-number in order to decreasing component size:
         graph$component <- match (component, order (table (component),

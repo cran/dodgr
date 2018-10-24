@@ -42,13 +42,16 @@
 #'
 #' @name dodgr
 #' @docType package
+#' @importFrom graphics plot plot.new
+#' @importFrom grDevices colorRampPalette
 #' @importFrom igraph distances E make_directed_graph
 #' @importFrom magrittr %>% extract2
 #' @importFrom methods is
-#' @importFrom osmdata add_osm_feature getbb opq osmdata_sf
+#' @importFrom osmdata add_osm_feature getbb opq osmdata_sf osm_poly2line
 #' @importFrom rbenchmark benchmark
 #' @importFrom sp bbox point.in.polygon
 #' @importFrom Rcpp evalCpp
+#' @importFrom RcppParallel RcppParallelLibs
 #' @useDynLib dodgr, .registration = TRUE
 NULL
 

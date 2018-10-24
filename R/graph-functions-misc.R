@@ -22,7 +22,7 @@ is_graph_spatial <- function (graph)
 find_fr_col <- function (graph)
 {
     which (grepl ("fr", names (graph), ignore.case = TRUE) |
-           grepl ("sta", names (graph), ignore.case = TRUE))
+           grepl ("^sta", names (graph), ignore.case = TRUE))
 }
 
 #' Get graph columns containing the to vertex
@@ -30,7 +30,7 @@ find_fr_col <- function (graph)
 find_to_col <- function (graph)
 {
     which (grepl ("to", names (graph), ignore.case = TRUE) |
-           grepl ("sto", names (graph), ignore.case = TRUE))
+           grepl ("^sto", names (graph), ignore.case = TRUE))
 }
 
 #' Get single graph column containing the ID of the from vertex
@@ -191,7 +191,15 @@ find_xy_col_simple <- function (dfr)
 #'
 #' @param verts A \code{data.frame} of vertices obtained from
 #' \code{dodgr_vertices(graph)}.
-#' @param xy coordinates of points to be matched to the vertices
+#' @param xy coordinates of points to be matched to the vertices, either as
+#' matrix or \pkg{sf}-formatted \code{data.frame}.
+#' @param connected Should points be matched to the same (largest) connected
+#' component of graph? If \code{FALSE} and these points are to be used for a
+#' \code{dodgr} routine routine (\link{dodgr_dists}, \link{dodgr_paths}, or
+#' \link{dodgr_flows_aggregate}), then results may not be returned if points are
+#' not part of the same connected component. On the other hand, forcing them to
+#' be part of the same connected component may decrease the spatial accuracy of
+#' matching.
 #'
 #' @return A vector index into verts
 #' @export
@@ -208,19 +216,40 @@ find_xy_col_simple <- function (dfr)
 #' pts # an index into verts
 #' pts <- verts$id [pts]
 #' pts # names of those vertices
-match_pts_to_graph <- function (verts, xy)
+match_pts_to_graph <- function (verts, xy, connected = FALSE)
 {
     if (!(is.matrix (xy) | is.data.frame (xy)))
         stop ("xy must be a matrix or data.frame")
-    if (ncol (xy) != 2)
-        stop ("xy must have only two columns")
+    if (!is (xy, "sf"))
+        if (ncol (xy) != 2)
+            stop ("xy must have only two columns")
+
+    indx <- seq (nrow (verts))
+    if (connected)
+    {
+        vertsi <- verts [which (verts$component == 1), ]
+        indx <- match (vertsi$id, verts$id)
+    }
 
     xyi <- find_xy_col_simple (verts)
-    verts <- data.frame (x = verts [, xyi [1]], y = verts [, xyi [2]])
+    verts <- data.frame (x = verts [indx, xyi [1]], y = verts [indx, xyi [2]])
     if (is (xy, "tbl"))
         xy <- data.frame (xy)
-    xyi <- find_xy_col_simple (xy)
-    xy <- data.frame (x = xy [, xyi [1]], y = xy [, xyi [2]])
+    if (is (xy, "sf"))
+    {
+        if (!"geometry" %in% names (xy))
+            stop ("xy has no sf geometry column")
+        if (!is (xy$geometry, "sfc_POINT"))
+            stop ("xy$geometry must be a collection of sfc_POINT objects")
+        xy <- unlist (lapply (xy$geometry, as.numeric)) %>%
+            matrix (nrow = 2) %>% t ()
+        xy <- data.frame (x = xy [, 1], y = xy [, 2])
+    } else
+    {
+        xyi <- find_xy_col_simple (xy)
+        xy <- data.frame (x = xy [, xyi [1]], y = xy [, xyi [2]])
+    }
 
-    rcpp_points_index (verts, xy)
+    # rcpp_points_index is 0-indexed, so ...
+    indx [rcpp_points_index_par (verts, xy) + 1]
 }
