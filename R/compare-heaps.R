@@ -1,18 +1,18 @@
 #' compare_heaps
 #'
 #' Perform timing comparison between different kinds of heaps as well as with
-#' equivalent \code{igraph} routine \code{distances}. To do this, a random
+#' equivalent `igraph` routine `distances`. To do this, a random
 #' sub-graph containing a defined number of vertices is first selected.
 #' Alternatively, this random sub-graph can be pre-generated with the
-#' \code{dodgr_sample} function and passed directly.
+#' `dodgr_sample` function and passed directly.
 #'
-#' @param graph \code{data.frame} object representing the network graph (or a
+#' @param graph `data.frame` object representing the network graph (or a
 #' sub-sample selected with code{dodgr_sample})
 #' @param nverts Number of vertices used to generate random sub-graph. If a
 #' non-numeric value is given, the whole graph will be used.
 #' @param replications Number of replications to be used in comparison
-#' @return Result of \code{rbenachmar::benchmark} comparison in
-#' \code{data.frame} form.
+#' @return Result of `rbenachmar::benchmark` comparison in
+#' `data.frame` form.
 #'
 #' @note \pkg{igraph} caches intermediate results of graph processing, so
 #' the \pkg{igraph} comparisons will be faster on subsequent runs. To obtain
@@ -34,13 +34,7 @@ compare_heaps <- function(graph, nverts = 100, replications = 2)
     from_id <- unique (graph_contracted [[gr_cols [2] ]])
     to_id <- unique (graph_contracted [[gr_cols [3] ]])
 
-    # set up igraph:
-    fr_col <- find_fr_id_col (graph)
-    to_col <- find_to_id_col (graph)
-    edges <- cbind (graph [, fr_col], graph [, to_col])
-    edges <- as.vector (t (edges))
-    igr <- igraph::make_directed_graph (edges)
-    igraph::E (igr)$weight <- graph [, find_d_col (graph)]
+    igr <- dodgr_to_igraph (graph)
 
     rbenchmark::benchmark (
                            d <- dodgr_dists (graph, from = from_id, to = to_id,
@@ -63,6 +57,8 @@ compare_heaps <- function(graph, nverts = 100, replications = 2)
                                              to = to_id, heap = "TriHeapExt"),
                            d <- dodgr_dists (graph_contracted, from = from_id,
                                              to = to_id, heap = "Heap23"),
+                           d <- dodgr_dists (graph_contracted, from = from_id,
+                                             to = to_id, heap = "set"),
                            d <- igraph::distances (igr, v = from_id, to = to_id,
                                               mode = "out"),
                            replications = 10, order = "relative")

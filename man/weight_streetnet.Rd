@@ -2,17 +2,29 @@
 % Please edit documentation in R/streetnet-fns.R
 \name{weight_streetnet}
 \alias{weight_streetnet}
+\alias{weight_streetnet.default}
+\alias{weight_streetnet.sf}
+\alias{weight_streetnet.sc}
 \title{weight_streetnet}
 \usage{
-weight_streetnet(sf_lines, wt_profile = "bicycle",
+weight_streetnet(x, wt_profile = "bicycle", type_col = "highway",
+  id_col = "osm_id", keep_cols = NULL)
+
+\method{weight_streetnet}{default}(x, wt_profile = "bicycle",
+  type_col = "highway", id_col = "osm_id", keep_cols = NULL)
+
+\method{weight_streetnet}{sf}(x, wt_profile = "bicycle",
+  type_col = "highway", id_col = "osm_id", keep_cols = NULL)
+
+\method{weight_streetnet}{sc}(x, wt_profile = "bicycle",
   type_col = "highway", id_col = "osm_id", keep_cols = NULL)
 }
 \arguments{
-\item{sf_lines}{A street network represented as \code{sf} \code{LINESTRING}
+\item{x}{A street network represented as \code{sf} \code{LINESTRING}
 objects, typically extracted with \code{dodgr_streetnet}}
 
 \item{wt_profile}{Name of weighting profile, or vector of values with names
-corresponding to names in \code{type_col}}
+corresponding to names in \code{type_col} (see Details)}
 
 \item{type_col}{Specify column of the \code{sf} \code{data.frame} object
 which designates different types of highways to be used for weighting
@@ -35,6 +47,14 @@ Weight (or re-weight) an \code{sf}-formatted OSM street network according to
 a named routino profile, selected from (foot, horse, wheelchair, bicycle,
 moped, motorcycle, motorcar, goods, hgv, psv).
 }
+\note{
+Names for the \code{wt_profile} parameter are taken from
+\link{weighting_profiles}, which is a \code{data.frame} of weights for
+different modes of transport. Current modes included there are "bicycle",
+"foot", "goods", "hgv", "horse", "moped", "motorcar", "motorcycle", "psv",
+and "wheelchair". Railway routing can be implemented with
+the separate function \link{weight_railway}.
+}
 \examples{
 # hampi is included with package as an 'osmdata' sf-formatted street network
 net <- weight_streetnet (hampi)
@@ -49,4 +69,20 @@ names (wts) <- unique (os_roads_bristol [[colnm]])
 net <- weight_streetnet (os_roads_bristol, wt_profile = wts,
                          type_col = colnm, id_col = "identifier")
 dim (net) # 406 11; 406 streets
+
+# An example for a generic (non-OSM) highway, represented as the
+# `routes_fast` object of the \\pkg{stplanr} package, which is a
+# SpatialLinesDataFrame.
+\dontrun{
+library (stplanr)
+# merge all of the 'routes_fast' lines into a single network
+r <- overline (routes_fast, attrib = "length", buff_dist = 1)
+r <- sf::st_as_sf (r)
+# We need to specify both a `type` and `id` column for the
+# \\link{weight_streetnet} function.
+r$type <- 1
+r$id <- seq (nrow (r))
+graph <- weight_streetnet (r, type_col = "type", id_col = "id",
+                           wt_profile = 1)
+}
 }

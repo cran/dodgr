@@ -31,7 +31,7 @@ be constructed by expanding the range of \code{pts} by the relative amount of
 \examples{
 \dontrun{
 streetnet <- dodgr_streetnet ("hampi india", expand = 0)
-# convert to form needed for \\code{dodgr} functions:
+# convert to form needed for `dodgr` functions:
 graph <- weight_streetnet (streetnet)
 nrow (graph) # 5,742 edges
 # Alternative ways of extracting street networks by using a small selection of
@@ -43,5 +43,12 @@ graph <- weight_streetnet (streetnet)
 nrow (graph)
 # This will generally have many more rows because most street networks include
 # streets that extend considerably beyond the specified bounding box.
+
+# bbox can also be a polygon:
+bb <- osmdata::getbb ("gent belgium") # rectangular bbox
+nrow (dodgr_streetnet (bbox = bb)) # 28,742
+bb <- osmdata::getbb ("gent belgium", format_out = "polygon")
+nrow (dodgr_streetnet (bbox = bb)) # 15,969
+# The latter has fewer rows because only edges within polygon are returned
 }
 }

@@ -1,3 +1,22 @@
+# v0.1.1.099
+Major changes:
+- New function `dodgr_to_igraph`
+- `weight_streetnet` is now a method, with implementations for objects of
+  classes `.sf` and `.sc`.
+- New function `weight_railway` to weight a network for railway routing.
+- `dodgr_dists` implements Dijkstra paths with std::set sorting through new
+  option `dodgr_dists(..., heap = "set")` (It's slower than others, but good for
+  sake of completeness).
+
+Minor changes:
+- Various modifications that should result in notable speed gains
+- `dodgr_streetnet` now accepts polygonal `bbox` argument, and uses
+  `osmdata::trim_osmdata` to trim resultant network to within that polygon
+  (issue #50).
+- Extended examples for `weight_streetnet` and dodgr_flows_aggregate` to include
+  a non-OSM example from `stplanr::routes_fast` (issue #45).
+
+
 # v0.1.1
 
 Major changes:

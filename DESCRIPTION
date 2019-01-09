@@ -1,6 +1,6 @@
 Package: dodgr
 Title: Distances on Directed Graphs
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: c(
     person("Mark", "Padgham", email="mark.padgham@email.com", role=c("aut", "cre")),
     person("Andreas", "Petutschnig", role="aut"),
@@ -21,7 +21,7 @@ License: GPL-3
 Imports: igraph, magrittr, methods, osmdata, rbenchmark, sp, Rcpp (>=
         0.12.6), RcppParallel
 Suggests: devtools, ggplot2, igraphdata, knitr, purrr, RColorBrewer,
-        rmarkdown, roxygen2, scales, testthat
+        rmarkdown, roxygen2, scales, testthat, tidygraph
 LinkingTo: Rcpp, RcppParallel
 SystemRequirements: C++11, GNU make
 VignetteBuilder: knitr
@@ -30,8 +30,8 @@ Encoding: UTF-8
 LazyData: true
 URL: https://github.com/ATFutures/dodgr
 BugReports: https://github.com/ATFutures/dodgr/issues
-RoxygenNote: 6.1.0
-Packaged: 2018-10-24 11:20:44 UTC; markus
+RoxygenNote: 6.1.1
+Packaged: 2019-01-09 10:30:28 UTC; markus
 Author: Mark Padgham [aut, cre],
   Andreas Petutschnig [aut],
   Robin Lovelace [ctb],
@@ -41,4 +41,4 @@ Author: Mark Padgham [aut, cre],
     heaps)
 Maintainer: Mark Padgham <mark.padgham@email.com>
 Repository: CRAN
-Date/Publication: 2018-10-24 15:00:03 UTC
+Date/Publication: 2019-01-09 13:20:03 UTC

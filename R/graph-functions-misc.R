@@ -3,8 +3,8 @@
 #' is_graph_spatial
 #'
 #' Is the graph spatial or not?
-#' @param graph A \code{data.frame} of edges
-#' @return \code{TRUE} is \code{graph} is spatial, otherwise \code{FALSE}
+#' @param graph A `data.frame` of edges
+#' @return `TRUE` is `graph` is spatial, otherwise `FALSE`
 #' @noRd
 is_graph_spatial <- function (graph)
 {
@@ -87,8 +87,8 @@ find_xy_col <- function (graph, indx, x = TRUE)
 
 #' find_spatial_cols
 #'
-#' @return \code{fr_col} and \code{to_col} as vectors of 2 values of \code{x}
-#' then \code{y} coordinates
+#' @return `fr_col` and `to_col` as vectors of 2 values of `x`
+#' then `y` coordinates
 #'
 #' @noRd
 find_spatial_cols <- function (graph)
@@ -122,9 +122,9 @@ find_spatial_cols <- function (graph)
             xy_to_id <- paste0 (xy_to_id)
     } else # len == 2, so must be only x-y
     {
-        xy_fr_id <- paste0 (graph [, fr_col [1]],
+        xy_fr_id <- paste0 (graph [, fr_col [1]], "-",
                             graph [, fr_col [2]])
-        xy_to_id <- paste0 (graph [, to_col [1]],
+        xy_to_id <- paste0 (graph [, to_col [1]], "-",
                             graph [, to_col [2]])
     }
 
@@ -147,9 +147,12 @@ find_d_col <- function (graph)
 
 find_w_col <- function (graph)
 {
-    w_col <- which (tolower (substring (names (graph), 1, 1)) == "w" |
-                    tolower (substring (names (graph), 1, 2)) == "dw" |
-                    tolower (substring (names (graph), 1, 3)) == "d_w")
+    w_col <- match (c ("w", "wt"), names (graph))
+    if (all (is.na (w_col)) | length (w_col) != 1)
+        w_col <- grep ("weight", names (graph))
+    if (length (w_col) != 1)
+        w_col <- which (tolower (substring (names (graph), 1, 2)) == "dw" |
+                        tolower (substring (names (graph), 1, 3)) == "d_w")
     if (length (w_col) > 1)
         stop ("Unable to determine weight column in graph")
     return (w_col)
@@ -159,7 +162,7 @@ find_w_col <- function (graph)
 #'
 #' Find the x and y cols of a simple data.frame of verts of xy points (used only
 #' in match_pts_to_graph).
-#' @param dfr Either the result of \code{dodgr_vertices}, or a \code{data.frame}
+#' @param dfr Either the result of `dodgr_vertices`, or a `data.frame`
 #' or equivalent structure (matrix, \pkg{tibble}) of spatial points.
 #' @return Vector of two values of location of x and y columns
 #' @noRd
@@ -169,15 +172,16 @@ find_xy_col_simple <- function (dfr)
     if (is.null (nms))
         nms <- colnames (dfr)
 
+    ix <- iy <- NULL
     if (!is.null (nms))
     {
         ix <- which (grepl ("x", nms, ignore.case = TRUE) |
                      grepl ("lon", nms, ignore.case = TRUE))
         iy <- which (grepl ("y", nms, ignore.case = TRUE) |
                      grepl ("lat", nms, ignore.case = TRUE))
-    } else
+    }
+    if (length (ix) == 0 | length (iy) == 0)
     {
-        # verts always has cols, so this can only happen for dfr = xy
         message ("xy has no named columns; assuming order is x then y")
         ix <- 1
         iy <- 2
@@ -189,13 +193,13 @@ find_xy_col_simple <- function (dfr)
 #'
 #' Match spatial points to a spatial graph which contains vertex coordindates
 #'
-#' @param verts A \code{data.frame} of vertices obtained from
-#' \code{dodgr_vertices(graph)}.
+#' @param verts A `data.frame` of vertices obtained from
+#' `dodgr_vertices(graph)`.
 #' @param xy coordinates of points to be matched to the vertices, either as
-#' matrix or \pkg{sf}-formatted \code{data.frame}.
+#' matrix or \pkg{sf}-formatted `data.frame`.
 #' @param connected Should points be matched to the same (largest) connected
-#' component of graph? If \code{FALSE} and these points are to be used for a
-#' \code{dodgr} routine routine (\link{dodgr_dists}, \link{dodgr_paths}, or
+#' component of graph? If `FALSE` and these points are to be used for a
+#' `dodgr` routine routine (\link{dodgr_dists}, \link{dodgr_paths}, or
 #' \link{dodgr_flows_aggregate}), then results may not be returned if points are
 #' not part of the same connected component. On the other hand, forcing them to
 #' be part of the same connected component may decrease the spatial accuracy of
@@ -218,6 +222,13 @@ find_xy_col_simple <- function (dfr)
 #' pts # names of those vertices
 match_pts_to_graph <- function (verts, xy, connected = FALSE)
 {
+    if (!identical (names (verts), c ("id", "x", "y", "component", "n")))
+    {
+        message ("First argument to match_pts_to_graph should be result of ",
+                 "dodgr_vertices;\npresuming you've submitted the network itself ",
+                 "and will now try extracting the vertices")
+        verts <- dodgr_vertices (verts)
+    }
     if (!(is.matrix (xy) | is.data.frame (xy)))
         stop ("xy must be a matrix or data.frame")
     if (!is (xy, "sf"))
@@ -253,3 +264,14 @@ match_pts_to_graph <- function (verts, xy, connected = FALSE)
     # rcpp_points_index is 0-indexed, so ...
     indx [rcpp_points_index_par (verts, xy) + 1]
 }
+
+#' match_points_to_graph
+#'
+#' Alias for \link{match_points_to_graph}
+#' @inherit match_pts_to_graph
+#' @export
+match_points_to_graph <- function (verts, xy, connected = FALSE)
+{
+    match_pts_to_graph (verts, xy, connected = FALSE)
+}
+
