@@ -131,7 +131,7 @@ size_t run_sp::get_fromi_toi (const Rcpp::DataFrame &vert_map_in,
     return static_cast <size_t> (fromi.size ());
 }
 
-size_t get_fromi (const Rcpp::DataFrame &vert_map_in,
+size_t run_sp::get_fromi (const Rcpp::DataFrame &vert_map_in,
         Rcpp::IntegerVector &fromi, Rcpp::NumericVector &id_vec)
 {
     if (fromi [0] < 0) // use all vertices
@@ -289,6 +289,8 @@ Rcpp::NumericMatrix rcpp_get_sp_dists (const Rcpp::DataFrame graph,
 //' translating all \code{graph["from"/"to"]} values into these indices. This
 //' construction is done in \code{inst_graph}.
 //'
+//' @note Returns 1-indexed values indexing directly into the R input
+//'
 //' @noRd
 // [[Rcpp::export]]
 Rcpp::List rcpp_get_paths (const Rcpp::DataFrame graph,
@@ -320,9 +322,9 @@ Rcpp::List rcpp_get_paths (const Rcpp::DataFrame graph,
             *run_sp::getHeapImpl(heap_type), g);
     
     Rcpp::List res (nfrom);
-    std::vector<double> w(nverts);
-    std::vector<double> d(nverts);
-    std::vector<int> prev(nverts);
+    std::vector<double> w (nverts);
+    std::vector<double> d (nverts);
+    std::vector<int> prev (nverts);
 
     dijkstra->init (g); // specify the graph
 
@@ -351,9 +353,12 @@ Rcpp::List rcpp_get_paths (const Rcpp::DataFrame graph,
                         break;
                 }
             }
-            std::reverse (onePath.begin (), onePath.end ());
-            if (onePath.size () > 1)
+            if (onePath.size () >= 1)
+            {
+                onePath.push_back (fromi [v] + 1);
+                std::reverse (onePath.begin (), onePath.end ());
                 res1 [vi] = onePath;
+            }
         }
         res [v] = res1;
     }
@@ -597,7 +602,7 @@ Rcpp::NumericVector rcpp_flows_disperse (const Rcpp::DataFrame graph,
         std::string heap_type)
 {
     Rcpp::NumericVector id_vec;
-    size_t nfrom = get_fromi (vert_map_in, fromi, id_vec);
+    size_t nfrom = run_sp::get_fromi (vert_map_in, fromi, id_vec);
 
     std::vector <std::string> from = graph ["from"];
     std::vector <std::string> to = graph ["to"];

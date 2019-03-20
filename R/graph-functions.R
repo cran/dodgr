@@ -135,17 +135,19 @@ dodgr_vertices <- function (graph)
     if (is.factor (to_id))
         to_id <- paste0 (to_id)
     if (is_graph_spatial (graph))
+    {
         verts <- data.frame (id = c (from_id, to_id),
                              x = c (graph [[cols [which (nms == "xfr")] ]],
                                     graph [[cols [which (nms == "xto")] ]]),
                              y = c (graph [[cols [which (nms == "yfr")] ]],
                                     graph [[cols [which (nms == "yto")] ]]),
-                             component = rep (graph [[cols [which (nms ==
-                                                "component")] ]]),
                              stringsAsFactors = FALSE)
-    else
+        if ("component" %in% nms)
+            verts$component <- graph [[cols [which (nms == "component")] ]]
+    } else
     {
-        verts <- data.frame (id = c (from_id, to_id))
+        verts <- data.frame (id = c (from_id, to_id),
+                             stringsAsFactors = FALSE)
         if ("component" %in% nms)
             verts <- cbind (verts, rep (graph$component, 2))
     }
@@ -178,6 +180,8 @@ dodgr_components <- function (graph)
     {
         gr_cols <- dodgr_graph_cols (graph)
         graph2 <- convert_graph (graph, gr_cols)
+        if (is.na (gr_cols [which (names (gr_cols) == "edge_id")]))
+            graph2$edge_id <- seq (nrow (graph2))
         cns <- rcpp_get_component_vector (graph2)
 
         indx <- match (graph2$edge_id, cns$edge_id)

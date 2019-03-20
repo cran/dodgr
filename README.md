@@ -27,31 +27,43 @@ Routes are usually calculated by weighting different kinds of streets or
 ways according to a particular mode of transport, while the desired
 output is a direct, unweighted distance.
 
+But wait, there’s more … `dodgr` can also aggregate flows throughout a
+network through specifying origins, destinations, and flow densities. Or
+even apply a network dispersal model from a set of origin points only.
+
 ## Installation
 
-You can install `dodgr` from github with:
+You can install `dodgr` with:
 
 ``` r
-# install.packages("devtools")
-devtools::install_github("ATFutures/dodgr")
+install.packages("dodgr") # current CRAN version
+# install.packages("remotes")
+remotes::install_github("ATFutures/dodgr") # Development version
 ```
 
-### Note on macOS ###
-On macOS, if you need "[gfortran](https://gcc.gnu.org/wiki/GFortranBinaries#MacOS)", you could install "gcc" from [brew](https://brew.sh) or similar package manager, but on brew "gfortran" is included in "gcc". After installing `gcc` you may still have R complaining about `library not found for -lgfortran`. [Others](https://thecoatlessprofessor.com/programming/rcpp-rcpparmadillo-and-os-x-mavericks--lgfortran-and--lquadmath-error/) have written about this issue in detail, we recommend this quick answer on [SO](https://stackoverflow.com/a/29993906/2332101) and adding a line `FLIBS=-L/usr/local/lib/gcc/8/` (given that you installed gcc8) to your `~/.R/Makevars` file for R to be aware of your `gcc` path.
+Then load with
+
+``` r
+library (dodgr)
+```
 
 ## Usage
 
-The primary function,
+The primary functions are,
 
 ``` r
 d <- dodgr_dists (graph = graph, from = pts, to = pts)
+flows <- array (runif (length (pts) ^ 2), dim = rep (length (pts, 2)))
+f <- dodgr_flows_aggregate (graph = graph, from = pts, to = pts, flows = flows)
+f <- dodgr_flows_disperse (graph = graph, from = pts, to = pts,
+                           dens = runif (length (pts)))
 ```
 
-produces a square matrix of distances between all points listed in `pts`
-and routed along the dual-weighted directed network given in `graph`. An
-even simpler usage allows calculation of pair-wise distances between a
-set of geographical coordinates (here, for a sizey chunk of New York
-City):
+The first function, `dodgr_dists()`, produces a square matrix of
+distances between all points listed in `pts` and routed along the
+dual-weighted directed network given in `graph`. An even simpler usage
+allows calculation of pair-wise distances between a set of geographical
+coordinates (here, for a sizey chunk of New York City):
 
 ``` r
 xlim <- c (-74.12931, -73.99214)
@@ -59,26 +71,26 @@ ylim <- c (40.70347, 40.75354)
 npts <- 1000
 pts <- data.frame (x = xlim [1] + runif (npts) * diff (xlim),
                    y = ylim [1] + runif (npts) * diff (ylim))
-st <- Sys.time ()
-d <- dodgr_dists (from = pts)
-Sys.time () - st
-#> Time difference of 9.473597 secs
+system.time (
+             d <- dodgr_dists (from = pts)
+)
+#>    user  system elapsed
+#> 107.530   0.602  19.418
 range (d, na.rm = TRUE)
-#> [1]  0.00000 16.64285
+#> [1]  0.00000 21.68109
 ```
 
 This will automatically download the street network (using
 [`osmdata`](https://cran.r-project.org/package=osmdata)), and even then
 calculating distances between 1,000 points – that’s 1,000,000 pairwise
-distances\! – can be done in around 10 seconds.
+distances\! – can be done in around 20 seconds.
 
-### Other Functions
-
-The other main functions of `dodgr` are `dodgr_paths`, to return the
-actual paths between pairs of vertices, and `dodgr_flows` to aggregate
-flows as routed throughout a network according to sets of start and end
-points (origins and destinations), and associated densities or numbers
-travelling between each of these.
+The second function, `dodgr_flows_aggregate()`, aggregates the densities
+specified in the matrix `flows` between all pairs of `from` and `to`
+points, and returns a modified version of the input network with an
+additional column containing aggregated flows (see below). The
+equivalent function, `dodgr_flows_disperse()`, does an equivalent thing
+for network dispersal models from known points of origin.
 
 ### The `dodgr` graph structure
 
@@ -99,11 +111,10 @@ priority weighting for a given mode of transport and type of way, while
     package](https://cran.r-project.org/package=sf).
 2.  `dodgr_to_igraph` to convert (not necessarily spatial) `dodgr`
     graphs into [`igraph`](https://cran.r-project.org/package=igraph)
-    format (not yet implemented); and
+    format; and
 3.  `dodgr_to_tidygraph` to convert (not necessarily spatial) `dodgr`
     graphs into
-    [`tidygraph`](https://cran.r-project.org/package=tidygraph) format
-    (not yet implemented).
+    [`tidygraph`](https://cran.r-project.org/package=tidygraph) format.
 
 ### Further detail
 

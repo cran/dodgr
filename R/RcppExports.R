@@ -37,6 +37,11 @@ rcpp_aggregate_to_sf <- function(graph_full, graph_contr, edge_map) {
     .Call(`_dodgr_rcpp_aggregate_to_sf`, graph_full, graph_contr, edge_map)
 }
 
+#' @noRd
+rcpp_fundamental_cycles <- function(graph, verts) {
+    .Call(`_dodgr_rcpp_fundamental_cycles`, graph, verts)
+}
+
 #' get_to_from
 #'
 #' Get one pair of two and from edges and vertices. Main task is to make sure
@@ -129,11 +134,11 @@ rcpp_sample_graph <- function(graph, nverts_to_sample) {
 #' @noRd
 NULL
 
-#' graph_from_df
+#' @name graph_from_df
 #'
-#' Convert a standard graph data.frame into an object of class graph. Graphs '
-NULL
-
+#' Convert a standard graph data.frame into an object of class graph. Graphs 
+#' are standardised with the function \code{dodgr_convert_graph()$graph}, and
+#' contain only the four columns [from, to, d, w]
 #'
 #' @noRd
 NULL
@@ -191,6 +196,8 @@ rcpp_get_sp_dists <- function(graph, vert_map_in, fromi, toi, heap_type) {
 #' \code{std::map} object (\code{vertmap}) for \code{vert_map_in}, then
 #' translating all \code{graph["from"/"to"]} values into these indices. This
 #' construction is done in \code{inst_graph}.
+#'
+#' @note Returns 1-indexed values indexing directly into the R input
 #'
 #' @noRd
 rcpp_get_paths <- function(graph, vert_map_in, fromi, toi, heap_type) {
