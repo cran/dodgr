@@ -171,15 +171,15 @@ rcpp_get_component_vector <- function(graph) {
 #' rcpp_get_sp_dists_par
 #'
 #' @noRd
-rcpp_get_sp_dists_par <- function(graph, vert_map_in, fromi, toi, heap_type) {
-    .Call(`_dodgr_rcpp_get_sp_dists_par`, graph, vert_map_in, fromi, toi, heap_type)
+rcpp_get_sp_dists_par <- function(graph, vert_map_in, fromi, toi_in, heap_type, is_spatial) {
+    .Call(`_dodgr_rcpp_get_sp_dists_par`, graph, vert_map_in, fromi, toi_in, heap_type, is_spatial)
 }
 
 #' rcpp_get_sp_dists
 #'
 #' @noRd
-rcpp_get_sp_dists <- function(graph, vert_map_in, fromi, toi, heap_type) {
-    .Call(`_dodgr_rcpp_get_sp_dists`, graph, vert_map_in, fromi, toi, heap_type)
+rcpp_get_sp_dists <- function(graph, vert_map_in, fromi, toi_in, heap_type) {
+    .Call(`_dodgr_rcpp_get_sp_dists`, graph, vert_map_in, fromi, toi_in, heap_type)
 }
 
 #' rcpp_get_paths
@@ -200,8 +200,8 @@ rcpp_get_sp_dists <- function(graph, vert_map_in, fromi, toi, heap_type) {
 #' @note Returns 1-indexed values indexing directly into the R input
 #'
 #' @noRd
-rcpp_get_paths <- function(graph, vert_map_in, fromi, toi, heap_type) {
-    .Call(`_dodgr_rcpp_get_paths`, graph, vert_map_in, fromi, toi, heap_type)
+rcpp_get_paths <- function(graph, vert_map_in, fromi, toi_in, heap_type) {
+    .Call(`_dodgr_rcpp_get_paths`, graph, vert_map_in, fromi, toi_in, heap_type)
 }
 
 #' rcpp_aggregate_files
@@ -235,8 +235,8 @@ rcpp_aggregate_files <- function(file_names, len) {
 #' characters long, that chance should be 1 / 62 ^ 10.
 #'
 #' @noRd
-rcpp_flows_aggregate_par <- function(graph, vert_map_in, fromi, toi, flows, dirtxt, heap_type) {
-    invisible(.Call(`_dodgr_rcpp_flows_aggregate_par`, graph, vert_map_in, fromi, toi, flows, dirtxt, heap_type))
+rcpp_flows_aggregate_par <- function(graph, vert_map_in, fromi, toi_in, flows, dirtxt, heap_type) {
+    invisible(.Call(`_dodgr_rcpp_flows_aggregate_par`, graph, vert_map_in, fromi, toi_in, flows, dirtxt, heap_type))
 }
 
 #' rcpp_flows_disperse
@@ -261,6 +261,15 @@ rcpp_flows_disperse <- function(graph, vert_map_in, fromi, k, flows, heap_type) 
     .Call(`_dodgr_rcpp_flows_disperse`, graph, vert_map_in, fromi, k, flows, heap_type)
 }
 
+#' rcpp_gen_hash
+#'
+#' Efficient generation of long sequences of hash keys
+#'
+#' @noRd
+rcpp_gen_hash <- function(n, hash_len) {
+    .Call(`_dodgr_rcpp_gen_hash`, n, hash_len)
+}
+
 #' rcpp_sf_as_network
 #'
 #' Return OSM data from Simple Features format input
@@ -268,7 +277,20 @@ rcpp_flows_disperse <- function(graph, vert_map_in, fromi, k, flows, heap_type) 
 #' @param sf_lines An sf collection of LINESTRING objects
 #' @param pr Rcpp::DataFrame containing the weighting profile
 #'
-#' @return Rcpp::List objects of OSM data
+#' @return Rcpp::List objects of OSM data, one matrix of numeric and one of
+#' character values. The former contain 7 columns:
+#' 1. sf geom index
+#' 2. from longitude
+#' 3. from latitude
+#' 4. to longitude
+#' 5. to latitude
+#' 6. distance
+#' 7. weighted_distance
+#' The character value matrix  has 4 columns of:
+#' 1. from ID
+#' 2. to ID
+#' 3. highway type
+#' 4. OSM way ID
 #'
 #' @noRd
 rcpp_sf_as_network <- function(sf_lines, pr) {
@@ -289,17 +311,10 @@ rcpp_points_index_par <- function(xy, pts) {
     .Call(`_dodgr_rcpp_points_index_par`, xy, pts)
 }
 
-#' rcpp_points_index
-#'
-#' Get index of nearest vertices to list of points
-#'
-#' @param graph Rcpp::DataFrame containing the graph
-#' @param pts Rcpp::DataFrame containing the routing points
-#'
-#' @return 0-indexed Rcpp::NumericVector index into graph of nearest points
+#' rcpp_route_times
 #'
 #' @noRd
-rcpp_points_index <- function(xy, pts) {
-    .Call(`_dodgr_rcpp_points_index`, xy, pts)
+rcpp_route_times <- function(graph, left_side, turn_penalty) {
+    .Call(`_dodgr_rcpp_route_times`, graph, left_side, turn_penalty)
 }
 

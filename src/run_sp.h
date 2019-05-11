@@ -10,14 +10,10 @@
 // [[Rcpp::depends(RcppParallel)]]
 #include <RcppParallel.h>
 
-#include "dijkstra.h"
+#include "pathfinders.h"
 
 class DGraph;
-class Dijkstra;
-
-constexpr float INFINITE_FLOAT =  std::numeric_limits<float>::max ();
-constexpr double INFINITE_DOUBLE =  std::numeric_limits<double>::max ();
-constexpr int INFINITE_INT =  std::numeric_limits<int>::max ();
+class PathFinder;
 
 //----------------------------
 //----- functions in run_sp.cpp
@@ -49,25 +45,26 @@ void make_vert_to_edge_maps (const std::vector <std::string> &from,
 Rcpp::NumericMatrix rcpp_get_sp_dists (const Rcpp::DataFrame graph,
         const Rcpp::DataFrame vert_map_in,
         Rcpp::IntegerVector fromi,
-        Rcpp::IntegerVector toi,
+        Rcpp::IntegerVector toi_in,
         const std::string& heap_type);
 
 Rcpp::NumericMatrix rcpp_get_sp_dists_par (const Rcpp::DataFrame graph,
         const Rcpp::DataFrame vert_map_in,
         Rcpp::IntegerVector fromi,
-        Rcpp::IntegerVector toi,
-        const std::string& heap_type);
+        Rcpp::IntegerVector toi_in,
+        const std::string& heap_type,
+        const bool is_spatial);
 
 Rcpp::List rcpp_get_paths (const Rcpp::DataFrame graph,
         const Rcpp::DataFrame vert_map_in,
         Rcpp::IntegerVector fromi,
-        Rcpp::IntegerVector toi,
+        Rcpp::IntegerVector toi_in,
         const std::string& heap_type);
 
 void rcpp_flows_aggregate_par (const Rcpp::DataFrame graph,
         const Rcpp::DataFrame vert_map_in,
         Rcpp::IntegerVector fromi,
-        Rcpp::IntegerVector toi,
+        Rcpp::IntegerVector toi_in,
         Rcpp::NumericMatrix flows,
         const std::string dirtxt,
         const std::string heap_type);

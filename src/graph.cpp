@@ -50,7 +50,7 @@ bool graph::graph_has_components (const Rcpp::DataFrame &graph)
 //' contain only the four columns [from, to, d, w]
 //'
 //' @noRd
-void graph::graph_from_df (const Rcpp::DataFrame &gr, vertex_map_t &vm,
+bool graph::graph_from_df (const Rcpp::DataFrame &gr, vertex_map_t &vm,
         edge_map_t &edge_map, vert2edge_map_t &vert2edge_map)
 {
     Rcpp::StringVector edge_id = gr ["edge_id"];
@@ -58,6 +58,15 @@ void graph::graph_from_df (const Rcpp::DataFrame &gr, vertex_map_t &vm,
     Rcpp::StringVector to = gr ["to"];
     Rcpp::NumericVector dist = gr ["d"];
     Rcpp::NumericVector weight = gr ["w"];
+    Rcpp::StringVector colnames = gr.attr ("names");
+    bool has_times = false;
+    Rcpp::NumericVector time, timew;
+    if (gr.ncol () == 7)
+    {
+        has_times = true;
+        time = gr ["time"];
+        timew = gr ["time_weighted"];
+    }
 
     std::set <edge_id_t> replacement_edges; // all empty here
 
@@ -91,13 +100,21 @@ void graph::graph_from_df (const Rcpp::DataFrame &gr, vertex_map_t &vm,
         if (weight [i] < 0.0)
             wt = INFINITE_DOUBLE;
 
-        edge_t edge = edge_t (from_id, to_id, dist [i], wt,
+        std::vector <double> weights;
+        if (!has_times)
+            weights = {dist [i], wt};
+        else
+            weights = {dist [i], wt, time [i], timew [i]};
+
+        edge_t edge = edge_t (from_id, to_id, weights,
                 edge_id_str, replacement_edges);
 
         edge_map.emplace (edge_id_str, edge);
         graph::add_to_v2e_map (vert2edge_map, from_id, edge_id_str);
         graph::add_to_v2e_map (vert2edge_map, to_id, edge_id_str);
     }
+
+    return has_times;
 }
 
 //' identify_graph_components
@@ -178,7 +195,8 @@ Rcpp::List rcpp_get_component_vector (const Rcpp::DataFrame &graph)
     edge_map_t edge_map;
     vert2edge_map_t vert2edge_map;
 
-    graph::graph_from_df (graph, vertices, edge_map, vert2edge_map);
+    bool has_times = graph::graph_from_df (graph, vertices, edge_map, vert2edge_map);
+    has_times = false; // rm unused variable warning
 
     std::unordered_map <vertex_id_t, unsigned int> components;
     unsigned int largest_component =

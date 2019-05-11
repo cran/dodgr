@@ -1,5 +1,5 @@
 ## ----pkg-load, echo = FALSE, message = FALSE-----------------------------
-devtools::load_all (".", export_all = FALSE)
+library (dodgr)
 
 ## ----sample-graph1, echo = FALSE-----------------------------------------
 graph <- data.frame (from = c ("A", "B", "B", "B", "C", "C", "D", "D"),
@@ -122,10 +122,11 @@ head (graph_min)
 graph_connected <- graph [graph$component == 1, ]
 
 ## ----weighting-profiles--------------------------------------------------
-names (weighting_profiles)
-class (weighting_profiles)
-unique (weighting_profiles$name)
-weighting_profiles [weighting_profiles$name == "foot", ]
+wp <- weighting_profiles$weighting_profiles
+names (wp)
+class (wp)
+unique (wp$name)
+wp [wp$name == "foot", ]
 
 ## ----hampi-highway-types-------------------------------------------------
 table (graph$highway)

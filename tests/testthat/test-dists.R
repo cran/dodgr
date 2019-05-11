@@ -4,8 +4,7 @@ test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") |
              identical (Sys.getenv ("TRAVIS"), "true"))
 
 test_that("dists", {
-    expect_message (graph <- weight_streetnet (hampi),
-                    "The following highway types are present in data yet lack")
+    expect_silent (graph <- weight_streetnet (hampi))
     nf <- 100
     nt <- 50
     from <- sample (graph$from_id, size = nf)
@@ -77,22 +76,25 @@ test_that ("heaps", {
     expect_message (d2 <- dodgr_dists (graph, from = from, to = to, heap = "Radix"),
                     "RadixHeap can only be implemented for integer weights")
     expect_silent (d3 <- dodgr_dists (graph, from = from, to = to, heap = "TriHeap"))
-    expect_message (d4 <- dodgr_dists (graph, from = from, to = to, heap = "TriHeapExt"),
-                    "Extended TriHeaps can not be calculated in parallel")
+    expect_silent (d4 <- dodgr_dists (graph, from = from, to = to, heap = "TriHeapExt"))
     expect_silent (d5 <- dodgr_dists (graph, from = from, to = to, heap = "Heap23"))
-    expect_silent (d6 <- dodgr_dists (graph, from = from, to = to, heap = "set"))
 
     expect_identical (d0, d1)
     expect_false (identical (d0, d2))
     expect_identical (d0, d3)
     expect_identical (d0, d4)
     expect_identical (d0, d5)
+
+    # std::set is only applied to non-spatial graphs:
+    graph$from_lon <- graph$from_lat <- graph$to_lon <- graph$to_lat <- NULL
+    expect_silent (d6 <- dodgr_dists (graph, from = from, to = to, heap = "set"))
+
+
     expect_identical (d0, d6)
 })
 
 test_that("graph columns", {
-    expect_message (graph <- weight_streetnet (hampi),
-                    "The following highway types are present in data yet lack")
+    expect_silent (graph <- weight_streetnet (hampi))
     nf <- 100
     nt <- 50
     from <- sample (graph$from_id, size = nf)

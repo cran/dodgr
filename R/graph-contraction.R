@@ -22,13 +22,21 @@
 #' nrow (graph$graph) # 764
 dodgr_contract_graph <- function (graph, verts = NULL)
 {
+    classes <- class (graph)
+    graph <- tbl_to_df (graph)
+    if (nrow (graph) == 0)
+        stop ("graph is empty")
+
+    v <- dodgr_vertices (graph)
+    junctions <- get_junction_vertices (v)
+
     if (!is.null (verts))
     {
         if (!(length (verts) == 1 | is.vector (verts)))
             stop ("verts must be a single value or a vector of vertex IDs")
         if (!is.character (verts))
             verts <- paste0 (verts)
-        verts <- verts [which (verts %in% dodgr_vertices (graph)$id)]
+        verts <- verts [which (verts %in% v$id)]
     }
 
     gr_cols <- dodgr_graph_cols (graph)
@@ -40,17 +48,25 @@ dodgr_contract_graph <- function (graph, verts = NULL)
     # get matching indices into both contracted and original graph:
     indx_contr <- match (graph_contracted$edge_map$edge_new,
                          graph_contracted$graph$edge_id)
-    indx_orig <- match (graph_contracted$edge_map$edge_old, graph$edge_id)
-    # Then reduce the latter only to the corresponding first non-repeated values of
-    # the former
+    indx_orig <- match (graph_contracted$edge_map$edge_old,
+                        graph [, gr_cols$edge_id])
+    # Then reduce the latter only to the corresponding first non-repeated values
+    # of the former.
     indx_orig <- indx_orig [which (!duplicated (indx_contr))]
+
     indx_contr <- unique (indx_contr)
     graph_refill <- graph [indx_orig, ]
-    graph_refill [, gr_cols [1] ] <- graph_contracted$graph$edge_id [indx_contr]
-    graph_refill [, gr_cols [2] ] <- graph_contracted$graph$from [indx_contr]
-    graph_refill [, gr_cols [3] ] <- graph_contracted$graph$to [indx_contr]
-    graph_refill [, gr_cols [4] ] <- graph_contracted$graph$d [indx_contr]
-    graph_refill [, gr_cols [5] ] <- graph_contracted$graph$w [indx_contr]
+    graph_refill [, gr_cols$edge_id] <- graph_contracted$graph$edge_id [indx_contr]
+    graph_refill [, gr_cols$from] <- graph_contracted$graph$from [indx_contr]
+    graph_refill [, gr_cols$to] <- graph_contracted$graph$to [indx_contr]
+    graph_refill [, gr_cols$d] <- graph_contracted$graph$d [indx_contr]
+    graph_refill [, gr_cols$w] <- graph_contracted$graph$w [indx_contr]
+    if (!is.na (gr_cols$time) & !is.na (gr_cols$time_weighted))
+    {
+        graph_refill [, gr_cols$time] <- graph_contracted$graph$time [indx_contr]
+        graph_refill [, gr_cols$time_weighted] <-
+            graph_contracted$graph$timew [indx_contr]
+    }
 
     # Then re-insert spatial coordinates
     if (is_graph_spatial (graph))
@@ -72,7 +88,7 @@ dodgr_contract_graph <- function (graph, verts = NULL)
         #    indx <- match (graph_contracted$graph$edge_id,
         #                   graph_contracted$edge_map$edge_new)
         #    indx <- graph_contracted$edge_map$edge_old [indx]
-        #    indx <- match (indx, graph [, gr_cols [1] ])
+        #    indx <- match (indx, graph [, gr_cols$edge_id ])
         #    indx2 <- which (!is.na (indx))
         #    indx <- indx [indx2]
         #    graph_refill$way_id [indx2] <- graph$way_id [indx]
@@ -80,7 +96,7 @@ dodgr_contract_graph <- function (graph, verts = NULL)
     }
 
     # and finally replicate the uncontracted edges of graph in graph_contracted 
-    indx_uncontr <- which (!graph$edge_id %in%
+    indx_uncontr <- which (!graph [, gr_cols$edge_id] %in%
                            graph_contracted$edge_map$edge_old)
     graph_refill <- rbind (graph_refill, graph [indx_uncontr, ])
 
@@ -98,7 +114,19 @@ dodgr_contract_graph <- function (graph, verts = NULL)
     fname <- file.path (tempdir (), paste0 ("graph_", dig, ".Rds"))
     saveRDS (graph, file = fname)
 
-    return (list (graph = graph_refill, edge_map = graph_contracted$edge_map))
+    class (graph_refill) <- c (classes, "dodgr_contracted")
+
+    return (list (graph = graph_refill,
+                  edge_map = graph_contracted$edge_map,
+                  junctions = junctions))
+}
+
+# get junction vertices of graphs which have been re-routed for turn angles.
+# These all have either "_start" or "_end" appended to vertex names
+# v is result of `dodgr_vertices` functions.
+get_junction_vertices <- function (v)
+{
+    gsub ("_start|_end", "", v$id [grep ("_start|_end", v$id)])
 }
 
 #' dodgr_uncontract_graph

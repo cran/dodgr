@@ -21,7 +21,7 @@
 #' @export
 #' @examples
 #' graph <- weight_streetnet (hampi)
-#' compare_heaps (graph, nverts = 100, replications = 1)
+#' compare_heaps (graph, nverts = 1000, replications = 1)
 compare_heaps <- function(graph, nverts = 100, replications = 2)
 {
     if (is.numeric (nverts))
@@ -30,9 +30,8 @@ compare_heaps <- function(graph, nverts = 100, replications = 2)
 
     # route only between points on the contracted graph:
     gr_cols <- dodgr_graph_cols (graph)
-    # gr_cols are (edge_id, from, to, d, w, component, xfr, yfr, xto, yto)
-    from_id <- unique (graph_contracted [[gr_cols [2] ]])
-    to_id <- unique (graph_contracted [[gr_cols [3] ]])
+    from_id <- unique (graph_contracted [[gr_cols$from]])
+    to_id <- unique (graph_contracted [[gr_cols$to]])
 
     igr <- dodgr_to_igraph (graph)
 
@@ -61,5 +60,6 @@ compare_heaps <- function(graph, nverts = 100, replications = 2)
                                              to = to_id, heap = "set"),
                            d <- igraph::distances (igr, v = from_id, to = to_id,
                                               mode = "out"),
-                           replications = 10, order = "relative")
+                           replications = replications,
+                           order = "relative")
 }

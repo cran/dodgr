@@ -1,3 +1,27 @@
+# v0.1.4
+Major changes:
+* New vignette on street networks and time-based routing
+- `weight_streetnet` function now returns edge times for all Open Street Map
+  networks extracted with the `osmdata` package.
+- weight_streetnet now accepts `SC` format data from `osmdata::osmdata_sc()`
+- New `dodgr_times` function to calculate journey times, including differential
+  speeds and penalties for intersections and traffic lights.
+- `dodgr::weighting_profiles` data changed from single `data.frame` to list with
+  additional parameters determining speeds and time penalties for `dodgr_times`
+  function; former `data.frame` is now
+  `dodgr::weighting_profiles$weighting_profiles`.
+- New function `write_dodgr_wt_profile` writes full profile to local `.json`
+  file for editing and subsequent use via
+  `weight_streetnet(wt_profile_file=<local_file_name.json>)`.
+- `dodgr_dists()`, `dodgr_paths()`, and `dodgr_flows()` can no longer be used
+  to automatically download street networks, thus former parameters
+  `wt_profile` and `expand` have been removed; networks must be explicitly
+  downloaded with `dodgr_streetnet()`.
+
+Minor changes:
+- Bug fix with dodgr_to_igraph to create proper *weighted* igraph
+- Add "footway" to weighting_profiles
+
 # v0.1.3
 Major changes:
 - New functions `dodgr_fundamental_cycles` and `dodgr_full_cycles`

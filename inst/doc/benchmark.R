@@ -1,5 +1,5 @@
 ## ---- echo = FALSE, message = FALSE--------------------------------------
-devtools::load_all (".", export_all = FALSE)
+library (dodgr)
 
 ## ------------------------------------------------------------------------
 datasets <- data (package = "igraphdata")

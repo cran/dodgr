@@ -3,16 +3,13 @@
 #' Calculate matrix of pair-wise distances between points.
 #'
 #' @param graph `data.frame` or equivalent object representing the network
-#' graph (see Details)
+#' graph (see Notes)
 #' @param from Vector or matrix of points **from** which route distances are to
-#' be calculated (see Details)
+#' be calculated (see Notes)
 #' @param to Vector or matrix of points **to** which route distances are to be
-#' calculated (see Details)
-#' @param wt_profile Name of weighting profile for street networks (one of foot,
-#' horse, wheelchair, bicycle, moped, motorcycle, motorcar, goods, hgv, psv).
-#' @param expand Only when `graph` not given, the multiplicative factor by
-#' which to expand the street network surrounding the points defined by
-#' `from` and/or `to`.
+#' calculated (see Notes)
+#' @param shortest If `FALSE`, calculate distances along the \emph{fastest}
+#' rather than shortest routes (see Notes).
 #' @param heap Type of heap to use in priority queue. Options include
 #' Fibonacci Heap (default; `FHeap`), Binary Heap (`BHeap`),
 #' `Radix`, Trinomial Heap (`TriHeap`), Extended Trinomial Heap
@@ -27,10 +24,18 @@
 #' `wt` is present, shortest paths are calculated according to values
 #' specified in that column; otherwise according to `dist` values. Either
 #' way, final distances between `from` and `to` points are calculated
-#' according to values of `dist`. That is, paths between any pair of points
-#' will be calculated according to the minimal total sum of `weight`
-#' values (if present), while reported distances will be total sums of
-#' `dist` values.
+#' by default according to values of `dist`. That is, paths between any pair of
+#' points will be calculated according to the minimal total sum of `weight`
+#' values (if present), while reported distances will be total sums of `dist`
+#' values.
+#'
+#' For street networks produced with \link{weight_streetnet}, distances may also
+#' be calculated along the \emph{fastest} routes with the `shortest = FALSE`
+#' option. Graphs must in this case have columns of `time` and `time_weighted`.
+#' Note that the fastest routes will only be approximate when derived from
+#' \pkg{sf}-format data generated with the \pkg{osmdata} function
+#' `osmdata_sf()`, and will be much more accurate when derived from `sc`-format
+#' data generated with `osmdata_sc()`. See \link{weight_streetnet} for details.
 #'
 #' The `from` and `to` columns of `graph` may be either single
 #' columns of numeric or character values specifying the numbers or names of
@@ -42,13 +47,12 @@
 #' `from` and `to` values can be either two-column matrices of
 #' equivalent of longitude and latitude coordinates, or else single columns
 #' precisely matching node numbers or names given in `graph$from` or
-#' `graph$to`. If `to` is missing, pairwise distances are calculated
-#' between all points specified in `from`. If neither `from` nor
-#' `to` are specified, pairwise distances are calculated between all nodes
-#' in `graph`.
+#' `graph$to`. If `to` is `NULL`, pairwise distances are calculated
+#' between all points specified in `from`. If both `from` and `to` are `NULL`,
+#' pairwise distances are calculated between all nodes in `graph`.
 #'
 #' Calculations in parallel (`parallel = TRUE`) ought very generally be
-#' advantageous. For small graphs, Calculating distances in parallel is likely
+#' advantageous. For small graphs, calculating distances in parallel is likely
 #' to offer relatively little gain in speed, but increases from parallel
 #' computation will generally markedly increase with increasing graph sizes.
 #'
@@ -88,42 +92,43 @@
 #' # There are parts of the network on different building levels (because of
 #' # shopping malls and the like). These may or may not be connected, so it may be
 #' # necessary to filter out particular levels
-#' levs <- paste0 (essen$level) # because sf data are factors
 #' index <- which (! (levs == "-1" | levs == "1")) # for example
 #' library (sf) # needed for following sub-select operation
 #' essen <- essen [index, ]
 #' graph <- weight_streetnet (essen, wt_profile = "foot")
+#' graph <- graph [which (graph$component == 1), ]
 #' d <- dodgr_dists (graph, from = xy, to = xy)
 #' }
-dodgr_dists <- function (graph, from, to, wt_profile = "bicycle", expand = 0,
+dodgr_dists <- function (graph, from = NULL, to = NULL, shortest = TRUE,
                          heap = 'BHeap', parallel = TRUE, quiet = TRUE)
 {
-    if (missing (graph) & (!missing (from) | !missing (to)))
-        graph <- graph_from_pts (from, to, expand = expand,
-                                 wt_profile = wt_profile, quiet = quiet)
+    graph <- tbl_to_df (graph)
 
     hps <- get_heap (heap, graph)
     heap <- hps$heap
     graph <- hps$graph
 
     gr_cols <- dodgr_graph_cols (graph)
-    if (is.na (gr_cols [match ("from", names (gr_cols))]) |
-               is.na (gr_cols [match ("to", names (gr_cols))]))
+    if (is.na (gr_cols$from) | is.na (gr_cols$to))
     {
         scols <- find_spatial_cols (graph)
         graph$from_id <- scols$xy_id$xy_fr_id
         graph$to_id <- scols$xy_id$xy_to_id
         gr_cols <- dodgr_graph_cols (graph)
     }
-    vert_map <- make_vert_map (graph, gr_cols)
+    is_spatial <- is_graph_spatial (graph)
+    vert_map <- make_vert_map (graph, gr_cols, is_spatial)
 
-    index_id <- get_index_id_cols (graph, gr_cols, vert_map, from)
-    from_index <- index_id$index - 1 # 0-based
-    from_id <- index_id$id
+    from_index <- get_to_from_index (graph, vert_map, gr_cols, from)
+    to_index <- get_to_from_index (graph, vert_map, gr_cols, to)
 
-    index_id <- get_index_id_cols (graph, gr_cols, vert_map, to)
-    to_index <- index_id$index - 1 # 0-based
-    to_id <- index_id$id
+    if (!shortest)
+    {
+        if (is.na (gr_cols$time_weighted))
+            stop ("Graph does not contain a weighted time column from ",
+                  "which to calculate fastest paths.")
+        graph [[gr_cols$w]] <- graph [[gr_cols$time_weighted]]
+    }
 
     graph <- convert_graph (graph, gr_cols)
 
@@ -132,13 +137,14 @@ dodgr_dists <- function (graph, from, to, wt_profile = "bicycle", expand = 0,
 
     if (parallel & heap == "TriHeapExt")
     {
-        message ("Extended TriHeaps can not be calculated in parallel; ",
-                 "reverting to serial calculation")
+        if (!quiet)
+            message ("Extended TriHeaps can not be calculated in parallel; ",
+                     "reverting to serial calculation")
         parallel <- FALSE
     }
 
     flip <- FALSE
-    if (length (from_index) > length (to_index))
+    if (length (from_index$index) > length (to_index$index))
     {
         flip <- TRUE
         graph <- flip_graph (graph)
@@ -148,21 +154,23 @@ dodgr_dists <- function (graph, from, to, wt_profile = "bicycle", expand = 0,
     }
 
     if (parallel)
-        d <- rcpp_get_sp_dists_par (graph, vert_map, from_index, to_index, heap)
+        d <- rcpp_get_sp_dists_par (graph, vert_map, from_index$index,
+                                    to_index$index, heap, is_spatial)
     else
-        d <- rcpp_get_sp_dists (graph, vert_map, from_index, to_index, heap)
+        d <- rcpp_get_sp_dists (graph, vert_map, from_index$index,
+                                to_index$index, heap)
+
+    if (!is.null (from_index$id))
+        rownames (d) <- from_index$id
+    else
+        rownames (d) <- vert_map$vert
+    if (!is.null (to_index$id))
+        colnames (d) <- to_index$id
+    else
+        colnames (d) <- vert_map$vert
 
     if (flip)
         d <- t (d)
-
-    if (!is.null (from_id))
-        rownames (d) <- from_id
-    else
-        rownames (d) <- vert_map$vert
-    if (!is.null (to_id))
-        colnames (d) <- to_id
-    else
-        colnames (d) <- vert_map$vert
 
     if (!quiet)
         message ("done.")
@@ -175,10 +183,10 @@ dodgr_dists <- function (graph, from, to, wt_profile = "bicycle", expand = 0,
 #' Alias for \link{dodgr_dists}
 #' @inherit dodgr_dists
 #' @export
-dodgr_distances <- function (graph, from, to, wt_profile = "bicycle", expand = 0,
+dodgr_distances <- function (graph, from = NULL, to = NULL, shortest = TRUE,
                          heap = 'BHeap', parallel = TRUE, quiet = TRUE)
 {
-    dodgr_dists (graph, from, to, wt_profile = wt_profile, expand = expand,
+    dodgr_dists (graph, from, to, shortest = shortest,
                  heap = heap, parallel = parallel, quiet = quiet)
 }
 
@@ -218,6 +226,23 @@ get_index_id_cols <- function (graph, gr_cols, vert_map, pts)
     list (index = index, id = id)
 }
 
+#' get_to_from_index
+#'
+#' @noRd
+get_to_from_index <- function (graph, vert_map, gr_cols, pts)
+{
+    id <- NULL
+    if (is.null (pts))
+        index <- seq (nrow (vert_map)) - 1
+    else
+    {
+        index_id <- get_index_id_cols (graph, gr_cols, vert_map, pts)
+        index <- index_id$index - 1 # 0-based
+        id <- index_id$id
+    }
+    list (index = index, id = id)
+}
+
 
 #' get_id_cols
 #'
@@ -248,15 +273,28 @@ get_id_cols <- function (pts)
 #'
 #' Map unique vertex names to sequential numbers in matrix
 #' @noRd
-make_vert_map <- function (graph, gr_cols)
+make_vert_map <- function (graph, gr_cols, xy = FALSE)
 {
     # gr_cols are (edge_id, from, to, d, w, component, xfr, yfr, xto, yto)
-    verts <- c (paste0 (graph [[gr_cols [2] ]]),
-                paste0 (graph [[gr_cols [3] ]]))
+    verts <- c (paste0 (graph [[gr_cols$from]]), paste0 (graph [[gr_cols$to]]))
     indx <- which (!duplicated (verts))
-    # Note id has to be 0-indexed:
-    data.frame (vert = paste0 (verts [indx]), id = seq (indx) - 1,
-                stringsAsFactors = FALSE)
+    if (!xy)
+    {
+        # Note id has to be 0-indexed:
+        res <- data.frame (vert = paste0 (verts [indx]),
+                           id = seq (indx) - 1,
+                           stringsAsFactors = FALSE)
+    } else 
+    {
+        verts_x <- c (graph [[gr_cols$xfr]], graph [[gr_cols$xto]])
+        verts_y <- c (graph [[gr_cols$yfr]], graph [[gr_cols$yto]])
+        res <- data.frame (vert = paste0 (verts [indx]),
+                           id = seq (indx) - 1,
+                           x = verts_x [indx],
+                           y = verts_y [indx],
+                           stringsAsFactors = FALSE)
+    }
+    return (res)
 }
 
 #' get_pts_index
@@ -315,8 +353,8 @@ get_pts_index <- function (graph, gr_cols, vert_map, pts)
             stop (paste0 ("Unable to determine geographical ",
                           "coordinates in from/to"))
 
-        # gr_cols are (edge_id, from, to, d, w, xfr, yfr, xto, yto, component
-        if (any (is.na (gr_cols [6:9])))
+        index <- match (c ("xfr", "yfr", "xto", "yto"), names (gr_cols))
+        if (any (is.na (gr_cols [index])))
             stop (paste0 ("Cannot determine geographical coordinates ",
                           "against which to match pts"))
 
@@ -367,6 +405,8 @@ get_heap <- function (heap, graph)
     list (heap = heap, graph = graph)
 }
 
+# nocov start
+
 #' graph_from_pts
 #'
 #' Download a street network when `graph` not passed to `dodgr_dists`,
@@ -399,6 +439,8 @@ graph_from_pts <- function (from, to, expand = 0.1, wt_profile = "bicycle",
 
     return (graph)
 }
+
+# nocov end
 
 #' flip_graph
 #'

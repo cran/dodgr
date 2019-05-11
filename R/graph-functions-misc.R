@@ -9,28 +9,28 @@
 is_graph_spatial <- function (graph)
 {
     ncol (graph) > 4 &
-        (any (grepl ("x", names (graph) [find_fr_col (graph)],
+        (any (grepl ("x$", names (graph) [find_fr_col (graph)],
                      ignore.case = TRUE)) |
-         any (grepl ("y", names (graph) [find_to_col (graph)],
+         any (grepl ("y$", names (graph) [find_to_col (graph)],
                      ignore.case = TRUE)) |
          any (grepl ("lon", names (graph), ignore.case = TRUE)) |
          any (grepl ("lat", names (graph), ignore.case = TRUE)))
 }
 
 #' Get graph columns containing the from vertex
+#' "vx0" is silicate vertex
 #' @noRd
 find_fr_col <- function (graph)
 {
-    which (grepl ("fr", names (graph), ignore.case = TRUE) |
-           grepl ("^sta", names (graph), ignore.case = TRUE))
+    grep ("^fr|^sta|.vx0", names (graph), ignore.case = TRUE)
 }
 
 #' Get graph columns containing the to vertex
+#' "vx1" is silicate vertex
 #' @noRd
 find_to_col <- function (graph)
 {
-    which (grepl ("to", names (graph), ignore.case = TRUE) |
-           grepl ("^sto", names (graph), ignore.case = TRUE))
+    grep ("^to|^sto|.vx1", names (graph), ignore.case = TRUE)
 }
 
 #' Get single graph column containing the ID of the from vertex
@@ -68,9 +68,9 @@ find_to_id_col <- function (graph)
     }
     if (length (to_col) != 1)
     {
-        to_col <- to_col [grep ("id", names (graph) [to_col]) ]
+        to_col <- to_col [grep ("id|vx", names (graph) [to_col]) ]
         if (length (to_col) != 1)
-            stop ("Unable to determine column with ID of from vertices")
+            stop ("Unable to determine column with ID of to vertices")
     }
     return (to_col)
 }
@@ -84,11 +84,16 @@ find_to_id_col <- function (graph)
 find_xy_col <- function (graph, indx, x = TRUE)
 {
     if (x)
-        coli <- which (grepl ("x", names (graph) [indx], ignore.case = TRUE) |
-                       grepl ("lon", names (graph) [indx], ignore.case = TRUE))
-    else
-        coli <- which (grepl ("y", names (graph) [indx], ignore.case = TRUE) |
-                       grepl ("lat", names (graph) [indx], ignore.case = TRUE))
+    {
+        coli <- grep ("x|lon", names (graph) [indx], ignore.case = TRUE)
+        if (length (coli) > 1) # silicate
+            coli <- grep ("x$", names (graph) [indx], ignore.case = TRUE)
+    } else
+    {
+        coli <- grep ("y|lat", names (graph) [indx], ignore.case = TRUE)
+        if (length (coli) > 1) # silicate
+            coli <- grep ("y$", names (graph) [indx], ignore.case = TRUE)
+    }
 
     indx [coli]
 }
@@ -101,6 +106,7 @@ find_xy_col <- function (graph, indx, x = TRUE)
 #' @noRd
 find_spatial_cols <- function (graph)
 {
+    graph <- tbl_to_df (graph)
 
     fr_col <- find_fr_col (graph)
     to_col <- find_to_col (graph)
@@ -113,8 +119,7 @@ find_spatial_cols <- function (graph)
     {
         frx_col <- find_xy_col (graph, fr_col, x = TRUE)
         fry_col <- find_xy_col (graph, fr_col, x = FALSE)
-        frid_col <- fr_col [which (!fr_col %in%
-                                   c (frx_col, fry_col))]
+        frid_col <- fr_col [which (!fr_col %in% c (frx_col, fry_col))]
         fr_col <- c (frx_col, fry_col)
         xy_fr_id <- graph [, frid_col]
         if (!is.character (xy_fr_id))
@@ -122,14 +127,15 @@ find_spatial_cols <- function (graph)
 
         tox_col <- find_xy_col (graph, to_col, x = TRUE)
         toy_col <- find_xy_col (graph, to_col, x = FALSE)
-        toid_col <- to_col [which (!to_col %in%
-                                   c (tox_col, toy_col))]
+        toid_col <- to_col [which (!to_col %in% c (tox_col, toy_col))]
         to_col <- c (tox_col, toy_col)
         xy_to_id <- graph [, toid_col]
         if (!is.character (xy_to_id))
             xy_to_id <- paste0 (xy_to_id)
     } else # len == 2, so must be only x-y
     {
+        if (length (grep ("lon|lat|x|y", names (graph) [fr_col])) != 2)
+            stop ("Unable to determine coordinate columns of graph")
         xy_fr_id <- paste0 (graph [, fr_col [1]], "-",
                             graph [, fr_col [2]])
         xy_to_id <- paste0 (graph [, to_col [1]], "-",
@@ -146,6 +152,7 @@ find_spatial_cols <- function (graph)
 find_d_col <- function (graph)
 {
     d_col <- which (tolower (substring (names (graph), 1, 1)) == "d" &
+                    tolower (substring (names (graph), 1, 2)) != "dz" &
                     tolower (substring (names (graph), 2, 2)) != "w" &
                     tolower (substring (names (graph), 2, 2)) != "_")
     if (length (d_col) != 1)
@@ -280,6 +287,6 @@ match_pts_to_graph <- function (verts, xy, connected = FALSE)
 #' @export
 match_points_to_graph <- function (verts, xy, connected = FALSE)
 {
-    match_pts_to_graph (verts, xy, connected = FALSE)
+    match_pts_to_graph (verts, xy, connected = connected)
 }
 

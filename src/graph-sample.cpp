@@ -113,7 +113,8 @@ Rcpp::StringVector rcpp_sample_graph (Rcpp::DataFrame graph,
     edge_map_t edge_map;
     vert2edge_map_t vert2edge_map;
 
-    graph::graph_from_df (graph, vertices, edge_map, vert2edge_map);
+    bool has_times = graph::graph_from_df (graph, vertices, edge_map, vert2edge_map);
+    has_times = false; // rm unused variable warning
 
     Rcpp::StringVector edges_out;
     if (vertices.size () <= nverts_to_sample)
@@ -185,12 +186,14 @@ Rcpp::StringVector rcpp_sample_graph (Rcpp::DataFrame graph,
         {
             // likely stuck in some one-way part of graph that can't connect, so
             // reset to another start node
+            // # nocov start
             edgelist.clear ();
             this_vert =
                 graph_sample::select_random_vert (graph, edge_map, vertices);
             vertlist.clear ();
             vertlist.push_back (this_vert);
             count = 0;
+            // # nocov end
         }
     }
 

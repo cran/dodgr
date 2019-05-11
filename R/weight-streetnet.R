@@ -1,140 +1,60 @@
-#' dodgr_streetnet
-#'
-#' Use the `osmdata` package to extract the street network for a given
-#' location. For routing between a given set of points (passed as `pts`),
-#' the `bbox` argument may be omitted, in which case a bounding box will
-#' be constructed by expanding the range of `pts` by the relative amount of
-#' `expand`.
-#'
-#' @param bbox Bounding box as vector or matrix of coordinates, or location
-#' name. Passed to `osmdata::getbb`.
-#' @param pts List of points presumably containing spatial coordinates
-#' @param expand Relative factor by which street network should extend beyond
-#' limits defined by pts (only if `bbox` not given).
-#' @param quiet If `FALSE`, display progress messages
-#' @return A Simple Features (`sf`) object with coordinates of all lines in
-#' the street network.
-#'
-#' @export
-#' @examples
-#' \dontrun{
-#' streetnet <- dodgr_streetnet ("hampi india", expand = 0)
-#' # convert to form needed for `dodgr` functions:
-#' graph <- weight_streetnet (streetnet)
-#' nrow (graph) # 5,742 edges
-#' # Alternative ways of extracting street networks by using a small selection of
-#' # graph vertices to define bounding box:
-#' verts <- dodgr_vertices (graph)
-#' verts <- verts [sample (nrow (verts), size = 200), ]
-#' streetnet <- dodgr_streetnet (pts = verts, expand = 0)
-#' graph <- weight_streetnet (streetnet)
-#' nrow (graph)
-#' # This will generally have many more rows because most street networks include
-#' # streets that extend considerably beyond the specified bounding box.
-#'
-#' # bbox can also be a polygon:
-#' bb <- osmdata::getbb ("gent belgium") # rectangular bbox
-#' nrow (dodgr_streetnet (bbox = bb)) # 28,742
-#' bb <- osmdata::getbb ("gent belgium", format_out = "polygon")
-#' nrow (dodgr_streetnet (bbox = bb)) # 15,969
-#' # The latter has fewer rows because only edges within polygon are returned
-#' }
-dodgr_streetnet <- function (bbox, pts, expand = 0.05, quiet = TRUE)
-{
-    bbox_poly <- NULL
-    if (!missing (bbox))
-    {
-        if (is.character (bbox))
-            bbox <- osmdata::getbb (bbox)
-        else if (is.list (bbox))
-        {
-            if (!all (vapply (bbox, is.numeric, logical (1))))
-                stop ("bbox is a list, so items must be numeric ",
-                      "(as in osmdata::getbb (..., format_out = 'polygon'))")
-            (length (bbox) > 1)
-                message ("selecting the first polygon from bbox")
-            bbox_poly <- bbox [[1]]
-            bbox <- t (apply (bbox [[1]], 2, range))
-        } else if (is.numeric (bbox))
-        {
-            if (!inherits (bbox, "matrix"))
-            {
-                if (length (bbox) != 4)
-                    stop ("bbox must have four numeric values")
-                bbox <- rbind (sort (bbox [c (1, 3)]),
-                             sort (bbox [c (2, 4)]))
-            } else if (nrow (bbox) > 2)
-            {
-                bbox_poly <- bbox
-                bbox <- apply (bbox, 2, range)
-            }
-        }
-        bbox [1, ] <- bbox [1, ] + c (-expand, expand) * diff (bbox [1, ])
-        bbox [2, ] <- bbox [2, ] + c (-expand, expand) * diff (bbox [2, ])
-    } else if (!missing (pts))
-    {
-        nms <- names (pts)
-        if (is.null (nms))
-            nms <- colnames (pts)
-        colx <- which (grepl ("x", nms, ignore.case = TRUE) |
-                       grepl ("lon", nms, ignore.case = TRUE))
-        coly <- which (grepl ("y", nms, ignore.case = TRUE) |
-                       grepl ("lat", nms, ignore.case = TRUE))
-        if (! (length (colx) == 1 | length (coly) == 1))
-            stop ("Can not unambiguous determine coordinates in graph")
-
-        x <- range (pts [, colx])
-        x <- x + c (-expand, expand) * diff (x)
-        y <- range (pts [, coly])
-        y <- y + c (-expand, expand) * diff (y)
-
-        bbox <- c (x [1], y [1], x [2], y [2])
-    } else
-        stop ('Either bbox or pts must be specified.')
-
-    # osm_poly2line merges all street polygons with the line ones
-    net <- osmdata::opq (bbox) %>%
-                osmdata::add_osm_feature (key = "highway") %>%
-                osmdata::osmdata_sf (quiet = quiet) %>%
-                osmdata::osm_poly2line ()
-    if (nrow (net$osm_lines) == 0)
-        stop ("Street network unable to be downloaded")
-
-    if (!is.null (bbox_poly))
-        net <- osmdata::trim_osmdata (net, bbox_poly)
-
-    return (net$osm_lines)
-}
-
 #' weight_streetnet
 #'
-#' Weight (or re-weight) an `sf`-formatted OSM street network according to
-#' a named routino profile, selected from (foot, horse, wheelchair, bicycle,
-#' moped, motorcycle, motorcar, goods, hgv, psv).
+#' Weight (or re-weight) an \pkg{sf} or `SC` (`silicate`)-formatted OSM street
+#' network according to a named profile, selected from (foot, horse, wheelchair,
+#' bicycle, moped, motorcycle, motorcar, goods, hgv, psv).
 #'
-#' @param x A street network represented as `sf` `LINESTRING`
-#' objects, typically extracted with `dodgr_streetnet`
+#' @param x A street network represented either as `sf` `LINESTRING`
+#' objects, typically extracted with \link{dodgr_streetnet}, or as an `SC`
+#' (`silicate`) object typically extracted with the \link{dodgr_streetnet_sc}.
 #' @param wt_profile Name of weighting profile, or vector of values with names
 #' corresponding to names in `type_col` (see Details)
+#' @param wt_profile_file Name of locally-stored, `.json`-formatted version of
+#' `dodgr::weighting_profiles`, created with \link{write_dodgr_wt_profile}, and
+#' modified as desired.
 #' @param type_col Specify column of the `sf` `data.frame` object
 #' which designates different types of highways to be used for weighting
 #' (default works with `osmdata` objects).
-#' @param id_col Specify column of the code{sf} `data.frame` object which
-#' provides unique identifiers for each highway (default works with
-#' `osmdata` objects).
-#' @param keep_cols Vectors of columns from `sf_lines` to be kept in the
-#' resultant `dodgr` network; vector can be either names or indices of
-#' desired columns.
+#' @param id_col For `sf`-formatted data only: Specify column of the code{sf}
+#' `data.frame` object which provides unique identifiers for each highway
+#' (default works with `osmdata` objects).
+#' @param keep_cols Vectors of columns from `x` to be kept in the resultant
+#' `dodgr` network; vector can be either names or indices of desired columns.
+#' @param turn_angle Weight edges times by turning angles at intersections (see
+#' Note).
+#' @param left_side Does traffic travel on the left side of the road (`TRUE`) or
+#' the right side (`FALSE`)? - only has effect on turn angle calculations for
+#' edge times.
 #'
 #' @return A `data.frame` of edges representing the street network, with
-#' distances in kilometres, along with a column of graph component numbers.
+#' distances in metres and times in seconds, along with a column of graph
+#' component numbers. Times for \pkg{sf}-formatted street networks are only
+#' approximate, and do not take into account traffic lights, turn angles, or
+#' elevation changes. Times for \pkg{sc}-formatted street networks take into
+#' account all of these factors, with elevation changes automatically taken into
+#' account for networks generated with the \pkg{osmdata} function
+#' `osm_elevation()`.
 #'
 #' @note Names for the `wt_profile` parameter are taken from
-#' \link{weighting_profiles}, which is a `data.frame` of weights for
-#' different modes of transport. Current modes included there are "bicycle",
-#' "foot", "goods", "hgv", "horse", "moped", "motorcar", "motorcycle", "psv",
-#' and "wheelchair". Railway routing can be implemented with
-#' the separate function \link{weight_railway}.
+#' \link{weighting_profiles}, which is a list including a `data.frame` also
+#' called `weighting_profiles` of weights for different modes of transport.
+#' Values for `wt_profile` are taken from current modes included there, which
+#' are "bicycle", "foot", "goods", "hgv", "horse", "moped", "motorcar",
+#' "motorcycle", "psv", and "wheelchair". Railway routing can be implemented
+#' with the separate function \link{weight_railway}. Alternatively, the entire
+#' `weighting_profile` structures can be written to a local `.json`-formatted
+#' file with \link{write_dodgr_wt_profile}, the values edited as desired, and
+#' the name of this file passed as the `wt_profile_file` parameter.
+#'
+#' @note Calculating edge times to account for turn angles (that is, with
+#' `turn_angle = TRUE`) involves calculating the temporal delay involving in
+#' turning across oncoming traffic. Resultant graphs are fundamentally different
+#' from the default for distance-based routing. The result of
+#' `weight_streetnet(..., turn_angle = TRUE)` should thus \emph{only} be used to
+#' submit to the \link{dodgr_times} function, and not for any other `dodgr`
+#' functions nor forms of network analysis.
+#'
+#' @seealso \link{write_dodgr_wt_profile}, \link{dodgr_times}
 #'
 #' @export
 #' @examples
@@ -168,8 +88,10 @@ dodgr_streetnet <- function (bbox, pts, expand = 0.05, quiet = TRUE)
 #'                            wt_profile = 1)
 #' }
 weight_streetnet <- function (x, wt_profile = "bicycle",
+                              wt_profile_file = NULL,
+                              turn_angle = FALSE,
                               type_col = "highway", id_col = "osm_id",
-                              keep_cols = NULL)
+                              keep_cols = NULL, left_side = FALSE)
 {
     UseMethod ("weight_streetnet")
 }
@@ -177,18 +99,36 @@ weight_streetnet <- function (x, wt_profile = "bicycle",
 #' @name weight_streetnet
 #' @export
 weight_streetnet.default <- function (x, wt_profile = "bicycle",
+                              wt_profile_file = NULL,
+                              turn_angle = FALSE,
                               type_col = "highway", id_col = "osm_id",
-                              keep_cols = NULL)
+                              keep_cols = NULL, left_side = FALSE)
 {
     stop ("Unknown class")
 }
 
+# ********************************************************************
+# ***********************   generic variables   ***********************
+# ********************************************************************
+
+way_types_to_keep = c ("highway", "oneway", "oneway:bicycle", "lanes",
+                       "maxspeed")
+
+# ********************************************************************
+# *************************     sf class     ************************* 
+# ********************************************************************
+
 #' @name weight_streetnet
 #' @export
 weight_streetnet.sf <- function (x, wt_profile = "bicycle",
-                              type_col = "highway", id_col = "osm_id",
-                              keep_cols = NULL)
+                                 wt_profile_file = NULL,
+                                 turn_angle = FALSE,
+                                 type_col = "highway", id_col = "osm_id",
+                                 keep_cols = NULL, left_side = FALSE)
 {
+    if (turn_angle)
+        stop ("Turn-angle calculations only currently implemented for street ",
+              "network data generated with the `osmdata::osmdata_sc()` function.")
     geom_column <- get_sf_geom_col (x)
     attr (x, "sf_column") <- geom_column
 
@@ -213,7 +153,7 @@ weight_streetnet.sf <- function (x, wt_profile = "bicycle",
             stop ("Multiple potential ID columns: [",
                   paste0 (names (x) [idcol], collapse = " "),
                   "]; please explicitly specify one of these.")
-        } else if (length (idcol) == 1)
+        } else if (length (idcol) == 0)
         {
             message ("x appears to have no ID column;",
                      "sequential edge numbers will be used.")
@@ -227,6 +167,7 @@ weight_streetnet.sf <- function (x, wt_profile = "bicycle",
     names (x) [match (geom_column, names (x))] <- "geometry"
     attr (x, "sf_column") <- "geometry"
 
+    wt_profile_name <- NULL
     if (is.character (wt_profile))
     {
         if (grepl ("rail", wt_profile, ignore.case = TRUE))
@@ -234,11 +175,15 @@ weight_streetnet.sf <- function (x, wt_profile = "bicycle",
             stop ("Please use the weight_railway function for railway routing.")
         } else
         {
-            prf_names <- c ("foot", "horse", "wheelchair", "bicycle", "moped",
-                            "motorcycle", "motorcar", "goods", "hgv", "psv")
-            wt_profile <- match.arg (tolower (wt_profile), prf_names)
-            profiles <- dodgr::weighting_profiles
-            wt_profile <- profiles [profiles$name == wt_profile, ]
+            if (wt_profile == "bicycle" & "oneway" %in% names (x))
+            {
+                if ("oneway.bicycle" %in% names (x))
+                    x$oneway <- x [["oneway.bicycle"]]
+                else if ("oneway:bicycle" %in% names (x))
+                    x$oneway <- x [["oneway:bicycle"]]
+            }
+            wt_profile_name <- wt_profile
+            wt_profile <- get_profile (wt_profile_name, wt_profile_file)
         }
     } else if (is.numeric (wt_profile))
     {
@@ -252,8 +197,7 @@ weight_streetnet.sf <- function (x, wt_profile = "bicycle",
     } else if (is.data.frame (wt_profile))
     {
         # assert that is has the standard structure
-        if (ncol (wt_profile) != 3 |
-            !identical (names (wt_profile), c ("name", "way", "value")))
+        if (!all (c ("name", "way", "value") %in% names (wt_profile)))
             stop ("Weighting profiles must have three columsn of ",
                   "(name, way, value); see 'weighting_profiles' for examples")
     } else
@@ -277,8 +221,8 @@ weight_streetnet.sf <- function (x, wt_profile = "bicycle",
                          way_id = as.character (dat$character_values [, 4]),
                          stringsAsFactors = FALSE
                          )
-    # rcpp_sf_as_network now flags non-routable ways with -1, so:
-    graph$d_weighted [graph$d_weighted < 0] <- .Machine$double.xmax
+    # rcpp_sf_as_network flags non-routable ways with -1, so:
+    graph$d_weighted [graph$d_weighted < 0] <- NA
     if (all (graph$highway == ""))
         graph$highway <- NULL
     if (all (graph$way_id == ""))
@@ -289,26 +233,24 @@ weight_streetnet.sf <- function (x, wt_profile = "bicycle",
     if (is.null (rownames (as.matrix (x$geometry [[1]]))))
         graph <- rownames_from_xy (graph)
 
-    # get component numbers for each edge
-    class (graph) <- c (class (graph), "dodgr_streetnet")
     graph <- dodgr_components (graph)
 
-    # And finally, re-insert keep_cols:
     if (length (keep_cols) > 0)
         graph <- reinsert_keep_cols (x, graph, keep_cols)
 
-    graph$d_weighted [graph$d_weighted == .Machine$double.xmax] <- NA
+    graph <- add_extra_sf_columns (graph, x)
+    if (!is.null (wt_profile_name))
+        graph <- set_maxspeed (graph, wt_profile_name, wt_profile_file) %>%
+            weight_by_num_lanes (wt_profile_name) %>%
+            calc_edge_time (wt_profile_name)
+
+    gr_cols <- dodgr_graph_cols (graph)
+    graph <- graph [which (!is.na (graph [[gr_cols$w]])), ]
+
+    class (graph) <- c (class (graph), "dodgr_streetnet")
+    attr (graph, "turn_penalty") <- FALSE
 
     return (graph)
-}
-
-#' @name weight_streetnet
-#' @export
-weight_streetnet.sc <- weight_streetnet.SC <- function (x, wt_profile = "bicycle",
-                              type_col = "highway", id_col = "osm_id",
-                              keep_cols = NULL)
-{
-    stop ("sc method not yet implemented")
 }
 
 # re-map any OSM 'highway' types with pmatch to standard types
@@ -329,8 +271,7 @@ remap_way_types <- function (sf_lines, wt_profile)
     }
 
     # re-map some common types
-    indx <- which (sf_lines$highway %in% c ("pedestrian", "footway",
-                                            "bridleway"))
+    indx <- which (sf_lines$highway %in% c ("pedestrian", "footway"))
     if (length (indx) > 0)
         sf_lines$highway [indx] <- "path"
 
@@ -433,6 +374,110 @@ reinsert_keep_cols <- function (sf_lines, graph, keep_cols)
 
     return (graph)
 }
+
+add_extra_sf_columns <- function (graph, x)
+{
+    if (!"way_id" %in% names (graph)) # only works for OSM data
+        return (graph)
+
+    hi <- match ("highway", names (graph))
+    if (is.na (hi))
+    {
+        hi <- ncol (graph)
+        index2 <- NULL
+    } else if (hi == ncol (graph))
+        index2 <- NULL
+    else
+        index2 <- (hi + 1):ncol (graph)
+
+    keep_types = c ("lanes", "maxspeed", "surface")
+    keep_df <- array (NA_character_,
+                      dim = c (nrow (graph), length (keep_types)))
+    nms <- c (names (graph) [1:hi], keep_types, names (graph) [index2])
+    graph <- cbind (graph [, 1:hi],
+                    data.frame (keep_df, stringsAsFactors = FALSE),
+                    graph [, index2])
+    names (graph) <- nms
+
+    row_index <- match (graph$way_id, x$osm_id)
+    col_index_x <- match (keep_types, names (x))
+    keep_types <- keep_types [which (!is.na (col_index_x))]
+    col_index_x <- col_index_x [which (!is.na (col_index_x))]
+    col_index_graph <- match (keep_types, names (graph))
+
+    x [[attr (x, "sf_column")]] <- NULL
+    x <- data.frame (x, stringsAsFactors = FALSE)
+    # that still sometimes produces factors, so:
+    for (i in seq (ncol (x)))
+        x [, i] <- paste0 (x [, i])
+    graph [, col_index_graph] <- x [row_index, col_index_x]
+
+    return (graph)
+}
+
+# ********************************************************************
+# *************************     sc class     ************************* 
+# ********************************************************************
+#
+# most functions are defined in weight-streetnet-times.R
+
+#' @name weight_streetnet
+#' @export
+weight_streetnet.sc <- weight_streetnet.SC <- function (x, wt_profile = "bicycle",
+                                                        wt_profile_file = NULL,
+                                                        turn_angle = FALSE,
+                                                        type_col = "highway",
+                                                        id_col = "osm_id",
+                                                        keep_cols = NULL,
+                                                        left_side = FALSE)
+{
+    requireNamespace ("geodist")
+    requireNamespace ("dplyr")
+    check_sc (x)
+
+    graph <- extract_sc_edges_xy (x) %>%                # vert, edge IDs + coordinates
+        sc_edge_dist () %>%                             # append dist
+        extract_sc_edges_highways (x,
+                                   wt_profile,
+                                   wt_profile_file,
+                                   way_types_to_keep) %>% # highway key-val pairs
+        weight_sc_edges (wt_profile,
+                         wt_profile_file) %>%           # add d_weighted col
+        set_maxspeed (wt_profile,
+                      wt_profile_file) %>%              # modify d_weighted
+        weight_by_num_lanes (wt_profile) %>%
+        calc_edge_time (wt_profile) %>%                 # add time
+        sc_traffic_lights (x,
+                           wt_profile,
+                           wt_profile_file) %>%         # modify time
+        rm_duplicated_edges () %>%
+        sc_duplicate_edges (wt_profile)
+
+    gr_cols <- dodgr_graph_cols (graph)
+    graph <- graph [which (!is.na (graph [[gr_cols$w]])), ]
+
+    attr (graph, "turn_penalty") <- 0
+
+    if (turn_angle)
+    {
+        graph <- join_junctions_to_graph (graph, wt_profile, wt_profile_file,
+                                          left_side)
+        #graph$d_weighted <- graph$time_weighted
+        attr (graph, "turn_penalty") <- 
+            get_turn_penalties (wt_profile, wt_profile_file)$turn
+    }
+
+    gr_cols <- dodgr_graph_cols (graph)
+    graph <- graph [which (!is.na (graph [[gr_cols$w]]) |
+                           !is.na (graph [[gr_cols$time]])), ]
+
+    class (graph) <- c (class (graph), "dodgr_streetnet", "dodgr_streetnet_sc")
+    return (graph)
+}
+
+# ********************************************************************
+# **********************     weight railway     **********************
+# ********************************************************************
 
 #' weight_railway
 #'
