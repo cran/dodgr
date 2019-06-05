@@ -36,7 +36,7 @@ std::shared_ptr <HeapDesc> run_sp::getHeapImpl(const std::string& heap_type)
   else if (heap_type == "Radix")
     return std::make_shared <HeapD<RadixHeap> >();
   else
-    throw std::runtime_error("invalid heap type: " + heap_type);
+    throw std::runtime_error("invalid heap type: " + heap_type); // # nocov
 }
 
 
@@ -135,35 +135,6 @@ size_t run_sp::make_vert_map (const Rcpp::DataFrame &vert_map_in,
     return (nverts);
 }
 
-size_t run_sp::get_fromi_toi (const Rcpp::DataFrame &vert_map_in,
-        Rcpp::IntegerVector &fromi, Rcpp::IntegerVector &toi,
-        Rcpp::NumericVector &id_vec)
-{
-    if (fromi [0] < 0) // use all vertices
-    {
-        id_vec = vert_map_in ["id"];
-        fromi = id_vec;
-    }
-    if (toi [0] < 0) // use all vertices
-    {
-        if (id_vec.size () == 0)
-            id_vec = vert_map_in ["id"];
-        toi = id_vec;
-    }
-    return static_cast <size_t> (fromi.size ());
-}
-
-size_t run_sp::get_fromi (const Rcpp::DataFrame &vert_map_in,
-        Rcpp::IntegerVector &fromi, Rcpp::NumericVector &id_vec)
-{
-    if (fromi [0] < 0) // use all vertices
-    {
-        id_vec = vert_map_in ["id"];
-        fromi = id_vec;
-    }
-    return static_cast <size_t> (fromi.size ());
-}
-
 // Flows from the pathfinder output are reallocated based on matching vertex
 // pairs to edge indices. Note, however, that contracted graphs frequently
 // have duplicate vertex pairs with different distances. The following
@@ -204,7 +175,7 @@ Rcpp::NumericMatrix rcpp_get_sp_dists_par (const Rcpp::DataFrame graph,
         Rcpp::as <std::vector <unsigned int> > ( toi_in);
 
     Rcpp::NumericVector id_vec;
-    size_t nfrom = run_sp::get_fromi_toi (vert_map_in, fromi, toi_in, id_vec);
+    size_t nfrom = fromi.size ();
     size_t nto = toi.size ();
 
     std::vector <std::string> from = graph ["from"];
@@ -257,7 +228,7 @@ Rcpp::NumericMatrix rcpp_get_sp_dists (const Rcpp::DataFrame graph,
     std::vector <unsigned int> toi =
         Rcpp::as <std::vector <unsigned int> > ( toi_in);
     Rcpp::NumericVector id_vec;
-    size_t nfrom = run_sp::get_fromi_toi (vert_map_in, fromi, toi_in, id_vec);
+    size_t nfrom = fromi.size ();
     size_t nto = toi.size ();
 
     std::vector <std::string> from = graph ["from"];
@@ -340,7 +311,7 @@ Rcpp::List rcpp_get_paths (const Rcpp::DataFrame graph,
     std::vector <unsigned int> toi =
         Rcpp::as <std::vector <unsigned int> > ( toi_in);
     Rcpp::NumericVector id_vec;
-    size_t nfrom = run_sp::get_fromi_toi (vert_map_in, fromi, toi_in, id_vec);
+    size_t nfrom = fromi.size ();
     size_t nto = toi.size ();
 
     std::vector <std::string> from = graph ["from"];
@@ -450,7 +421,7 @@ struct OneFlow : public RcppParallel::Worker
             //return charset [ rand() % max_index ];
             size_t i = static_cast <size_t> (floor (unif_rand () * max_index));
             return charset [i];
-        };
+        }; // # nocov
         std::string str (len, 0);
         std::generate_n (str.begin(), len, randchar);
         return str;
@@ -550,7 +521,7 @@ Rcpp::NumericVector rcpp_aggregate_files (const Rcpp::CharacterVector file_names
         in_file.close ();
 
         if (nedges != static_cast <size_t> (len))
-            Rcpp::stop ("aggregate flows have inconsistent sizes");
+            Rcpp::stop ("aggregate flows have inconsistent sizes"); // # nocov
         
         for (size_t j = 0; j < nedges; j++)
             flows [static_cast <long> (j)] += flows_i [j];
@@ -586,7 +557,7 @@ void rcpp_flows_aggregate_par (const Rcpp::DataFrame graph,
     std::vector <unsigned int> toi =
         Rcpp::as <std::vector <unsigned int> > ( toi_in);
     Rcpp::NumericVector id_vec;
-    const size_t nfrom = run_sp::get_fromi_toi (vert_map_in, fromi, toi_in, id_vec);
+    const size_t nfrom = fromi.size ();
 
     const std::vector <std::string> from = graph ["from"];
     const std::vector <std::string> to = graph ["to"];
@@ -645,7 +616,7 @@ Rcpp::NumericVector rcpp_flows_disperse (const Rcpp::DataFrame graph,
         std::string heap_type)
 {
     Rcpp::NumericVector id_vec;
-    size_t nfrom = run_sp::get_fromi (vert_map_in, fromi, id_vec);
+    size_t nfrom = fromi.size ();
 
     std::vector <std::string> from = graph ["from"];
     std::vector <std::string> to = graph ["to"];
@@ -699,7 +670,7 @@ Rcpp::NumericVector rcpp_flows_disperse (const Rcpp::DataFrame graph,
                     vert_from = vert_name [static_cast <size_t> (prev [vi])];
                 std::string two_verts = "f" + vert_from + "t" + vert_to;
                 if (verts_to_edge_map.find (two_verts) == verts_to_edge_map.end ())
-                    Rcpp::stop ("vertex pair forms no known edge");
+                    Rcpp::stop ("vertex pair forms no known edge"); // # nocov
 
                 unsigned int indx = verts_to_edge_map [two_verts];
                 if (d [vi] < INFINITE_DOUBLE)
@@ -708,11 +679,13 @@ Rcpp::NumericVector rcpp_flows_disperse (const Rcpp::DataFrame graph,
                         aggregate_flows [indx] += flows (v, 0) * exp (-d [vi] / k);
                     else // standard logistic polynomial for UK cycling models
                     {
+                        // # nocov start
                         double lp = -3.894 + (-0.5872 * d [vi]) +
                             (1.832 * sqrt (d [vi])) +
                             (0.007956 * d [vi] * d [vi]);
                         aggregate_flows [indx] += flows (v, 0) *
                             exp (lp) / (1.0 + exp (lp));
+                        // # nocov end
                     }
                 }
             }

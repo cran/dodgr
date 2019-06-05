@@ -17,13 +17,15 @@ Practices](https://bestpractices.coreinfrastructure.org/projects/1396/badge)](ht
 
 R package for efficient calculation of many-to-many pairwise distances
 on dual-weighted directed graphs, for aggregation of flows throughout
-networks, and for highly realistic routing through street networks.
+networks, and for highly realistic routing through street networks
+(time-based routing considering incline, turn-angles, surface quality,
+everything).
 
 ## What’s so special?
 
 Four aspects. First, while other packages exist for calculating
 distances on directed graphs, notably [`igraph`](https://igraph.org/r),
-even this otherwise fabulous package does not (readily) permit analysis
+even that otherwise fabulous package does not (readily) permit analysis
 of *dual-weighted* graphs. Dual-weighted graphs have two sets of weights
 for each edge, so routing can be evaluated with one set of weights,
 while distances can be calculated with the other. A canonical example is
@@ -50,9 +52,10 @@ densities, and a user-specified dispersal model.
 
 Fourth and finally, `dodgr` implements highly realistic and
 fully-customisable profiles for routing through street networks with
-various modes of transport. Routing can include such factors as waiting
-times at traffic lights, delays for turning across oncoming traffic, and
-the effects of elevation on both cyclists and pedestrians.
+various modes of transport, and using either distance- or time-based
+routing. Routing can include such factors as waiting times at traffic
+lights, delays for turning across oncoming traffic, and the effects of
+elevation on both cyclists and pedestrians.
 
 ## Installation
 
@@ -69,7 +72,7 @@ Then load with
 ``` r
 library (dodgr)
 packageVersion ("dodgr")
-#> [1] '0.1.3.3'
+#> [1] '0.1.4.5'
 ```
 
 ## Usage: Sample Data and `dodgr` networks
@@ -90,17 +93,17 @@ function:
 class (hampi)
 #> [1] "sf"         "data.frame"
 dim (hampi)
-#> [1] 191  15
+#> [1] 203  15
 graph <- weight_streetnet (hampi, wt_profile = "foot")
 class (graph)
 #> [1] "data.frame"      "dodgr_streetnet"
 dim (graph)
-#> [1] 5845   15
+#> [1] 5973   15
 ```
 
-The `sf`-format network contained 191 `LINESTRING` objects, with the
-`weight_streetnet()` function decomposing these into 5,845 distinct
-edges, indicating that the `sf` representation had around 31 edges or
+The `sf`-format network contained 203 `LINESTRING` objects, with the
+`weight_streetnet()` function decomposing these into 5,973 distinct
+edges, indicating that the `sf` representation had around 29 edges or
 segments in each `LINESTRING` object. The `dodgr` network then looks
 like this:
 
@@ -108,14 +111,14 @@ like this:
 head (graph)
 ```
 
-| geom\_num | edge\_id | from\_id   | from\_lon | from\_lat | to\_id     |  to\_lon |  to\_lat |         d | d\_weighted | highway | way\_id  | component |      time | time\_weighted |
-| --------: | -------: | :--------- | --------: | --------: | :--------- | -------: | -------: | --------: | ----------: | :------ | :------- | --------: | --------: | -------------: |
-|         1 |        1 | 339318500  |  76.47489 |  15.34169 | 339318502  | 76.47612 | 15.34173 | 0.1324422 |   0.1471580 | service | 28565950 |         1 | 0.0953584 |      0.1059537 |
-|         1 |        2 | 339318502  |  76.47612 |  15.34173 | 339318500  | 76.47489 | 15.34169 | 0.1324422 |   0.1471580 | service | 28565950 |         1 | 0.0953584 |      0.1059537 |
-|         1 |        3 | 339318502  |  76.47612 |  15.34173 | 2398958028 | 76.47621 | 15.34174 | 0.0088887 |   0.0098763 | service | 28565950 |         1 | 0.0063998 |      0.0071109 |
-|         1 |        4 | 2398958028 |  76.47621 |  15.34174 | 339318502  | 76.47612 | 15.34173 | 0.0088887 |   0.0098763 | service | 28565950 |         1 | 0.0063998 |      0.0071109 |
-|         1 |        5 | 2398958028 |  76.47621 |  15.34174 | 1427116077 | 76.47628 | 15.34179 | 0.0093265 |   0.0103628 | service | 28565950 |         1 | 0.0067151 |      0.0074612 |
-|         1 |        6 | 1427116077 |  76.47628 |  15.34179 | 2398958028 | 76.47621 | 15.34174 | 0.0093265 |   0.0103628 | service | 28565950 |         1 | 0.0067151 |      0.0074612 |
+| geom\_num | edge\_id | from\_id   | from\_lon | from\_lat | to\_id     |  to\_lon |  to\_lat |          d | d\_weighted | highway      | way\_id  | component |      time | time\_weighted |
+| --------: | -------: | :--------- | --------: | --------: | :--------- | -------: | -------: | ---------: | ----------: | :----------- | :------- | --------: | --------: | -------------: |
+|         1 |        1 | 339318500  |  76.47489 |  15.34169 | 339318502  | 76.47612 | 15.34173 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 |
+|         1 |        2 | 339318502  |  76.47612 |  15.34173 | 339318500  | 76.47489 | 15.34169 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 |
+|         1 |        3 | 339318502  |  76.47612 |  15.34173 | 2398958028 | 76.47621 | 15.34174 |   8.888670 |    11.11084 | unclassified | 28565950 |         1 |  6.399843 |       7.999803 |
+|         1 |        4 | 2398958028 |  76.47621 |  15.34174 | 339318502  | 76.47612 | 15.34173 |   8.888670 |    11.11084 | unclassified | 28565950 |         1 |  6.399843 |       7.999803 |
+|         1 |        5 | 2398958028 |  76.47621 |  15.34174 | 1427116077 | 76.47628 | 15.34179 |   9.326536 |    11.65817 | unclassified | 28565950 |         1 |  6.715106 |       8.393882 |
+|         1 |        6 | 1427116077 |  76.47628 |  15.34179 | 2398958028 | 76.47621 | 15.34174 |   9.326536 |    11.65817 | unclassified | 28565950 |         1 |  6.715106 |       8.393882 |
 
 The `geom_num` column maps directly onto the sequence of `LINESTRING`
 objects within the `sf`-formatted data. The `highway` column is taken
@@ -134,14 +137,14 @@ actual distances. Compare this with:
 head (graph [graph$highway == "path", ])
 ```
 
-|    | geom\_num | edge\_id | from\_id   | from\_lon | from\_lat | to\_id     |  to\_lon |  to\_lat |         d | d\_weighted | highway | way\_id  | component |      time | time\_weighted |
-| -- | --------: | -------: | :--------- | --------: | --------: | :--------- | -------: | -------: | --------: | ----------: | :------ | :------- | --------: | --------: | -------------: |
-| 47 |         2 |       47 | 338905220  |  76.47398 |  15.31224 | 338907543  | 76.47405 | 15.31241 | 0.0197040 |   0.0197040 | path    | 30643853 |         1 | 0.0354672 |      0.0354672 |
-| 48 |         2 |       48 | 338907543  |  76.47405 |  15.31241 | 338905220  | 76.47398 | 15.31224 | 0.0197040 |   0.0197040 | path    | 30643853 |         1 | 0.0354672 |      0.0354672 |
-| 49 |         2 |       49 | 338907543  |  76.47405 |  15.31241 | 2398957585 | 76.47410 | 15.31259 | 0.0213917 |   0.0213917 | path    | 30643853 |         1 | 0.0385051 |      0.0385051 |
-| 50 |         2 |       50 | 2398957585 |  76.47410 |  15.31259 | 338907543  | 76.47405 | 15.31241 | 0.0213917 |   0.0213917 | path    | 30643853 |         1 | 0.0385051 |      0.0385051 |
-| 51 |         2 |       51 | 2398957585 |  76.47410 |  15.31259 | 338907597  | 76.47413 | 15.31279 | 0.0221521 |   0.0221521 | path    | 30643853 |         1 | 0.0398737 |      0.0398737 |
-| 52 |         2 |       52 | 338907597  |  76.47413 |  15.31279 | 2398957585 | 76.47410 | 15.31259 | 0.0221521 |   0.0221521 | path    | 30643853 |         1 | 0.0398737 |      0.0398737 |
+|    | geom\_num | edge\_id | from\_id   | from\_lon | from\_lat | to\_id     |  to\_lon |  to\_lat |        d | d\_weighted | highway | way\_id  | component |     time | time\_weighted |
+| -- | --------: | -------: | :--------- | --------: | --------: | :--------- | -------: | -------: | -------: | ----------: | :------ | :------- | --------: | -------: | -------------: |
+| 47 |         2 |       47 | 338905220  |  76.47398 |  15.31224 | 338907543  | 76.47405 | 15.31241 | 19.70399 |    19.70399 | path    | 30643853 |         1 | 35.46718 |       35.46718 |
+| 48 |         2 |       48 | 338907543  |  76.47405 |  15.31241 | 338905220  | 76.47398 | 15.31224 | 19.70399 |    19.70399 | path    | 30643853 |         1 | 35.46718 |       35.46718 |
+| 49 |         2 |       49 | 338907543  |  76.47405 |  15.31241 | 2398957585 | 76.47410 | 15.31259 | 21.39172 |    21.39172 | path    | 30643853 |         1 | 38.50510 |       38.50510 |
+| 50 |         2 |       50 | 2398957585 |  76.47410 |  15.31259 | 338907543  | 76.47405 | 15.31241 | 21.39172 |    21.39172 | path    | 30643853 |         1 | 38.50510 |       38.50510 |
+| 51 |         2 |       51 | 2398957585 |  76.47410 |  15.31259 | 338907597  | 76.47413 | 15.31279 | 22.15205 |    22.15205 | path    | 30643853 |         1 | 39.87370 |       39.87370 |
+| 52 |         2 |       52 | 338907597  |  76.47413 |  15.31279 | 2398957585 | 76.47410 | 15.31259 | 22.15205 |    22.15205 | path    | 30643853 |         1 | 39.87370 |       39.87370 |
 
 A `"path"` offers ideal walking conditions, and so weighted distances
 are equal to actual distances.
@@ -152,17 +155,17 @@ The many-to-many nature of `dodgr` means that the function to calculate
 distances,
 [`dodgr_distances()`](https://atfutures.github.io/dodgr/reference/dodgr_distances.html)
 or, for street networks, times,
-[`dodgr_times()`](https://atfutures.github.io/dodgr/reference/dodgr_times.html)
-or, for street networks, times, accepts two vectors or matrices of
-routing points as inputs (describing origins and destinations), and
-returns a corresponding matrix of pairwise distances. If an input graph
-has columns for both distances and weighted distances, and/or times and
-weighted times, the weighted versions are used to determine the
-effectively shortest or fastest routes through a network, while actual
-distances or times are summed along the routes to calculate final
-values. It is of course also possible to calculate distances along
-fastest routes, times along shortest routes, or any combination thereof,
-as detailed in the package vignette on [street networks and time-based
+[`dodgr_times()`](https://atfutures.github.io/dodgr/reference/dodgr_times.html),
+accepts two vectors or matrices of routing points as inputs (describing
+origins and destinations), and returns a corresponding matrix of
+pairwise distances. If an input graph has columns for both distances and
+weighted distances, and/or times and weighted times, the weighted
+versions are used to determine the effectively shortest or fastest
+routes through a network, while actual distances or times are summed
+along the routes to calculate final values. It is of course also
+possible to calculate distances along fastest routes, times along
+shortest routes, or any combination thereof, as detailed in the package
+vignette on [street networks and time-based
 routing](https://atfutures.github.io/dodgr/articles/times.html).
 
 Routing points can, for example, be randomly selected from the vertices
@@ -264,14 +267,14 @@ quantifying the aggregate flows along each edge:
 head (f)
 ```
 
-| geom\_num | edge\_id | from\_id   | from\_lon | from\_lat | to\_id     |  to\_lon |  to\_lat |         d | d\_weighted | highway | way\_id  | component |      time | time\_weighted |     flow |
-| --------: | -------: | :--------- | --------: | --------: | :--------- | -------: | -------: | --------: | ----------: | :------ | :------- | --------: | --------: | -------------: | -------: |
-|         1 |        1 | 339318500  |  76.47489 |  15.34169 | 339318502  | 76.47612 | 15.34173 | 0.1324422 |   0.1471580 | service | 28565950 |         1 | 0.0953584 |      0.1059537 | 54.60401 |
-|         1 |        2 | 339318502  |  76.47612 |  15.34173 | 339318500  | 76.47489 | 15.34169 | 0.1324422 |   0.1471580 | service | 28565950 |         1 | 0.0953584 |      0.1059537 | 43.12020 |
-|         1 |        3 | 339318502  |  76.47612 |  15.34173 | 2398958028 | 76.47621 | 15.34174 | 0.0088887 |   0.0098763 | service | 28565950 |         1 | 0.0063998 |      0.0071109 | 54.60401 |
-|         1 |        4 | 2398958028 |  76.47621 |  15.34174 | 339318502  | 76.47612 | 15.34173 | 0.0088887 |   0.0098763 | service | 28565950 |         1 | 0.0063998 |      0.0071109 | 43.12020 |
-|         1 |        5 | 2398958028 |  76.47621 |  15.34174 | 1427116077 | 76.47628 | 15.34179 | 0.0093265 |   0.0103628 | service | 28565950 |         1 | 0.0067151 |      0.0074612 | 54.60401 |
-|         1 |        6 | 1427116077 |  76.47628 |  15.34179 | 2398958028 | 76.47621 | 15.34174 | 0.0093265 |   0.0103628 | service | 28565950 |         1 | 0.0067151 |      0.0074612 | 43.12020 |
+| geom\_num | edge\_id | from\_id   | from\_lon | from\_lat | to\_id     |  to\_lon |  to\_lat |          d | d\_weighted | highway      | way\_id  | component |      time | time\_weighted |     flow |
+| --------: | -------: | :--------- | --------: | --------: | :--------- | -------: | -------: | ---------: | ----------: | :----------- | :------- | --------: | --------: | -------------: | -------: |
+|         1 |        1 | 339318500  |  76.47489 |  15.34169 | 339318502  | 76.47612 | 15.34173 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 | 20.11498 |
+|         1 |        2 | 339318502  |  76.47612 |  15.34173 | 339318500  | 76.47489 | 15.34169 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 | 23.11887 |
+|         1 |        3 | 339318502  |  76.47612 |  15.34173 | 2398958028 | 76.47621 | 15.34174 |   8.888670 |    11.11084 | unclassified | 28565950 |         1 |  6.399843 |       7.999803 | 20.11498 |
+|         1 |        4 | 2398958028 |  76.47621 |  15.34174 | 339318502  | 76.47612 | 15.34173 |   8.888670 |    11.11084 | unclassified | 28565950 |         1 |  6.399843 |       7.999803 | 23.11887 |
+|         1 |        5 | 2398958028 |  76.47621 |  15.34174 | 1427116077 | 76.47628 | 15.34179 |   9.326536 |    11.65817 | unclassified | 28565950 |         1 |  6.715106 |       8.393882 | 20.11498 |
+|         1 |        6 | 1427116077 |  76.47628 |  15.34179 | 2398958028 | 76.47621 | 15.34174 |   9.326536 |    11.65817 | unclassified | 28565950 |         1 |  6.715106 |       8.393882 | 23.11887 |
 
 An additional flow aggregation function can be applied in cases where
 only densities at origin points are known, and movement throughout a

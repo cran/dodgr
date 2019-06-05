@@ -8,7 +8,7 @@
 #' similarly labelled columns of spatial coordinates (for example
 #' `from_x`) or `stop_lon`).
 #' @param verts Optional list of vertices to be retained as routing points.
-#' These must match the `from_id` and `to_id` columns of `graph`.
+#' These must match the `from` and `to` columns of `graph`.
 #'
 #' @return A list of two items: `graph` containing contracted version of
 #' the original `graph`, converted to a standardised format, and
@@ -17,18 +17,24 @@
 #' @export
 #' @examples
 #' graph <- weight_streetnet (hampi)
-#' nrow (graph) # 5,729
+#' nrow (graph) # 5,845
 #' graph <- dodgr_contract_graph (graph)
-#' nrow (graph$graph) # 764
+#' nrow (graph) # 686
 dodgr_contract_graph <- function (graph, verts = NULL)
 {
-    classes <- class (graph)
-    graph <- tbl_to_df (graph)
     if (nrow (graph) == 0)
-        stop ("graph is empty")
+        stop ("graph is empty") # nocov
+
+    # px is the R6 processx object for initial caching
+    px <- NULL
+    if ("px" %in% names (attributes (graph)))
+    {
+        px <- attr (graph, "px")
+        while (px$is_alive ())
+            px$wait ()
+    }
 
     v <- dodgr_vertices (graph)
-    junctions <- get_junction_vertices (v)
 
     if (!is.null (verts))
     {
@@ -38,6 +44,58 @@ dodgr_contract_graph <- function (graph, verts = NULL)
             verts <- paste0 (verts)
         verts <- verts [which (verts %in% v$id)]
     }
+
+    hash <- get_hash (graph, hash = TRUE)
+    hashc <- get_hash (graph, verts = verts, hash = FALSE)
+    fname_c <- file.path (tempdir (), paste0 ("dodgr_graphc_", hashc, ".Rds"))
+
+    if (file.exists (fname_c))
+    {
+        graph_contracted <- list (graph = readRDS (fname_c))
+    } else
+    {
+        fname <- file.path (tempdir (), paste0 ("dodgr_graph_", hash, ".Rds"))
+        if (!file.exists (fname))
+            saveRDS (graph, fname)
+
+        graph_contracted <- dodgr_contract_graph_internal (graph, v, verts)
+
+        gr_cols <- dodgr_graph_cols (graph_contracted$graph)
+        hashe <- digest::digest (graph_contracted$graph [[gr_cols$edge_id]])
+        attr (graph_contracted$graph, "hash") <- hash
+        attr (graph_contracted$graph, "hashc") <- hashc
+        attr (graph_contracted$graph, "hashe") <- hashe
+
+        saveRDS (graph_contracted$graph, fname_c)
+
+        fname_e <- file.path (tempdir (), paste0 ("dodgr_edge_map_", hashc, ".Rds"))
+        saveRDS (graph_contracted$edge_map, fname_e)
+
+        fname_j <- file.path (tempdir (), paste0 ("dodgr_junctions_", hashc, ".Rds"))
+        saveRDS (graph_contracted$junctions, fname_j)
+    }
+
+    # copy the processx R6 object associated with caching the original graph:
+    if (!is.null (px))
+        attr (graph_contracted$graph, "px") <- px
+
+    return (graph_contracted$graph)
+}
+
+# get junction vertices of graphs which have been re-routed for turn angles.
+# These all have either "_start" or "_end" appended to vertex names
+# v is result of `dodgr_vertices` functions.
+get_junction_vertices <- function (v)
+{
+    gsub ("_start|_end", "", v$id [grep ("_start|_end", v$id)])
+}
+
+dodgr_contract_graph_internal <- function (graph, v, verts = NULL)
+{
+    classes <- class (graph)
+    graph <- tbl_to_df (graph)
+
+    junctions <- get_junction_vertices (v)
 
     gr_cols <- dodgr_graph_cols (graph)
     graph2 <- convert_graph (graph, gr_cols)
@@ -110,23 +168,11 @@ dodgr_contract_graph <- function (graph, verts = NULL)
         names (graph_refill) [ci] <- cnm
     }
 
-    dig <- digest::digest (graph_contracted$edge_map)
-    fname <- file.path (tempdir (), paste0 ("graph_", dig, ".Rds"))
-    saveRDS (graph, file = fname)
-
     class (graph_refill) <- c (classes, "dodgr_contracted")
 
     return (list (graph = graph_refill,
                   edge_map = graph_contracted$edge_map,
                   junctions = junctions))
-}
-
-# get junction vertices of graphs which have been re-routed for turn angles.
-# These all have either "_start" or "_end" appended to vertex names
-# v is result of `dodgr_vertices` functions.
-get_junction_vertices <- function (v)
-{
-    gsub ("_start|_end", "", v$id [grep ("_start|_end", v$id)])
 }
 
 #' dodgr_uncontract_graph
@@ -145,24 +191,103 @@ get_junction_vertices <- function (v)
 #' @export
 #' @examples
 #' graph0 <- weight_streetnet (hampi)
-#' nrow (graph0) # 5,729
+#' nrow (graph0) # 5,845
 #' graph1 <- dodgr_contract_graph (graph0)
-#' nrow (graph1$graph) # 764
+#' nrow (graph1) # 686
 #' graph2 <- dodgr_uncontract_graph (graph1)
-#' nrow (graph2) # 5,729
-#' identical (graph0, graph2) # TRUE
+#' nrow (graph2) # 5,845
 #' 
 #' # Insert new data on to the contracted graph and uncontract it:
-#' graph1$graph$new_col <- runif (nrow (graph1$graph))
+#' graph1$new_col <- runif (nrow (graph1))
 #' graph3 <- dodgr_uncontract_graph (graph1)
 #' # graph3 is then the uncontracted graph which includes "new_col" as well
+#' dim (graph0); dim (graph3)
 dodgr_uncontract_graph <- function (graph)
 {
-    dig <- digest::digest (graph$edge_map)
-    fname <- file.path (tempdir (), paste0 ("graph_", dig, ".Rds"))
-    if (!file.exists (fname))
-        stop ("Graph must have been contracted in current R session")
-    graph_full <- readRDS (fname)
+    px <- attr (graph, "px") # processx R6 object
+    while (px$is_alive ())
+        px$wait ()
 
-    uncontract_graph (graph$graph, graph$edge_map, graph_full)
+    edge_map <- get_edge_map (graph)
+
+    gr_cols <- dodgr_graph_cols (graph)
+    hashe_ref <- attr (graph, "hashe")
+    hashe <- digest::digest (graph [[gr_cols$edge_id]])
+    if (!identical (hashe, hashe_ref))
+        stop ("Unable to uncontract this graph because the rows ",
+              "have been changed")
+
+    hash <- attr (graph, "hash")
+    fname <- file.path (tempdir (), paste0 ("dodgr_graph_", hash, ".Rds"))
+    if (!file.exists (fname))
+        stop (paste0 ("Graph must have been contracted in current R session; ", # nocov
+                      "and have retained the same row structure"))              # nocov
+
+    graph_full <- readRDS (fname)
+    attr (graph_full, "px") <- px
+
+    graph <- uncontract_graph (graph, edge_map, graph_full)
+
+    tp <- attr (graph, "turn_penalty")
+    tp <- ifelse (is.null (tp), 0, tp)
+    if (is (graph, "dodgr_streetnet_sc") & tp > 0)
+    {
+        # extra code to uncontract the compound turn-angle junctions, including
+        # merging extra rows such as flow from compound junctions back into
+        # "normal" (non-compound) edges
+        hash <- get_hash (graph, hash = TRUE)
+        fname <- file.path (tempdir (), paste0 ("dodgr_edge_contractions_",
+                                                hash, ".Rds"))
+        if (!file.exists (fname))
+            stop (paste0 ("Graph must have been contracted in current R ",      # nocov
+                          "session; and have retained the same row structure")) # nocov
+        ec <- readRDS (fname)
+
+        index_junction <- match (ec$edge, graph [[gr_cols$edge_id]])
+        index_edge_in <- match (ec$e_in, graph [[gr_cols$edge_id]])
+        index_edge_out <- match (ec$e_out, graph [[gr_cols$edge_id]])
+        new_cols <- names (graph) [which (!names (graph) %in% 
+                                          names (graph_full))]
+        for (n in new_cols)
+        {
+            graph [[n]] [index_edge_in] <- graph [[n]] [index_edge_in] +
+                graph [[n]] [index_junction]
+            graph [[n]] [index_edge_out] <- graph [[n]] [index_edge_out] +
+                graph [[n]] [index_junction]
+        }
+        # next line removes all the compound turn angle edges:
+        graph <- graph [which (!graph [[gr_cols$edge_id]] %in% ec$edge), ]
+        graph$.vx0 <- gsub ("_start$", "", graph$.vx0)
+        graph$.vx1 <- gsub ("_end$", "", graph$.vx1)
+    }
+
+    return (graph)
 }
+
+# map contracted graph with flows (or whatever else) back onto full graph
+uncontract_graph <- function (graph, edge_map, graph_full)
+{
+    gr_cols <- dodgr_graph_cols (graph_full)
+    indx_to_full <- match (edge_map$edge_old, graph_full [[gr_cols$edge_id]])
+    indx_to_contr <- match (edge_map$edge_new, graph [[gr_cols$edge_id]])
+    # edge_map only has the contracted edges; flows from the original
+    # non-contracted edges also need to be inserted
+    edges <- graph [[gr_cols$edge_id]] [which (!graph [[gr_cols$edge_id]] %in%
+                                               edge_map$edge_new)]
+    indx_to_full <- c (indx_to_full, match (edges, graph_full [[gr_cols$edge_id]]))
+    indx_to_contr <- c (indx_to_contr, match (edges, graph [[gr_cols$edge_id]]))
+
+    index <- which (!names (graph) %in% names (graph_full))
+    if (length (index) > 0)
+    {
+        nms <- names (graph) [index]
+        graph_full [nms] <- NA
+        for (n in nms)
+        {
+            graph_full [[n]] [indx_to_full] <- graph [[n]] [indx_to_contr]
+        }
+    }
+
+    return (graph_full)
+}
+

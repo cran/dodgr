@@ -1,6 +1,6 @@
 Package: dodgr
 Title: Distances on Directed Graphs
-Version: 0.1.4
+Version: 0.2.0
 Authors@R: c(
     person("Mark", "Padgham", email="mark.padgham@email.com", role=c("aut", "cre")),
     person("Andreas", "Petutschnig", role="aut"),
@@ -16,9 +16,9 @@ Description: Distances on dual-weighted directed graphs using priority-queue
     example is a street network to be used for routing in which routes are
     calculated by weighting distances according to the type of way and mode of
     transport, yet lengths of routes must be calculated from direct distances.
-Depends: R (>= 3.2.0)
+Depends: R (>= 3.5.0)
 License: GPL-3
-Imports: digest, igraph, magrittr, methods, osmdata, rbenchmark, sp,
+Imports: callr, digest, igraph, magrittr, methods, osmdata, rbenchmark,
         Rcpp (>= 0.12.6), RcppParallel
 Suggests: dplyr, geodist, ggplot2, igraphdata, jsonlite, knitr, purrr,
         RColorBrewer, rmarkdown, roxygen2, scales, sf, testthat,
@@ -32,7 +32,7 @@ LazyData: true
 URL: https://github.com/ATFutures/dodgr
 BugReports: https://github.com/ATFutures/dodgr/issues
 RoxygenNote: 6.1.1
-Packaged: 2019-05-11 14:11:49 UTC; markus
+Packaged: 2019-06-05 19:23:00 UTC; markus
 Author: Mark Padgham [aut, cre],
   Andreas Petutschnig [aut],
   Robin Lovelace [ctb],
@@ -42,4 +42,4 @@ Author: Mark Padgham [aut, cre],
     heaps)
 Maintainer: Mark Padgham <mark.padgham@email.com>
 Repository: CRAN
-Date/Publication: 2019-05-11 15:10:03 UTC
+Date/Publication: 2019-06-05 22:10:22 UTC

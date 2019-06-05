@@ -4,7 +4,7 @@ library (dodgr)
 ## ----streetnet_times, eval = FALSE---------------------------------------
 #  dat_sc <- dodgr_streetnet_sc ("ogbomosho nigeria")
 #  graph <- weight_streetnet (dat_sc, wt_profile = "bicycle")
-#  graph_t <- weight_streetnet (dat_sc, wt_profile = "bicycle", turn_angle = TRUE)
+#  graph_t <- weight_streetnet (dat_sc, wt_profile = "bicycle", turn_penalty = TRUE)
 #  nrow (graph); nrow (graph_t)
 
 ## ----streetnet_times-out1, echo = FALSE----------------------------------
@@ -12,22 +12,14 @@ c (164168, 173160)
 
 ## ----streetnet-vertices, eval = FALSE------------------------------------
 #  graphc <- dodgr_contract_graph (graph) # not graph_t!
-#  v <- dodgr_vertices (graphc$graph)
+#  v <- dodgr_vertices (graphc)
 #  n <- 100 # number of desired vertices
 #  from <- sample (v$id, size = n)
 #  to <- sample (v$id, size = n)
 
-## ----vert-find, eval = FALSE---------------------------------------------
-#  v0 <- gsub ("_start", "", graph_t$.vx0 [grep ("_start", graph_t$.vx0)])
-#  v1 <- gsub ("_end", "", graph_t$.vx1 [grep ("_end", graph_t$.vx1)])
-
-## ----vert-relabel, eval = FALSE------------------------------------------
-#  from [from %in% v0] <- paste0 (from [from %in% v0], "_start")
-#  to [to %in% v1] <- paste0 (to [to %in% v1], "_end")
-
 ## ----routing, eval = FALSE-----------------------------------------------
 #  graph_tc <- dodgr_contract_graph (graph_t)
-#  nrow (graph_tc$graph); nrow (graph_t)
+#  nrow (graph_tc); nrow (graph_t)
 
 ## ----routing-out, echo = FALSE-------------------------------------------
 c (35808, 176160)

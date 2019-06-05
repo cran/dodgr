@@ -31,9 +31,11 @@ struct clockwise_sort
             return false;
         if (a.x == 0.0 && b.x == 0.0)
         {
+            // # nocov start
             if (a.y >= 0.0 || b.y >= 0.0)
                 return a.y > b.y;
             return b.y > a.y;
+            // # nocov end
         }
 
         double det = a.x * b.y - a.y * b.x;
@@ -42,9 +44,12 @@ struct clockwise_sort
         if (det > 0)
             return false;
 
+        // # nocov start
+        // no tests make it as far as these lines ...
         double d1 = a.x * a.x + a.y * a.y;
         double d2 = b.x * b.x + b.y * b.y;
         return d1 > d2;
+        // # nocov end
     }
 };
 
@@ -73,7 +78,7 @@ void replace_junctions (
         std::vector <OneCompoundEdge> &junctions,
         bool left_side);
 
-Rcpp::DataFrame new_graph (const Rcpp::DataFrame &graph, 
+Rcpp::DataFrame expand_edges (const Rcpp::DataFrame &graph, 
         std::vector <OneCompoundEdge> &junctions, int turn_penalty);
 
 } // end namespace

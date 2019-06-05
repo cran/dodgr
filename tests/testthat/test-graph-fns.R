@@ -5,26 +5,101 @@ test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") |
 
 test_that("sample graph", {
     graph <- weight_streetnet (hampi)
-    graph_s <- dodgr_sample (graph, nverts = 100)
+    set.seed (1)
+    nverts <- 100
+    graph_s <- dodgr_sample (graph, nverts = nverts)
     expect_true (nrow (graph_s) < nrow (graph))
     v <- dodgr_vertices (graph_s)
-    expect_true (nrow (v) == 100)
+    expect_true (nrow (v) == nverts)
+
+    # that sample is only of largest component, so the subsequent code removing
+    # component should generate longer distances
+    d <- mean (geodist::geodist (v))
+
+    graph$component <- NULL
+    set.seed (1)
+    graph_s2 <- dodgr_sample (graph, nverts = nverts)
+    expect_true (nrow (graph_s2) < nrow (graph))
+    v <- dodgr_vertices (graph_s2)
+    expect_true (nrow (v) == nverts)
+
+    d2 <- mean (geodist::geodist (v))
+    #expect_true (d2 > d) # that's not reliably true, but almost always
+
+    graph <- weight_streetnet (hampi)
+    graph$edge_id <- NULL
+    expect_silent (graphs <- dodgr_sample (graph, nverts = nverts))
+    expect_is (graphs$edge_id, "integer")
+    expect_true (min (graphs$edge_id) >= 1)
+    expect_true (max (graphs$edge_id) <= nrow (graph))
 })
 
 test_that("components", {
     graph <- weight_streetnet (hampi)
     comp <- graph$component
     graph$component <- NULL
-    graph <- dodgr_components (graph)
+    expect_silent (graph <- dodgr_components (graph))
     expect_identical (comp, graph$component)
     comp <- graph$component
     expect_identical (comp, graph$component)
+
+    expect_message (graph2 <- dodgr_components (graph),
+                    "graph already has a component column")
+    expect_identical (graph, graph2)
+
+    graph$edge_id <- NULL
+    expect_message (graph3 <- dodgr_components (graph),
+                    "graph already has a component column")
+    expect_identical (graph2$component, graph3$component)
+
+    expect_silent (clear_dodgr_cache ())
+    expect_message (graph4 <- dodgr_components (graph),
+                    "graph already has a component column")
+    expect_identical (graph3, graph4)
+
+    expect_identical (graph2$component, graph4$component)
+
+    graph$component <- NULL
+    expect_silent (graph4 <- dodgr_components (graph))
+    expect_identical (graph4$component, graph2$component)
 })
 
 test_that("contract graph", {
     graph <- weight_streetnet (hampi)
-    graph_c <- dodgr_contract_graph (graph)$graph
+    expect_silent (graph_c <- dodgr_contract_graph (graph))
     expect_true (nrow (graph_c) < nrow (graph))
+
+    vc <- dodgr_vertices (graph_c)
+    v <- dodgr_vertices (graph)
+    verts <- sample (v$id [which (!v$id %in% vc$id)], size = 10)
+    expect_silent (graph_c2 <- dodgr_contract_graph (graph, verts = verts))
+    expect_true (nrow (graph_c2) > nrow (graph_c))
+
+    verts <- as.matrix (verts, ncol = 1)
+    expect_error (graph_c3 <- dodgr_contract_graph (graph, verts = verts),
+                  "verts must be a single value or a vector of vertex IDs")
+
+    verts <- as.numeric (verts [, 1])
+    expect_silent (graph_c4 <- dodgr_contract_graph (graph, verts = verts))
+    expect_identical (graph_c2, graph_c4)
+})
+
+test_that("uncontract graph", {
+    graph <- weight_streetnet (hampi)
+    graph_c <- dodgr_contract_graph (graph)
+    graph2 <- dodgr_uncontract_graph (graph_c)
+    expect_identical (graph, graph2)
+
+    # dodgr_contract_graph in that case just calls the cached version. This
+    # checks re-contraction:
+    graph$edge_id <- seq (nrow (graph))
+    graph_c <- dodgr_contract_graph (graph)
+    graph2 <- dodgr_uncontract_graph (graph_c)
+    expect_identical (graph, graph2)
+
+    graph_c$edge_id <- seq (nrow (graph_c))
+    expect_error (graph2 <- dodgr_uncontract_graph (graph_c),
+                  "Unable to uncontract this graph because the rows have been changed")
 })
 
 test_that("compare heaps", {
@@ -81,13 +156,15 @@ test_that("no geom rownames", {
     h2 <- hampi
     h2$geometry <- g0
     hw1 <- weight_streetnet (h2)
-    expect_true (!identical (h2, hw1))
-    expect_equal (ncol (hw0), 15) # has way_id column
-    expect_equal (ncol (hw1), 14) # no way_id
+    expect_true (!identical (hw0, hw1))
+    expect_equal (ncol (hw0), ncol (hw1))
+    expect_true (!identical (hw0$from_id, hw1$from_id))
+    expect_true (!identical (hw0$to_id, hw1$to_id))
+
     indx0 <- which (!names (hw0) %in% c ("from_id", "to_id", "way_id",
-                                         "component", "time", "time_weighted"))
+                                         "component"))
     indx1 <- which (!names (hw1) %in% c ("from_id", "to_id", "way_id",
-                                         "component", "time", "time_weighted"))
+                                         "component"))
     expect_identical (hw0 [, indx0], hw1 [, indx1])
     # components are not identical because ones of equal size are assigned
     # random numbers, but all other columns remain identical:
@@ -101,6 +178,14 @@ test_that("keep cols", {
     expect_equal (ncol (hw1), 16)
     expect_true ("foot" %in% names (hw1))
     expect_false ("foot" %in% names (hw0))
+
+    i <- which (names (hampi) == "foot")
+    hw2 <- weight_streetnet (hampi, keep_cols = i)
+    attr (hw1, "px") <- attr (hw2, "px") <- NULL
+    expect_identical (hw1, hw2)
+
+    expect_error (hw3 <- weight_streetnet (hampi, keep_cols = list (i)),
+                  "keep_cols must be either character or numeric")
 })
 
 test_that ("weight_profiles", {
@@ -123,21 +208,29 @@ test_that ("weight_profiles", {
                   "Weighting profiles must have")
 
     g0 <- weight_streetnet (hampi)
+    while (attr (g0, "px")$is_alive ())
+        attr (g0, "px")$wait ()
     hampi2 <- hampi
     names (hampi2) [grep ("highway", names (hampi2))] <- "waytype"
-    expect_error (weight_streetnet (hampi2),
+    expect_error (net <- weight_streetnet (hampi2),
                   "Please specify type_col to be used for weighting streetnet")
     g1 <- weight_streetnet (hampi2, type_col = "waytype")
+    while (attr (g1, "px")$is_alive ())
+        attr (g1, "px")$wait ()
+    attr (g0, "px") <- NULL
+    attr (g1, "px") <- NULL
     expect_identical (g0, g1)
     names (hampi2) [grep ("osm_id", names (hampi2))] <- "key"
-    expect_message (weight_streetnet (hampi2, type_col = "waytype"),
-                  "Using column width as ID column for edges")
+    expect_message (net <- weight_streetnet (hampi2, type_col = "waytype"),
+                  "x appears to have no ID column")
     names (hampi2) [grep ("key", names (hampi2))] <- "id"
-    expect_error (weight_streetnet (hampi2, type_col = "waytype"),
-                  "Multiple potential ID columns")
+    expect_message (net <- weight_streetnet (hampi2, type_col = "waytype"),
+                    "Using column id as ID column for edges")
     names (hampi2) [grep ("width", names (hampi2))] <- "w"
     expect_message (g1 <- weight_streetnet (hampi2, type_col = "waytype"),
                   "Using column id as ID column for edges")
+    attr (g0, "px") <- NULL
+    attr (g1, "px") <- NULL
     expect_identical (g0, g1)
 })
 
@@ -192,6 +285,13 @@ test_that ("points to graph", {
     expect_identical (index4, index6)
     expect_silent (index7 <- match_points_to_graph (v, pts, connected = TRUE))
     expect_identical (index4, index7)
+
+    pts <- hampi [1, ]
+    expect_error (index7 <- match_points_to_graph (v, pts))
+    # error is "xy$geometry must be a collection of sfc_POINT objects", but
+    # expect_error does not match on the "$" symbo, but expect_error does not
+    # match on the "$" symbol
+
 })
 
 test_that ("graph columns", {
@@ -222,6 +322,15 @@ test_that ("graph columns", {
     graph$d_wt <- graph$d_weighted
     expect_error (d <- dodgr_dists (graph, from = from, to = to),
                   "Unable to determine weight column in graph")
+
+    graph <- data.frame (weight_streetnet (hampi)) # rm dodgr_streetnet class
+    graph$from_lon <- paste0 (graph$from_lon)
+    expect_error (d <- dodgr_dists (graph, from = from, to = to),
+                  "graph appears to have non-numeric longitudes and latitudes")
+
+    graph <- data.frame (weight_streetnet (hampi)) # rm dodgr_streetnet class
+    class (graph) <- c (class (graph), "tbl")
+    expect_silent (d <- dodgr_dists (graph, from = from, to = to))
 })
 
 test_that ("get_id_cols", {

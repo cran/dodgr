@@ -1,6 +1,6 @@
 /* File bheap.c - Binary Heap
  * ----------------------------------------------------------------------------
- *  Shane Saunders
+ *  Mark Padgham, adapted from code by Shane Saunders
  */
 #include <cstdlib>
 #include "bheap.h"

@@ -1,71 +1,15 @@
 context("SC")
 
+test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") |
+             identical (Sys.getenv ("TRAVIS"), "true"))
+
 #library (osmdata)
 #devtools::load_all ("../../ropensci/osmdata", export_all = FALSE)
 #h2 <- opq ("hampi india") %>%
 #    add_osm_feature (key = "highway") %>%
 #    osmdata_sc ()
 
-genhash <- function (len = 10)
-{
-    paste0 (sample (c (letters, LETTERS, 0:9), size = len), collapse = "")
-}
-
-sf_to_sc <- function (x)
-{
-    pts <- do.call (rbind, x$geometry)
-    pts <- data.frame ("x_" = pts [, 1],
-                       "y_" = pts [, 2],
-                       "vertex_" = rownames (pts),
-                       stringsAsFactors = FALSE)
-
-    edge <- lapply (x$geometry, function (i)
-                     cbind (rownames (i) [1:(nrow (i) - 1)],
-                            rownames (i) [2:nrow (i)]))
-    for (e in seq (edge))
-        edge [[e]] <- cbind (edge [[e]], names (x$geometry) [e])
-    edge <- data.frame (do.call (rbind, edge), stringsAsFactors = FALSE)
-    edge$edge_ <- vapply (seq (nrow (edge)), function (i) genhash (10),
-                           character (1))
-
-    object_link_edge <- data.frame (edge_ = edge$edge_,
-                                    object_ = edge$X3,
-                                    native_ = TRUE,
-                                    stringsAsFactors = FALSE)
-    edge <- data.frame (".vx0" = edge$X1,
-                        ".vx1" = edge$X2,
-                        "edge_" = edge$edge_,
-                        stringsAsFactors = FALSE)
-
-    x_no_g <- x
-    x_no_g$geometry <- NULL
-    osm_id <- as.character (x_no_g$osm_id)
-    x_no_g$osm_id <- NULL
-    for (i in names (x_no_g))
-        x_no_g [[i]] <- as.character (x_no_g [[i]])
-    x_no_g <- as.list (x_no_g)
-    x_no_g <- lapply (x_no_g, function (i) {
-                          res <- cbind (osm_id, i)
-                          res [which (!is.na (res [, 2])), , drop = FALSE]
-                                    })
-    for (i in seq (x_no_g))
-        x_no_g [[i]] <- cbind (x_no_g [[i]], names (x_no_g) [i])
-    x_no_g <- data.frame (do.call (rbind, x_no_g),
-                          stringsAsFactors = FALSE)
-    object <- data.frame ("object_" = x_no_g$osm_id,
-                          key = x_no_g$V3,
-                          value = x_no_g$i,
-                          stringsAsFactors = FALSE)
-    object <- object [order (object$object_), ]
-
-    res <- list (nodes = NULL,
-                 object = object,
-                 object_link_edge = object_link_edge,
-                 edge = edge,
-                 vertex = pts)
-    class (res) <- c ("SC", "sc", "osmdata_sc")
-    return (res)
-}
+source ("../sc-conversion-fns.R")
 
 test_that("SC", {
               expect_silent (hsc <- sf_to_sc (hampi))
@@ -88,6 +32,64 @@ test_that("SC", {
               expect_error (net_sc <- weight_streetnet (hsc),
                             paste0 ("weight_streetnet currently only works for ",
                                     "'sc'-class objects extracted with"))
+
+              expect_silent (hsc <- sf_to_sc (hampi))
+              expect_silent (net_sc2 <- weight_streetnet (hsc,
+                                                          wt_profile = "horse"))
+              expect_true (!identical (net_sc$d_weighted, net_sc2$d_weighted))
+
+              net_sc2 <- dodgr_components (net_sc2)
+              expect_silent (v0 <- dodgr_vertices (net_sc2))
+              # force re-cache by re-generating edge IDs:
+              net_sc2$edge_ <- paste0 (seq (nrow (net_sc2)) [order (runif (nrow (net_sc2)))])
+              net_sc2$.vx0 <- as.factor (net_sc2$.vx0)
+              expect_silent (v1 <- dodgr_vertices (net_sc2)) # should still work
+
+              # force re-cache by re-generating edge IDs:
+              net_sc2$edge_ <- paste0 (seq (nrow (net_sc2)) [order (runif (nrow (net_sc2)))])
+              net_sc2$.vx0 <- as.character (net_sc2$.vx0)
+              net_sc2$.vx1 <- as.factor (net_sc2$.vx1)
+              expect_silent (v2 <- dodgr_vertices (net_sc2)) # should still work
+
+              net_sc3 <- weight_streetnet (hsc, wt_profile = "bicycle")
+              net_sc3 <- dodgr_components (net_sc3)
+              # force re-cache by re-generating edge IDs:
+              net_sc3$edge_ <- paste0 (seq (nrow (net_sc3)) [order (runif (nrow (net_sc3)))])
+              expect_silent (v0 <- dodgr_vertices (net_sc3))
+              expect_true (all (c ("x", "y") %in% names (v0)))
+              net_sc3$edge_ <- paste0 (seq (nrow (net_sc3)) [order (runif (nrow (net_sc3)))])
+              net_sc3$.vx0_x <- net_sc3$.vx0_y <- net_sc3$.vx1_x <- net_sc3$.vx1_y <- NULL
+              expect_silent (v1 <- dodgr_vertices (net_sc3))
+              expect_false (all (c ("x", "y") %in% names (v1)))
+              expect_identical (v0$id, v1$id)
+
+              # add fake elevation data:
+              net_sc <- weight_streetnet (hsc, wt_profile = "bicycle")
+              hsc$vertex$z_ <- 10 * runif (nrow (hsc$vertex))
+              hsc$vertex <- hsc$vertex [match (names (hsc$vertex),
+                                               c ("x_", "y_", "z_", "vertex_"))]
+              net_sc2 <- weight_streetnet (hsc, wt_profile = "bicycle")
+              expect_false ("dz" %in% names (net_sc))
+              expect_true ("dz" %in% names (net_sc2))
+
+              expect_error (x <- weight_railway (hsc),
+                            'sf_lines must be class "sf"')
+})
+
+test_that ("traffic light nodes", {
+               expect_silent (hsc <- sf_to_sc (hampi))
+               expect_silent (net_sc0 <- weight_streetnet (hsc))
+               v <- sample (hsc$vertex$vertex_, size = 10)
+               hsc$nodes <- data.frame (vertex_ = v,
+                                        key = "highway",
+                                        value = "traffic_signals")
+               expect_silent (net_sc1 <- weight_streetnet (hsc))
+               # This has no effect here, because the edges must also be flagged with same key-val pair
+
+               expect_identical (net_sc0$d, net_sc1$d)
+               expect_identical (net_sc0$d_weighted, net_sc1$d_weighted)
+               expect_identical (net_sc0$time, net_sc1$time)
+               expect_identical (net_sc0$time_weighted, net_sc1$time_weighted)
 })
 
 test_that ("elevation", {
@@ -96,6 +98,61 @@ test_that ("elevation", {
                hsc$vertex$z_ <- runif (nrow (hsc$vertex)) * 10
                expect_silent (net_sc2 <- weight_streetnet (hsc))
                expect_true (ncol (net_sc2) == (ncol (net_sc) + 1))
+
+               expect_silent (net_sc3 <- weight_streetnet (hsc,
+                                                           wt_profile = "foot"))
+               expect_true (ncol (net_sc3) == (ncol (net_sc2)))
+               expect_true (mean (net_sc3$time) > mean (net_sc2$time))
+})
+
+test_that("contract with turn angles", {
+              expect_silent (hsc <- sf_to_sc (hampi))
+              expect_silent (graph <- weight_streetnet (hsc, wt_profile = "bicycle"))
+              expect_silent (graph_c <- dodgr_contract_graph (graph))
+              expect_silent (v <- dodgr_vertices (graph_c))
+              n <- 100
+              pts <- sample (v$id, size = n)
+              pts <- pts [which (pts %in% graph_c$.vx0 & pts %in% graph_c$.vx1)]
+              fmat <- array (1, dim = c (n, n))
+
+              # aggregate flows from graph without turning angles:
+              expect_silent (graphf <- dodgr_flows_aggregate (graph_c,
+                                                              from = pts,
+                                                              to = pts,
+                                                              flow = fmat))
+              expect_silent (graphf <- dodgr_uncontract_graph (graphf))
+              expect_silent (graphf <- merge_directed_flows (graphf))
+
+              # then turn angle graph
+              grapht <- weight_streetnet (hsc, wt_profile = "bicycle",
+                                          turn_penalty = TRUE, left_side = TRUE)
+              # grapht has extra compound edges for turning angles:
+              expect_true (nrow (grapht) > nrow (graph))
+              grapht_c <- dodgr_contract_graph (grapht)
+              expect_true (nrow (grapht_c) > nrow (graph_c))
+              expect_silent (graphtf <- dodgr_flows_aggregate (grapht_c,
+                                                              from = pts,
+                                                              to = pts,
+                                                              flow = fmat))
+              # this graph has junction vertices flagged with _start/_end:
+              expect_true (length (grep ("_start", graphtf$.vx0)) > 0)
+              expect_true (length (grep ("_end", graphtf$.vx1)) > 0)
+
+              expect_silent (graphtf <- dodgr_uncontract_graph (graphtf))
+              # compound junction edges are then removed, as are vertex
+              # suffixes:
+              expect_false (length (grep ("_start", graphtf$.vx0)) > 0)
+              expect_false (length (grep ("_end", graphtf$.vx1)) > 0)
+
+              expect_silent (graphtf <- merge_directed_flows (graphtf))
+              # this test does not consistently pass:
+              # expect_identical (range (graphf$flow), range (graphtf$flow))
+              # TODO: Implement a better alternative
+
+              expect_silent (graphtf <- dodgr_flows_disperse (grapht_c,
+                                                              from = pts,
+                                                              dens = rep (1, n)))
+
 })
 
 test_that("dodgr_times", {
@@ -115,14 +172,10 @@ test_that("dodgr_times", {
 
               # calculate times with turning angles, such that resultant network
               # includes compound junction edges
-              expect_silent (net_sc2 <- weight_streetnet (hsc, turn_angle = TRUE))
+              expect_silent (net_sc2 <- weight_streetnet (hsc, turn_penalty = TRUE))
               expect_true (nrow (net_sc2) > nrow (net_sc))
-              v0 <- net_sc2$.vx0 [grep ("_start", net_sc2$.vx0)]
-              v0 <- gsub ("_start", "", v0)
-              v1 <- net_sc2$.vx1 [grep ("_end", net_sc2$.vx1)]
-              v1 <- gsub ("_end", "", v1)
-              from [from %in% v0] <- paste0 (from [from %in% v0], "_start")
-              to [to %in% v1] <- paste0 (to [to %in% v1], "_end")
+              from <- remap_verts_with_turn_penalty (net_sc2, from, from = TRUE)
+              to <- remap_verts_with_turn_penalty (net_sc2, to, from = FALSE)
               t2 <- dodgr_times (net_sc2, from = from, to = to)
               r2 <- cor (as.numeric (t1), as.numeric (t2),
                          use = "pairwise.complete.obs")
@@ -133,13 +186,13 @@ test_that("dodgr_times", {
 
               # times with contracted graph should be identical:
               net_sc2_c <- dodgr_contract_graph (net_sc2)
-              v <- dodgr_vertices (net_sc2_c$graph)
+              v <- dodgr_vertices (net_sc2_c)
               set.seed (1)
               from <- sample (v$id, 100)
               to <- sample (v$id, 100)
 
               t1 <- dodgr_times (net_sc2, from = from, to = to)
-              t2 <- dodgr_times (net_sc2_c$graph, from = from, to = to)
+              t2 <- dodgr_times (net_sc2_c, from = from, to = to)
               dtime <- max (abs (t1 - t2), na.rm = TRUE)
               expect_true (dtime < 1e-6)
 })

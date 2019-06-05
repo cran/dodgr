@@ -64,10 +64,22 @@ dodgr_to_sfc <- function (graph)
 
     # force sequential IDs. TODO: Allow non-sequential by replacing indices in
     # src/dodgr_to_sf::get_edge_to_vert_maps with maps to sequential indices.
-    graph$edge_id <- seq (nrow (graph))
+    gr_cols <- dodgr_graph_cols (graph)
+    graph [[gr_cols$edge_id]] <- seq (nrow (graph))
+
+    # hard-code column names for Rcpp routine:
+    names (graph) [gr_cols$edge_id] <- "edge_id"
+    names (graph) [gr_cols$from] <- "from_id"
+    names (graph) [gr_cols$to] <- "to_id"
+
+    names (graph) [gr_cols$xfr] <- "from_lon"
+    names (graph) [gr_cols$yfr] <- "from_lat"
+    names (graph) [gr_cols$xto] <- "to_lon"
+    names (graph) [gr_cols$yto] <- "to_lat"
 
     gc <- dodgr_contract_graph (graph)
-    geometry <- rcpp_aggregate_to_sf (graph, gc$graph, gc$edge_map)
+    edge_map <- get_edge_map (gc)
+    geometry <- rcpp_aggregate_to_sf (graph, gc, edge_map)
 
     # Then match data of `graph` potentially including way_id, back on to the
     # geometries:
@@ -81,9 +93,9 @@ dodgr_to_sfc <- function (graph)
     #dat$to_id <- dat$to_lat <- dat$to_lon <- NULL
     #dat$d <- dat$d_weighted <- dat$edge_id <- NULL
 
-    geometry <- geometry [match (gc$graph$edge_id, names (geometry))]
+    geometry <- geometry [match (gc [[gr_cols$edge_id]], names (geometry))]
 
-    return (list (dat = gc$graph, geometry = geometry))
+    return (list (dat = gc, geometry = geometry))
 }
 
 #' dodgr_to_igraph
@@ -205,7 +217,7 @@ convert_col <- function (x, n = 3)
 dodgr_to_tidygraph <- function (graph)
 {
     if (!requireNamespace ("tidygraph"))
-        stop ("dodgr_to_tidygraph requires the tidygraph package to be installed.")
+        stop ("dodgr_to_tidygraph requires the tidygraph package to be installed.") # nocov
 
     dodgr_to_igraph (graph) %>%
         tidygraph::as_tbl_graph ()

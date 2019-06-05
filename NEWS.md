@@ -1,3 +1,21 @@
+# v0.1.4.00X
+
+Major changes:
+- Lots of intermediate processes now executed and cached as background
+  processes (via `callr` package).
+- new `dodgr_cache_off` function added to suppress primary caching, for cases
+  where immediate usage is critical.
+- `dodgr_contract_graph` returns the contracted graph only, instead of former
+  version which return list of `graph` and `edge_map` (the `edge_map` is cached
+  and re-loaded when needed for graph uncontraction).
+
+Minor changes:
+- 'turn_angle' parameter of `weight_streetnet` renamed to `turn_penalty`
+- Test coverage now complete (100%)
+* Update internal `hampi` data to remove factor columns
+- Fix some bugs in max speed calculations for weight_streetnet
+* Fix bug with polygonal bbox in dodgr_streetnet()
+
 # v0.1.4
 Major changes:
 * New vignette on street networks and time-based routing

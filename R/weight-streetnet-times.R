@@ -65,19 +65,43 @@ extract_sc_edges_highways <- function (graph, x, wt_profile, wt_profile_file,
             dplyr::select (-key)
     }
 
-    convert_hw_types_to_bool (graph)
+    convert_hw_types_to_bool (graph, wt_profile)
 }
 
-convert_hw_types_to_bool <- function (graph)
+convert_hw_types_to_bool <- function (graph, wt_profile)
 {
-    # oneway:bicycle doesn't enquote properly, so:
-    names (graph) [grep ("bicycle", names (graph))] <- "oneway_bicycle"
+    if (!(is.character (wt_profile) | is.data.frame (wt_profile)))
+        return (graph)
 
-    # re-map the oneway values to boolean
-    graph$oneway [!graph$oneway %in% c ("no", "yes")] <- "no"
-    graph$oneway <- ifelse (graph$oneway == "no", FALSE, TRUE)
-    graph$oneway_bicycle [!graph$oneway_bicycle %in% c ("no", "yes")] <- "no"
-    graph$oneway_bicycle <- ifelse (graph$oneway_bicycle == "no", FALSE, TRUE)
+    if (!is.character (wt_profile))
+        wt_profile <- unique (wt_profile$name)
+    b <- grep ("oneway.*bicycle|bicycle.*oneway", names(graph))
+    if ("oneway" %in% names (graph) |
+        (length (b) == 1 & wt_profile == "bicycle"))
+    {
+        index <- which (!graph$oneway %in% c ("no", "yes"))
+        if (length (index) > 0)
+            graph$oneway [index] <- "no"
+        graph$oneway <- ifelse (graph$oneway == "no", FALSE, TRUE)
+
+        if (length (b) == 1)
+        {
+            # oneway:bicycle doesn't enquote properly, so:
+            names (graph) [b] <- "oneway_bicycle"
+
+            index <- which (!graph$oneway_bicycle %in% c ("no", "yes"))
+            if (length (index) > 0)
+                graph$oneway_bicycle [index] <- "no"
+            graph$oneway_bicycle <-
+                ifelse (graph$oneway_bicycle == "no", FALSE, TRUE)
+
+            if (wt_profile == "bicycle")
+            {
+                graph$oneway <- graph$oneway_bicycle
+                graph$oneway_bicycle <- NULL
+            }
+        }
+    }
     return (graph)
 }
 
@@ -88,6 +112,7 @@ weight_sc_edges <- function (graph, wt_profile, wt_profile_file)
 
     wp <- get_profile (wt_profile, wt_profile_file)
     wp <- wp [, c ("way", "value")]
+
     dplyr::left_join (graph, wp, by = c ("highway" = "way")) %>%
         dplyr::filter (!is.na (value)) %>%
         dplyr::mutate (d_weighted = ifelse (value == 0, NA, d / value)) %>%
@@ -98,20 +123,38 @@ weight_sc_edges <- function (graph, wt_profile, wt_profile_file)
 set_maxspeed <- function (graph, wt_profile, wt_profile_file)
 {
     if (!"maxspeed" %in% names (graph))
-        graph$maxspeed <- NA_real_
+        graph$maxspeed <- NA_real_ # nocov
     if (!"highway" %in% names (graph))
-        return (graph)
+        return (graph) # nocov
 
-    ms_numeric <- rep (NA_real_, nrow (graph))
+    maxspeed <- rep (NA_real_, nrow (graph))
     index <- grep ("mph", graph$maxspeed)
-    ms_numeric [index] <- as.numeric (gsub ("[^[:digit:]. ]", "",
+    maxspeed [index] <- as.numeric (gsub ("[^[:digit:]. ]", "",
                                             graph$maxspeed [index]))
-    ms_numeric [index] <- ms_numeric [index] * 1.609344
-    index <- seq (nrow (graph)) [!(seq (nrow (graph)) %in% index)]
-    ms_numeric [index] <- as.numeric (gsub ("[^[:digit:]. ]", "",
-                                            graph$maxspeed [index]))
-    graph$maxspeed <- ms_numeric
+    maxspeed [index] <- maxspeed [index] * 1.609344
 
+    index <- seq (nrow (graph)) [!(seq (nrow (graph)) %in% index)]
+    maxspeed_char <- graph$maxspeed [index] # character string
+    # some maxspeeds have two values, where the 1st is generally the "default"
+    # value. This gsub extracts those only:
+    maxspeed_char <- gsub ("[[:punct:]].*$", "", maxspeed_char)
+    # some (mostly Austria and Germany) have "maxspeed:walk" for living streets.
+    # This has no numeric value, but is replaced here with 10km/h
+    maxspeed_char <- gsub ("walk", "10", maxspeed_char)
+    maxspeed_char <- gsub ("none", NA, maxspeed_char)
+    index2 <- which (!(is.na (maxspeed_char) |
+                       maxspeed_char == "" |
+                       maxspeed_char == "NA"))
+    index2 <- index2 [which (!grepl ("[[:alpha:]]", maxspeed_char [index2]))]
+
+    maxspeed_numeric <- rep (NA_real_, length (index))
+    maxspeed_numeric [index2] <- as.numeric (maxspeed_char [index2])
+    maxspeed [index] <- maxspeed_numeric
+
+    graph$maxspeed <- maxspeed
+    # Those are the OSM values, which must then be combined with values
+    # determined from the specified profile. The lowest value is ultimately
+    # chosen.
     wp <- get_profile (wt_profile, wt_profile_file)
 
     wp_index <- match (graph$highway, wp$way)
@@ -125,15 +168,16 @@ set_maxspeed <- function (graph, wt_profile, wt_profile_file)
                                      min (i, na.rm = TRUE)))
 
     na_highways <- wp$way [which (is.na (wp$max_speed))]
-    graph$maxspeed [graph$highway %in% na_highways] <- NA
-    gr_cols <- dodgr_graph_cols (graph)
+    graph$maxspeed [graph$highway %in% na_highways] <- NA_real_
     # Also set weighted distance for all these to NA:
-    graph [[gr_cols$w]] [graph$highway %in% na_highways] <- NA
+    #gr_cols <- dodgr_graph_cols (graph)
+    #graph [[gr_cols$w]] [graph$highway %in% na_highways] <- NA_real_
 
     if (wt_profile %in% c ("horse", "wheelchair") |
         !"surface" %in% names (graph))
         return (graph)
 
+    # And then repeat for max speeds according to surface profiles
     s <- get_surface_speeds (wt_profile, wt_profile_file)
     s <- s [s$name == wt_profile, c ("key", "value", "max_speed")]
     surf_vals <- unique (graph$surface [graph$surface != "NA"])
@@ -163,7 +207,7 @@ weight_by_num_lanes <- function (graph, wt_profile)
     # only weight these profiles:
     profile_names <- c ("foot", "bicycle", "wheelchair", "horse")
     if (!(wt_profile %in% profile_names | "lanes" %in% names (graph)))
-        return (graph)
+        return (graph) # nocov
 
     lns <- c (4, 5, 6, 7, 8)
     wts <- c (0.05, 0.05, 0.1, 0.1, 0.2)
@@ -289,11 +333,6 @@ sc_duplicate_edges <- function (x, wt_profile)
                         "hgv", "psv")
 
     index <- seq (nrow (x))
-    if (wt_profile == "bicycle" & "oneway_bicycle" %in% names (x))
-    {
-        x$oneway <- x$oneway_bicycle
-        x$oneway_bicycle <- NULL
-    }
     if (wt_profile %in% oneway_modes)
         index <- which (!x$oneway)
 
@@ -337,7 +376,7 @@ get_key_val_pair <- function (x, kv)
 
     res <- NULL
     if (any (xo == length (kv)))
-        res <- names (xo) [which (xo == length (kv))]
+        res <- names (xo) [which (xo == length (kv))] # nocov - not in any test data
 
     return (res)
 }
@@ -409,10 +448,15 @@ join_junctions_to_graph <- function (graph, wt_profile, wt_profile_file,
                                      left_side = FALSE)
 {
     turn_penalty <- get_turn_penalties (wt_profile, wt_profile_file)$turn
-    resbind <- NULL
+    resbind <- edge_map <- NULL
     if (turn_penalty > 0)
     {
         res <- rcpp_route_times (graph, left_side, turn_penalty)
+        edge_map <- data.frame ("edge" = res$graph$edge_,
+                                "e_in" = res$graph$old_edge_in,
+                                "e_out" = res$graph$old_edge_out,
+                                stringsAsFactors = FALSE)
+        res$graph$old_edge_in <- res$graph$old_edge_out <- NULL
 
         index <- which (graph$.vx0 %in% res$junction_vertices)
         v_start <- graph$.vx0 [index]
@@ -425,7 +469,7 @@ join_junctions_to_graph <- function (graph, wt_profile, wt_profile_file,
         resbind <- data.frame (array (NA, dim = c (nrow (res$graph), ncol (graph))))
         names (resbind) <- names (graph)
         resbind [, which (names (graph) %in% names (res$graph))] <- res$graph
+        graph <- rbind (graph, resbind)
     }
-
-    rbind (graph, resbind)
+    list (graph = graph, edge_map = edge_map)
 }

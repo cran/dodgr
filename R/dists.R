@@ -92,7 +92,7 @@
 #' # There are parts of the network on different building levels (because of
 #' # shopping malls and the like). These may or may not be connected, so it may be
 #' # necessary to filter out particular levels
-#' index <- which (! (levs == "-1" | levs == "1")) # for example
+#' index <- which (! (essen$level == "-1" | essen$level == "1")) # for example
 #' library (sf) # needed for following sub-select operation
 #' essen <- essen [index, ]
 #' graph <- weight_streetnet (essen, wt_profile = "foot")
@@ -118,6 +118,22 @@ dodgr_dists <- function (graph, from = NULL, to = NULL, shortest = TRUE,
     }
     is_spatial <- is_graph_spatial (graph)
     vert_map <- make_vert_map (graph, gr_cols, is_spatial)
+
+    tp <- attr (graph, "turn_penalty")
+    tp <- ifelse (is.null (tp), 0, tp)
+    if (is (graph, "dodgr_streetnet_sc") & tp > 0)
+    {
+        if (!is.null (from))
+        {
+            from <- nodes_arg_to_pts (from, graph)
+            from <- remap_verts_with_turn_penalty (graph, from, from = TRUE)
+        }
+        if (!is.null (to))
+        {
+            to <- nodes_arg_to_pts (to, graph)
+            to <- remap_verts_with_turn_penalty (graph, to, from = FALSE)
+        }
+    }
 
     from_index <- get_to_from_index (graph, vert_map, gr_cols, from)
     to_index <- get_to_from_index (graph, vert_map, gr_cols, to)
@@ -204,12 +220,14 @@ get_index_id_cols <- function (graph, gr_cols, vert_map, pts)
     id <- NULL
     if (!missing (pts))
     {
-        if (methods::is (pts, "character") | methods::is (pts, "numeric") |
-            methods::is (pts, "matrix") | methods::is (pts, "data.frame"))
-            index <- get_pts_index (graph, gr_cols, vert_map, pts)
-        else if (methods::is (pts, "integer"))
+        if (is.integer (pts) & is.vector (pts))
+        {
             index <- pts
-        else
+        } else if (is.character (pts) | is.numeric (pts) |
+            is.matrix (pts) | is.data.frame (pts))
+        {
+            index <- get_pts_index (graph, gr_cols, vert_map, pts)
+        } else
             stop ("routing points are of unknown form; must be either ",
                   "character, matrix, or integer")
 
@@ -219,6 +237,7 @@ get_index_id_cols <- function (graph, gr_cols, vert_map, pts)
              (any (grepl ("lon", names (pts), ignore.case = TRUE) &
                    (any (grepl ("lat", names (pts), ignore.case = TRUE)))))))
             names (pts) <- NULL
+
         id <- get_id_cols (pts)
         if (is.null (id))
             id <- vert_map$vert [index] # from_index is 1-based
@@ -237,6 +256,8 @@ get_to_from_index <- function (graph, vert_map, gr_cols, pts)
     else
     {
         index_id <- get_index_id_cols (graph, gr_cols, vert_map, pts)
+        if (any (is.na (index_id$id)))
+            stop ("Unable to match all routing points to graph vertices")
         index <- index_id$index - 1 # 0-based
         id <- index_id$id
     }

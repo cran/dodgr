@@ -86,13 +86,13 @@ find_xy_col <- function (graph, indx, x = TRUE)
     if (x)
     {
         coli <- grep ("x|lon", names (graph) [indx], ignore.case = TRUE)
-        if (length (coli) > 1) # silicate
+        if (length (coli) > 1) # silicate has $.vx0, $.vx1
             coli <- grep ("x$", names (graph) [indx], ignore.case = TRUE)
     } else
     {
         coli <- grep ("y|lat", names (graph) [indx], ignore.case = TRUE)
-        if (length (coli) > 1) # silicate
-            coli <- grep ("y$", names (graph) [indx], ignore.case = TRUE)
+        if (length (coli) > 1) # silicate still only matches once here, so nocov:
+            coli <- grep ("y$", names (graph) [indx], ignore.case = TRUE) # nocov
     }
 
     indx [coli]
@@ -124,7 +124,16 @@ find_spatial_cols <- function (graph)
         xy_fr_id <- graph [, frid_col]
         if (!is.character (xy_fr_id))
             xy_fr_id <- paste0 (xy_fr_id)
+    } else # len == 2, so must be only x-y
+    {
+        if (length (grep ("lon|lat|x|y", names (graph) [fr_col])) != 2)
+            stop ("Unable to determine coordinate columns of graph") # nocov
+        xy_fr_id <- paste0 (graph [, fr_col [1]], "-",
+                            graph [, fr_col [2]])
+    }
 
+    if (length (to_col) == 3)
+    {
         tox_col <- find_xy_col (graph, to_col, x = TRUE)
         toy_col <- find_xy_col (graph, to_col, x = FALSE)
         toid_col <- to_col [which (!to_col %in% c (tox_col, toy_col))]
@@ -134,10 +143,8 @@ find_spatial_cols <- function (graph)
             xy_to_id <- paste0 (xy_to_id)
     } else # len == 2, so must be only x-y
     {
-        if (length (grep ("lon|lat|x|y", names (graph) [fr_col])) != 2)
-            stop ("Unable to determine coordinate columns of graph")
-        xy_fr_id <- paste0 (graph [, fr_col [1]], "-",
-                            graph [, fr_col [2]])
+        if (length (grep ("lon|lat|x|y", names (graph) [to_col])) != 2)
+            stop ("Unable to determine coordinate columns of graph") # nocov
         xy_to_id <- paste0 (graph [, to_col [1]], "-",
                             graph [, to_col [2]])
     }
@@ -237,7 +244,7 @@ find_xy_col_simple <- function (dfr)
 #' pts # names of those vertices
 match_pts_to_graph <- function (verts, xy, connected = FALSE)
 {
-    if (!identical (names (verts), c ("id", "x", "y", "component", "n")))
+    if (!all (c ("id", "x", "y") %in% names (verts)))
     {
         message ("First argument to match_pts_to_graph should be result of ",
                  "dodgr_vertices;\npresuming you've submitted the network itself ",
@@ -264,7 +271,7 @@ match_pts_to_graph <- function (verts, xy, connected = FALSE)
     if (is (xy, "sf"))
     {
         if (!"geometry" %in% names (xy))
-            stop ("xy has no sf geometry column")
+            stop ("xy has no sf geometry column") # nocov
         if (!is (xy$geometry, "sfc_POINT"))
             stop ("xy$geometry must be a collection of sfc_POINT objects")
         xy <- unlist (lapply (xy$geometry, as.numeric)) %>%
@@ -290,3 +297,25 @@ match_points_to_graph <- function (verts, xy, connected = FALSE)
     match_pts_to_graph (verts, xy, connected = connected)
 }
 
+# vertices randomly selected from a graph without turn penalties may be submitted
+# to functions along with the corresponding graph with turn angles. The latter
+# version appends vertex IDs with "_start" and "_end" for the starts and ends of
+# compound turn angle junctions. This function finds any instances of `pts` that
+# map on to these, and appends the appropriate suffix so these points can be
+# used in routines with the turn-penalty graph.
+remap_verts_with_turn_penalty <- function (graph, pts, from = TRUE)
+{
+    if (!is (graph, "dodgr_streetnet_sc"))
+        stop ("vertices with turn angles can only be re-mapped for street ",      # nocov
+              "networks obtained via 'dodgr_streetnet_sc' -> 'weight_streetnet'") # nocov
+
+    suffix <- ifelse (from, "_start", "_end")
+    suffix_rgx <- paste0 (suffix, "$")
+    vcol <- ifelse (from, ".vx0", ".vx1")
+
+    index <- grep (suffix_rgx, graph [[vcol]])
+    all_pts <- gsub (suffix_rgx, "", graph [[vcol]] [index])
+    pts [pts %in% all_pts] <- paste0 (pts [pts %in% all_pts], suffix)
+
+    return (pts)
+}

@@ -42,15 +42,12 @@
 #'
 #' @name dodgr
 #' @docType package
-#' @importFrom graphics plot plot.new
+#' @importFrom graphics plot 
 #' @importFrom grDevices colorRampPalette
-#' @importFrom igraph distances E make_directed_graph
 #' @importFrom magrittr %>%
 #' @importFrom methods is
 #' @importFrom osmdata add_osm_feature getbb opq osmdata_sf osm_poly2line
 #' @importFrom osmdata trim_osmdata
-#' @importFrom rbenchmark benchmark
-#' @importFrom sp bbox point.in.polygon
 #' @importFrom Rcpp evalCpp
 #' @importFrom RcppParallel RcppParallelLibs
 #' @useDynLib dodgr, .registration = TRUE
@@ -128,8 +125,9 @@ NULL
 #' # Converting this 'sf data.frame' to a 'dodgr' network requires manual
 #' # specification of weighting profile:
 #' colnm <- "formOfWay" # name of column used to determine weights
-#' wts <- c (0.1, 0.2, 0.8, 1)
-#' names (wts) <- unique (os_roads_bristol [[colnm]])
+#' wts <- data.frame (name = "custom",
+#'                    way = unique (os_roads_bristol [[colnm]]),
+#'                    value = c (0.1, 0.2, 0.8, 1))
 #' net <- weight_streetnet (os_roads_bristol, wt_profile = wts,
 #'                          type_col = colnm, id_col = "identifier")
 #' # 'id_col' tells the function which column to use to attribute IDs of ways

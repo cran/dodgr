@@ -20,34 +20,7 @@ contract_graph_with_pts <- function (graph, from, to)
     if (!missing (to))
         pts <- c (pts, to)
     graph_full <- graph
-    graph <- dodgr_contract_graph (graph, unique (pts))
-    graph$graph_full <- graph_full
-    return (graph)
-}
-
-# map contracted flows back onto full graph
-uncontract_graph <- function (graph, edge_map, graph_full)
-{
-    indx_to_full <- match (edge_map$edge_old, graph_full$edge_id)
-    indx_to_contr <- match (edge_map$edge_new, graph$edge_id)
-    # edge_map only has the contracted edges; flows from the original
-    # non-contracted edges also need to be inserted
-    edges <- graph$edge_id [which (!graph$edge_id %in% edge_map$edge_new)]
-    indx_to_full <- c (indx_to_full, match (edges, graph_full$edge_id))
-    indx_to_contr <- c (indx_to_contr, match (edges, graph$edge_id))
-
-    index <- which (!names (graph) %in% names (graph_full))
-    if (length (index) > 0)
-    {
-        nms <- names (graph) [index]
-        graph_full [nms] <- NA
-        for (n in nms)
-        {
-            graph_full [[n]] [indx_to_full] <- graph [[n]] [indx_to_contr]
-        }
-    }
-
-    return (graph_full)
+    dodgr_contract_graph (graph, unique (pts))
 }
 
 #' dodgr_flows_aggregate
@@ -94,7 +67,7 @@ uncontract_graph <- function (graph, edge_map, graph_full)
 #' geoms <- dodgr_to_sfc (graph_undir)
 #' gc <- dodgr_contract_graph (graph_undir)
 #' gsf <- sf::st_sf (geoms)
-#' gsf$flow <- gc$graph$flow
+#' gsf$flow <- gc$flow
 #'
 #' # example of plotting with the 'mapview' package
 #' library (mapview)
@@ -135,7 +108,7 @@ uncontract_graph <- function (graph, edge_map, graph_full)
 #' geoms <- dodgr_to_sfc (f)
 #' gc <- dodgr_contract_graph (f)
 #' gsf <- sf::st_sf (geoms)
-#' gsf$flow <- gc$graph$flow
+#' gsf$flow <- gc$flow
 #' # sf plot:
 #' plot (gsf ["flow"])
 #' }
@@ -154,21 +127,39 @@ dodgr_flows_aggregate <- function (graph, from, to, flows, contract = FALSE,
     heap <- hps$heap
     graph <- hps$graph
 
+    gr_cols <- dodgr_graph_cols (graph)
+
     # change from and to just to check conformity
+    tp <- attr (graph, "turn_penalty")
+    tp <- ifelse (is.null (tp), 0, tp)
     if (!missing (from))
+    {
+        # remove any routing points not in edge start nodes:
         from <- nodes_arg_to_pts (from, graph)
+        if (is (graph, "dodgr_streetnet_sc") & tp > 0)
+            from <- remap_verts_with_turn_penalty (graph, from, from = TRUE)
+        from <- from [from %in% graph [[gr_cols$from]] ]
+    }
     if (!missing (to))
+    {
+        # remove any routing points not in edge end nodes:
         to <- nodes_arg_to_pts (to, graph)
+        if (is (graph, "dodgr_streetnet_sc") & tp > 0)
+            to <- remap_verts_with_turn_penalty (graph, to, from = FALSE)
+        to <- to [to %in% graph [[gr_cols$to]] ]
+    }
 
     if (contract)
     {
+        graph_full <- graph
         graph <- contract_graph_with_pts (graph, from, to)
-        graph_full <- graph$graph_full
-        edge_map <- graph$edge_map
-        graph <- graph$graph
+        hashc <- get_hash (graph, hash = FALSE)
+        fname_c <- file.path (tempdir (), paste0 ("dodgr_edge_map_", hashc, ".Rds"))
+        if (!file.exists (fname_c))
+            stop ("something went wrong extracting the edge_map ... ") # nocov
+        edge_map <- readRDS (fname_c)
     }
 
-    gr_cols <- dodgr_graph_cols (graph)
     vert_map <- make_vert_map (graph, gr_cols)
 
     index_id <- get_index_id_cols (graph, gr_cols, vert_map, from)
@@ -177,7 +168,7 @@ dodgr_flows_aggregate <- function (graph, from, to, flows, contract = FALSE,
     to_index <- index_id$index - 1 # 0-based
 
     if (!is.matrix (flows))
-        flows <- t (as.matrix (flows))
+        flows <- matrix (flows, nrow = length (from_index))
 
     graph2 <- convert_graph (graph, gr_cols)
 
@@ -247,18 +238,30 @@ dodgr_flows_disperse <- function (graph, from, dens,
     heap <- hps$heap
     graph <- hps$graph
 
+    gr_cols <- dodgr_graph_cols (graph)
+
+    tp <- attr (graph, "turn_penalty")
+    tp <- ifelse (is.null (tp), 0, tp)
     if (!missing (from))
+    {
+        # remove any routing points not in edge start nodes:
         from <- nodes_arg_to_pts (from, graph)
+        if (is (graph, "dodgr_streetnet_sc") & tp > 0)
+            from <- remap_verts_with_turn_penalty (graph, from, from = TRUE)
+        from <- from [from %in% graph [[gr_cols$from]] ]
+    }
 
     if (contract)
     {
-        graph <- contract_graph_with_pts (graph, from, from)
-        graph_full <- graph$graph_full
-        edge_map <- graph$edge_map
-        graph <- graph$graph
+        graph_full <- graph
+        graph <- contract_graph_with_pts (graph, from)
+        hashc <- get_hash (graph, hash = FALSE)
+        fname_c <- file.path (tempdir (), paste0 ("dodgr_edge_map_", hashc, ".Rds"))
+        if (!file.exists (fname_c))
+            stop ("something went wrong extracting the edge_map ... ") # nocov
+        edge_map <- readRDS (fname_c)
     }
 
-    gr_cols <- dodgr_graph_cols (graph)
     vert_map <- make_vert_map (graph, gr_cols)
 
     index_id <- get_index_id_cols (graph, gr_cols, vert_map, from)
@@ -326,5 +329,8 @@ merge_directed_flows <- function (graph)
     graph <- graph [indx, , drop = FALSE] #nolint
     graph$flow <- flows [indx]
     class (graph) <- c (class (graph), "dodgr_merged_flows")
+
+    attr (graph, "hash") <- digest::digest (graph [[gr_cols$edge_id]])
+
     return (graph)
 }

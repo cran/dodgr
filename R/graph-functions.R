@@ -1,11 +1,4 @@
-null_to_na <- function (x)
-{
-    if (length (x) == 0)
-        x <- NA
-    return (x)
-}
-
-#' get_graph_cols
+#' dodgr_graph_cols
 #'
 #' Identify the essential columns of the graph table (data.frame, tibble,
 #' whatever) to be analysed in the C++ routines.
@@ -20,11 +13,11 @@ dodgr_graph_cols <- function (graph)
 {
     nms <- names (graph)
     component <- grep ("comp", nms) %>% null_to_na ()
-    if (is (graph, "dodgr_streetnet") & 
-        !is (graph, "dodgr_streetnet_sc") & ncol (graph) >= 11)
+    if (methods::is (graph, "dodgr_streetnet") & 
+        !methods::is (graph, "dodgr_streetnet_sc") & ncol (graph) >= 11)
     {
         # columns are always identically structured
-        edge_id <- which (nms == "edge_id")
+        edge_id <- which (nms == "edge_id") %>% null_to_na ()
         fr_col <- which (nms == "from_id") %>% null_to_na ()
         to_col <- which (nms == "to_id") %>% null_to_na ()
         d_col <- which (nms == "d")
@@ -44,8 +37,8 @@ dodgr_graph_cols <- function (graph)
 
         d_col <- find_d_col (graph)
         w_col <- find_w_col (graph)
-        if (length (w_col) == 0)
-            w_col <- d_col
+        if (length (w_col) == 0) # sc ensures this never happens, so not covered
+            w_col <- d_col # nocov
 
         fr_col <- find_fr_id_col (graph)
         to_col <- find_to_id_col (graph)
@@ -57,8 +50,11 @@ dodgr_graph_cols <- function (graph)
             spcols <- find_spatial_cols (graph)
             graph <- tbl_to_df (graph)
 
-            if (!(all (apply (graph [, spcols$fr_col], 2, is.numeric)) |
-                  all (apply (graph [, spcols$to_tol], 2, is.numeric))))
+            fr_is_num <- vapply (spcols$fr_col, function (i)
+                                 is.numeric (graph [[i]]), logical (1))
+            to_is_num <- vapply (spcols$to_col, function (i)
+                                 is.numeric (graph [[i]]), logical (1))
+            if (!(all (fr_is_num) & all (to_is_num)))
                 stop (paste0 ("graph appears to have non-numeric ",
                               "longitudes and latitudes"))
 
@@ -69,7 +65,7 @@ dodgr_graph_cols <- function (graph)
         } else
         {
             if (length (fr_col) != 1 & length (to_col) != 1)
-                stop ("Unable to determine from and to columns in graph")
+                stop ("Unable to determine from and to columns in graph") # nocov
         }
     }
 
@@ -160,6 +156,54 @@ tbl_to_df <- function (graph)
 #' v <- dodgr_vertices (graph)
 dodgr_vertices <- function (graph)
 {
+    # vertices are calculated as background process, so wait if that's not
+    # finished.
+    if ("px" %in% names (attributes (graph)))
+    {
+        px <- attr (graph, "px")
+        while (px$is_alive ())
+            px$wait ()
+    }
+
+    hash <- ifelse (methods::is (graph, "dodgr_contracted"),
+                    "hashc", "hash")
+    hash <- attr (graph, hash)
+    # make sure rows of graph have not been changed
+    gr_cols <- dodgr_graph_cols (graph)
+    hashe <- digest::digest (graph [[gr_cols$edge_id]])
+    if (!identical (hashe, hash))
+        hash <- NULL
+    if (!is.null (hash))
+    {
+        hashe_ref <- attr (graph, "hashe")
+        hashe_ref <- ifelse (is.null (hashe_ref), "", hashe_ref)
+        hashe <- digest::digest (graph [[gr_cols$edge_id]])
+        if (hashe != hashe_ref)
+            hash <- hashe
+    }
+
+    if (is.null (hash))
+    {
+        if (is.na (gr_cols$edge_id))
+            hash <- "" # nocov
+        else
+            hash <- digest::digest (graph [[gr_cols$edge_id]])
+    }
+
+    fname <- file.path (tempdir (), paste0 ("dodgr_verts_", hash, ".Rds"))
+    if (file.exists (fname))
+        verts <- readRDS (fname)
+    else
+    {
+        verts <- dodgr_vertices_internal (graph)
+        saveRDS (verts, fname)
+    }
+
+    return (verts)
+}
+
+dodgr_vertices_internal <- function (graph)
+{
     graph <- tbl_to_df (graph)
 
     gr_cols <- dodgr_graph_cols (graph)
@@ -171,6 +215,7 @@ dodgr_vertices <- function (graph)
         graph [[gr_cols$from]] <- paste0 (graph [[gr_cols$from]])
     if (is.factor (graph [[gr_cols$to]]))
         graph [[gr_cols$to]] <- paste0 (graph [[gr_cols$to]])
+
     if (is_graph_spatial (graph))
     {
         verts <- data.frame (id = c (graph [[gr_cols$from]],
@@ -191,6 +236,7 @@ dodgr_vertices <- function (graph)
             verts$component <- graph [[gr_cols$component]]
     }
 
+    # The next line is the time-killer here, which is why this is cached
     indx <- which (!duplicated (verts))
     verts <- verts [indx, , drop = FALSE] #nolint
     verts$n <- seq (nrow (verts)) - 1
@@ -265,14 +311,27 @@ dodgr_sample <- function (graph, nverts = 1000)
     fr <- find_fr_id_col (graph)
     to <- find_to_id_col (graph)
     verts <- unique (c (graph [, fr], graph [, to]))
+    gr_cols <- dodgr_graph_cols (graph)
+    edge_is_na <- FALSE
+    if (is.na (gr_cols$edge_id))
+    {
+        edge_is_na <- TRUE
+        graph$edge_id <- seq (nrow (graph))
+        gr_cols <- dodgr_graph_cols (graph)
+    }
+
     if (length (verts) > nverts)
     {
-        gr_cols <- dodgr_graph_cols (graph)
         graph2 <- convert_graph (graph, gr_cols)
+        if ("component" %in% names (graph))
+            graph2$component = graph$component
         indx <- match (rcpp_sample_graph (graph2, nverts), graph2$edge_id)
         graph <- graph [sort (indx), ]
     }
 
     class (graph) <- classes
+
+    attr (graph, "hash") <- digest::digest (graph [[gr_cols$edge_id]])
+
     return (graph)
 }
