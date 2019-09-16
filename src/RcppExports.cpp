@@ -18,6 +18,52 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// rcpp_aggregate_files
+Rcpp::NumericVector rcpp_aggregate_files(const Rcpp::CharacterVector file_names, const int len);
+RcppExport SEXP _dodgr_rcpp_aggregate_files(SEXP file_namesSEXP, SEXP lenSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::CharacterVector >::type file_names(file_namesSEXP);
+    Rcpp::traits::input_parameter< const int >::type len(lenSEXP);
+    rcpp_result_gen = Rcpp::wrap(rcpp_aggregate_files(file_names, len));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rcpp_flows_aggregate_par
+void rcpp_flows_aggregate_par(const Rcpp::DataFrame graph, const Rcpp::DataFrame vert_map_in, Rcpp::IntegerVector fromi, Rcpp::IntegerVector toi_in, Rcpp::NumericMatrix flows, const double tol, const std::string dirtxt, const std::string heap_type);
+RcppExport SEXP _dodgr_rcpp_flows_aggregate_par(SEXP graphSEXP, SEXP vert_map_inSEXP, SEXP fromiSEXP, SEXP toi_inSEXP, SEXP flowsSEXP, SEXP tolSEXP, SEXP dirtxtSEXP, SEXP heap_typeSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type graph(graphSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type vert_map_in(vert_map_inSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type fromi(fromiSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type toi_in(toi_inSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type flows(flowsSEXP);
+    Rcpp::traits::input_parameter< const double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type dirtxt(dirtxtSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type heap_type(heap_typeSEXP);
+    rcpp_flows_aggregate_par(graph, vert_map_in, fromi, toi_in, flows, tol, dirtxt, heap_type);
+    return R_NilValue;
+END_RCPP
+}
+// rcpp_flows_disperse_par
+void rcpp_flows_disperse_par(const Rcpp::DataFrame graph, const Rcpp::DataFrame vert_map_in, Rcpp::IntegerVector fromi, Rcpp::NumericVector k, Rcpp::NumericVector flows, const double& tol, const std::string& dirtxt, std::string heap_type);
+RcppExport SEXP _dodgr_rcpp_flows_disperse_par(SEXP graphSEXP, SEXP vert_map_inSEXP, SEXP fromiSEXP, SEXP kSEXP, SEXP flowsSEXP, SEXP tolSEXP, SEXP dirtxtSEXP, SEXP heap_typeSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type graph(graphSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type vert_map_in(vert_map_inSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type fromi(fromiSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type k(kSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type flows(flowsSEXP);
+    Rcpp::traits::input_parameter< const double& >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type dirtxt(dirtxtSEXP);
+    Rcpp::traits::input_parameter< std::string >::type heap_type(heap_typeSEXP);
+    rcpp_flows_disperse_par(graph, vert_map_in, fromi, k, flows, tol, dirtxt, heap_type);
+    return R_NilValue;
+END_RCPP
+}
 // rcpp_fundamental_cycles
 Rcpp::List rcpp_fundamental_cycles(Rcpp::DataFrame graph, Rcpp::DataFrame verts);
 RcppExport SEXP _dodgr_rcpp_fundamental_cycles(SEXP graphSEXP, SEXP vertsSEXP) {
@@ -92,6 +138,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// rcpp_get_iso
+Rcpp::NumericMatrix rcpp_get_iso(const Rcpp::DataFrame graph, const Rcpp::DataFrame vert_map_in, Rcpp::IntegerVector fromi, Rcpp::NumericVector dlim, const std::string& heap_type);
+RcppExport SEXP _dodgr_rcpp_get_iso(SEXP graphSEXP, SEXP vert_map_inSEXP, SEXP fromiSEXP, SEXP dlimSEXP, SEXP heap_typeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type graph(graphSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type vert_map_in(vert_map_inSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type fromi(fromiSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type dlim(dlimSEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type heap_type(heap_typeSEXP);
+    rcpp_result_gen = Rcpp::wrap(rcpp_get_iso(graph, vert_map_in, fromi, dlim, heap_type));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rcpp_get_sp_dists
 Rcpp::NumericMatrix rcpp_get_sp_dists(const Rcpp::DataFrame graph, const Rcpp::DataFrame vert_map_in, Rcpp::IntegerVector fromi, Rcpp::IntegerVector toi_in, const std::string& heap_type);
 RcppExport SEXP _dodgr_rcpp_get_sp_dists(SEXP graphSEXP, SEXP vert_map_inSEXP, SEXP fromiSEXP, SEXP toi_inSEXP, SEXP heap_typeSEXP) {
@@ -119,50 +180,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type toi_in(toi_inSEXP);
     Rcpp::traits::input_parameter< const std::string& >::type heap_type(heap_typeSEXP);
     rcpp_result_gen = Rcpp::wrap(rcpp_get_paths(graph, vert_map_in, fromi, toi_in, heap_type));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcpp_aggregate_files
-Rcpp::NumericVector rcpp_aggregate_files(const Rcpp::CharacterVector file_names, const int len);
-RcppExport SEXP _dodgr_rcpp_aggregate_files(SEXP file_namesSEXP, SEXP lenSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::CharacterVector >::type file_names(file_namesSEXP);
-    Rcpp::traits::input_parameter< const int >::type len(lenSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpp_aggregate_files(file_names, len));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcpp_flows_aggregate_par
-void rcpp_flows_aggregate_par(const Rcpp::DataFrame graph, const Rcpp::DataFrame vert_map_in, Rcpp::IntegerVector fromi, Rcpp::IntegerVector toi_in, const Rcpp::NumericMatrix flows, const std::string dirtxt, const std::string heap_type);
-RcppExport SEXP _dodgr_rcpp_flows_aggregate_par(SEXP graphSEXP, SEXP vert_map_inSEXP, SEXP fromiSEXP, SEXP toi_inSEXP, SEXP flowsSEXP, SEXP dirtxtSEXP, SEXP heap_typeSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type graph(graphSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type vert_map_in(vert_map_inSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type fromi(fromiSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type toi_in(toi_inSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix >::type flows(flowsSEXP);
-    Rcpp::traits::input_parameter< const std::string >::type dirtxt(dirtxtSEXP);
-    Rcpp::traits::input_parameter< const std::string >::type heap_type(heap_typeSEXP);
-    rcpp_flows_aggregate_par(graph, vert_map_in, fromi, toi_in, flows, dirtxt, heap_type);
-    return R_NilValue;
-END_RCPP
-}
-// rcpp_flows_disperse
-Rcpp::NumericVector rcpp_flows_disperse(const Rcpp::DataFrame graph, const Rcpp::DataFrame vert_map_in, Rcpp::IntegerVector fromi, double k, Rcpp::NumericMatrix flows, std::string heap_type);
-RcppExport SEXP _dodgr_rcpp_flows_disperse(SEXP graphSEXP, SEXP vert_map_inSEXP, SEXP fromiSEXP, SEXP kSEXP, SEXP flowsSEXP, SEXP heap_typeSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type graph(graphSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type vert_map_in(vert_map_inSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type fromi(fromiSEXP);
-    Rcpp::traits::input_parameter< double >::type k(kSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type flows(flowsSEXP);
-    Rcpp::traits::input_parameter< std::string >::type heap_type(heap_typeSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpp_flows_disperse(graph, vert_map_in, fromi, k, flows, heap_type));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -218,17 +235,18 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_dodgr_rcpp_aggregate_to_sf", (DL_FUNC) &_dodgr_rcpp_aggregate_to_sf, 3},
+    {"_dodgr_rcpp_aggregate_files", (DL_FUNC) &_dodgr_rcpp_aggregate_files, 2},
+    {"_dodgr_rcpp_flows_aggregate_par", (DL_FUNC) &_dodgr_rcpp_flows_aggregate_par, 8},
+    {"_dodgr_rcpp_flows_disperse_par", (DL_FUNC) &_dodgr_rcpp_flows_disperse_par, 8},
     {"_dodgr_rcpp_fundamental_cycles", (DL_FUNC) &_dodgr_rcpp_fundamental_cycles, 2},
     {"_dodgr_rcpp_contract_graph", (DL_FUNC) &_dodgr_rcpp_contract_graph, 2},
     {"_dodgr_rcpp_merge_flows", (DL_FUNC) &_dodgr_rcpp_merge_flows, 1},
     {"_dodgr_rcpp_sample_graph", (DL_FUNC) &_dodgr_rcpp_sample_graph, 2},
     {"_dodgr_rcpp_get_component_vector", (DL_FUNC) &_dodgr_rcpp_get_component_vector, 1},
     {"_dodgr_rcpp_get_sp_dists_par", (DL_FUNC) &_dodgr_rcpp_get_sp_dists_par, 6},
+    {"_dodgr_rcpp_get_iso", (DL_FUNC) &_dodgr_rcpp_get_iso, 5},
     {"_dodgr_rcpp_get_sp_dists", (DL_FUNC) &_dodgr_rcpp_get_sp_dists, 5},
     {"_dodgr_rcpp_get_paths", (DL_FUNC) &_dodgr_rcpp_get_paths, 5},
-    {"_dodgr_rcpp_aggregate_files", (DL_FUNC) &_dodgr_rcpp_aggregate_files, 2},
-    {"_dodgr_rcpp_flows_aggregate_par", (DL_FUNC) &_dodgr_rcpp_flows_aggregate_par, 7},
-    {"_dodgr_rcpp_flows_disperse", (DL_FUNC) &_dodgr_rcpp_flows_disperse, 6},
     {"_dodgr_rcpp_gen_hash", (DL_FUNC) &_dodgr_rcpp_gen_hash, 2},
     {"_dodgr_rcpp_sf_as_network", (DL_FUNC) &_dodgr_rcpp_sf_as_network, 2},
     {"_dodgr_rcpp_points_index_par", (DL_FUNC) &_dodgr_rcpp_points_index_par, 2},

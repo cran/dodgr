@@ -19,7 +19,6 @@ contract_graph_with_pts <- function (graph, from, to)
         pts <- c (pts, from)
     if (!missing (to))
         pts <- c (pts, to)
-    graph_full <- graph
     dodgr_contract_graph (graph, unique (pts))
 }
 
@@ -43,6 +42,11 @@ contract_graph_with_pts <- function (graph, from, to)
 #' Fibonacci Heap (default; `FHeap`), Binary Heap (`BHeap`),
 #' `Radix`, Trinomial Heap (`TriHeap`), Extended Trinomial Heap
 #' (`TriHeapExt`, and 2-3 Heap (`Heap23`).
+#' @param tol Relative tolerance below which flows towards `to` vertices are not
+#' considered. This will generally have no effect, but can provide speed gains
+#' when flow matrices represent spatial interaction models, in which case this
+#' parameter effectively reduces the radius from each `from` point over which
+#' flows are aggregated. To remove any such effect, set `tol = 0`.
 #' @param quiet If `FALSE`, display progress messages on screen.
 #' @return Modified version of graph with additonal `flow` column added.
 #'
@@ -114,7 +118,7 @@ contract_graph_with_pts <- function (graph, from, to)
 #' }
 #' @export
 dodgr_flows_aggregate <- function (graph, from, to, flows, contract = FALSE,
-                                   heap = 'BHeap', quiet = TRUE)
+                                   heap = "BHeap", tol = 1e-12, quiet = TRUE)
 {
     if ("flow" %in% names (graph))
         warning ("graph already has a 'flow' column; ",
@@ -154,7 +158,8 @@ dodgr_flows_aggregate <- function (graph, from, to, flows, contract = FALSE,
         graph_full <- graph
         graph <- contract_graph_with_pts (graph, from, to)
         hashc <- get_hash (graph, hash = FALSE)
-        fname_c <- file.path (tempdir (), paste0 ("dodgr_edge_map_", hashc, ".Rds"))
+        fname_c <- file.path (tempdir (),
+                              paste0 ("dodgr_edge_map_", hashc, ".Rds"))
         if (!file.exists (fname_c))
             stop ("something went wrong extracting the edge_map ... ") # nocov
         edge_map <- readRDS (fname_c)
@@ -175,13 +180,11 @@ dodgr_flows_aggregate <- function (graph, from, to, flows, contract = FALSE,
     if (!quiet)
         message ("\nAggregating flows ... ", appendLF = FALSE)
 
-    # parallel results are dumped in tempdir, which is read here with an extra
-    # char to get the terminal dir separator character:
-    dirtxt <- file.path (tempdir (), "a")
-    dirtxt <- substr (dirtxt, 1, nchar (dirtxt) - 1)
+    dirtxt <- get_random_prefix ()
     rcpp_flows_aggregate_par (graph2, vert_map, from_index, to_index,
-                              flows, dirtxt, heap)
-    files <- list.files (tempdir (), pattern = "flow_", full.names = TRUE)
+                              flows, tol, dirtxt, heap)
+    f <- list.files (tempdir (), full.names = TRUE)
+    files <- f [grep (dirtxt, f)]
     graph$flow <- rcpp_aggregate_files (files, nrow (graph))
     junk <- file.remove (files) # nolint
 
@@ -189,6 +192,13 @@ dodgr_flows_aggregate <- function (graph, from, to, flows, contract = FALSE,
         graph <- uncontract_graph (graph, edge_map, graph_full)
 
     return (graph)
+}
+
+get_random_prefix <- function (n = 5)
+{
+    charvec <- c (letters, LETTERS, 0:9)
+    prefix <- paste0 (sample (charvec, n, replace = TRUE), collapse = "")
+    file.path (tempdir (), paste0 ("flow_", prefix))
 }
 
 #' dodgr_flows_disperse
@@ -201,16 +211,21 @@ dodgr_flows_aggregate <- function (graph, from, to, flows, contract = FALSE,
 #' @param from Vector or matrix of points **from** which aggregate dispersed
 #' flows are to be calculated (see Details)
 #' @param dens Vectors of densities correponsing to the `from` points
+#' @param k Width coefficient of exponential diffusion function defined as
+#' `exp(-d/k)`, in units of distance column of `graph` (metres by default). Can
+#' also be a vector with same length as `from`, giving dispersal coefficients
+#' from each point. If value of `k<0` is given, a standard logistic polynomial
+#' will be used.
 #' @param contract If `TRUE`, calculate flows on contracted graph before
 #' mapping them back on to the original full graph (recommended as this will
 #' generally be much faster).
-#' @param k Width coefficient of exponential diffusion function defined as
-#' `exp(-d/k)`.  If value of `k<0` is given, a standard logistic
-#' polynomial will be used.
 #' @param heap Type of heap to use in priority queue. Options include
 #' Fibonacci Heap (default; `FHeap`), Binary Heap (`BHeap`),
 #' `Radix`, Trinomial Heap (`TriHeap`), Extended Trinomial Heap
 #' (`TriHeapExt`, and 2-3 Heap (`Heap23`).
+#' @param tol Relative tolerance below which dispersal is considered to have
+#' finished. This parameter can generally be ignored; if in doubt, its effect
+#' can be removed by setting `tol = 0`.
 #' @param quiet If `FALSE`, display progress messages on screen.
 #' @return Modified version of graph with additonal `flow` column added.
 #'
@@ -224,12 +239,18 @@ dodgr_flows_aggregate <- function (graph, from, to, flows, contract = FALSE,
 #' # edges. These flows are directed, and can be aggregated to equivalent
 #' # undirected flows on an equivalent undirected graph with:
 #' graph_undir <- merge_directed_flows (graph)
-dodgr_flows_disperse <- function (graph, from, dens,
-                         contract = FALSE, k = 2, heap = 'BHeap', quiet = TRUE)
+dodgr_flows_disperse <- function (graph, from, dens, k = 500, contract = FALSE, 
+                                  heap = 'BHeap', tol = 1e-12, quiet = TRUE)
 {
     if ("flow" %in% names (graph))
         warning ("graph already has a 'flow' column; ",
                   "this will be overwritten")
+
+    if (!(length (k) == 1 | length (k) == length (from)))
+        stop ("'k' must be either single value or vector ",
+              "of same lenght as 'from'")
+    if (length (k) == 1)
+        k <- rep (k, length (from))
 
     if (any (is.na (dens))) {
         dens [is.na (dens)] <- 0
@@ -256,7 +277,8 @@ dodgr_flows_disperse <- function (graph, from, dens,
         graph_full <- graph
         graph <- contract_graph_with_pts (graph, from)
         hashc <- get_hash (graph, hash = FALSE)
-        fname_c <- file.path (tempdir (), paste0 ("dodgr_edge_map_", hashc, ".Rds"))
+        fname_c <- file.path (tempdir (),
+                              paste0 ("dodgr_edge_map_", hashc, ".Rds"))
         if (!file.exists (fname_c))
             stop ("something went wrong extracting the edge_map ... ") # nocov
         edge_map <- readRDS (fname_c)
@@ -275,8 +297,14 @@ dodgr_flows_disperse <- function (graph, from, dens,
     if (!quiet)
         message ("\nAggregating flows ... ", appendLF = FALSE)
 
-    graph$flow <- rcpp_flows_disperse (graph2, vert_map, from_index,
-                                       k, dens, heap)
+    # parallel results are dumped in tempdir
+    dirtxt <- get_random_prefix ()
+    rcpp_flows_disperse_par (graph2, vert_map, from_index,
+                             k, dens, tol, dirtxt, heap)
+    f <- list.files (tempdir (), full.names = TRUE)
+    files <- f [grep (dirtxt, f)]
+    graph$flow <- rcpp_aggregate_files (files, nrow (graph))
+    junk <- file.remove (files) # nolint
 
     if (contract) # map contracted flows back onto full graph
         graph <- uncontract_graph (graph, edge_map, graph_full)

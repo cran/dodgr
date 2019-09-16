@@ -35,30 +35,21 @@ y <- c (53.89409, 54.01065, 53.83613, 53.93545, 53.89436, 54.01262)
 cbind (x, y)
 
 ## ----dodgr-dists-in-york, eval = FALSE-----------------------------------
-#  system.time(
-#              d <- dodgr_dists (from = xy, to = xy,
-#                                wt_profile = "foot", quiet = FALSE)
+#  net <- dodgr_streetnet (bb)
+#  net <- weight_streetnet (net, wt_profile = "foot")
+#  system.time (
+#              d <- dodgr_dists (net, from = xy, to = xy)
 #              )
 
-## ----dists-york-message, echo = FALSE------------------------------------
-message (paste0 ("No graph submitted to dodgr_dists; ",
-                 "downloading street network ... done\n",
-                 "Converting network to dodgr graph ... done\n",
-                 "Calculating shortest paths ... done"))
-
 ## ----dists-york-time, echo = FALSE---------------------------------------
-st <- system.time (Sys.sleep (0.1))
-st [1] <- 26.620
-st [2] <- 0.132
-st [3] <- 28.567
-st
+c (user = 38.828, system = 0.036, elapsed = 5.424)
 
 ## ----dists-york-structure, eval = FALSE----------------------------------
 #  dim (d); range (d, na.rm = TRUE)
 
 ## ----dists-york-output, echo = FALSE-------------------------------------
 c (1000, 1000)
-c (0.00000, 46.60609)
+c (0.00000, 57021.18)
 
 ## ----get-hampi-code, eval = FALSE----------------------------------------
 #  hampi <- dodgr_streetnet ("hampi india")
@@ -181,11 +172,11 @@ graph_connected <- graph [graph$component == 1, ]
 #  }
 
 ## ----york-streetnet-output, eval = FALSE---------------------------------
-#  vapply (c (0, 0.05, 0.1), function (i) routed_points (i, pts = xy),
+#  vapply (c (0, 0.05, 0.1, 0.2), function (i) routed_points (i, pts = xy),
 #          numeric (1))
 
 ## ----york-streetntet-values, echo = FALSE--------------------------------
-c (0.078, 0.0586, 0)
+c (0.04007477, 0.02326452, 0.02131992, 0)
 
 ## ----york-streetnet-graph-head-------------------------------------------
 head (graph [, names (graph) %in% c ("from_id", "to_id", "d")])
@@ -198,14 +189,12 @@ d <- dodgr_dists (graph_min, from = fr, to = to)
 dim (d)
 
 ## ----compare-heaps-------------------------------------------------------
-compare_heaps (graph, nverts = 100, replications = 1)
+compare_heaps (graph, nverts = 1000, replications = 1)
 
 ## ----graph-code, eval = FALSE--------------------------------------------
-#  edges <- cbind (graph$from_id, graph$to_id)
-#  pts <- sample (unique (as.vector (edges)), 100) # set of random routing points
-#  edges <- as.vector (t (edges))
-#  igr <- igraph::make_directed_graph (edges)
-#  igraph::E (igr)$weight <- graph$d
+#  v <- dodgr_vertices (graph)
+#  pts <- sample (v$id, 1000)
+#  igr <- dodgr_to_igraph (graph)
 #  d <- igraph::distances (igr, v = pts, to = pts, mode = "out")
 
 ## ----contract-graph------------------------------------------------------
@@ -214,26 +203,13 @@ grc <- dodgr_contract_graph (graph)
 ## ----contract-graph-structure--------------------------------------------
 nrow (graph); nrow (grc); nrow (grc) / nrow (graph)
 
-## ----benchmark1, eval = FALSE--------------------------------------------
-#  from <- sample (grc$from_id, size = 100)
-#  to <- sample (grc$to_id, size = 100)
-#  rbenchmark::benchmark (
-#                         d2 <- dodgr_dists (grc, from = from, to = to),
-#                         d2 <- dodgr_dists (graph, from = from, to = to),
-#                         replications = 2)
-
-## ----benchmark1-results, echo = FALSE------------------------------------
-# TODO: Reinstate the above test
-res <- data.frame ("test" = c ("d2 <- dodgr_dists(grc, from = from, to = to)",
-                               "d2 <- dodgr_dists(graph, from = from, to = to)"),
-                   "replications" = c (2, 2),
-                   "elapsed" = c (0.006, 0.026),
-                   "relative" = c (1, 4.333),
-                   "user.self" = c (0.013, 0.060),
-                   "sys.self" = rep (0, 2),
-                   "user.child" = rep (0, 2),
-                   "sys.child" = rep (0, 2))
-res [2:1, ]
+## ----benchmark1, eval = TRUE---------------------------------------------
+from <- sample (grc$from_id, size = 100)
+to <- sample (grc$to_id, size = 100)
+rbenchmark::benchmark (
+                       d2 <- dodgr_dists (grc, from = from, to = to),
+                       d2 <- dodgr_dists (graph, from = from, to = to),
+                       replications = 2)
 
 ## ----contracted-with-verts-----------------------------------------------
 grc <- dodgr_contract_graph (graph)
@@ -315,7 +291,7 @@ nrow (graph_f); nrow (graph_undir) # the latter is much smaller
 graph <- graph [graph_undir$edge_id, ]
 graph$flow <- graph_undir$flow
 
-## ------------------------------------------------------------------------
-graph_f <- graph_f [graph_f$flow > 0, ]
-dodgr_flowmap (graph_f, linescale = 5)
+## ----flowmap, eval = FALSE-----------------------------------------------
+#  graph_f <- graph_f [graph_f$flow > 0, ]
+#  dodgr_flowmap (graph_f, linescale = 5)
 

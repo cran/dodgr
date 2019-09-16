@@ -88,6 +88,11 @@ from the default for distance-based routing. The result of
 \code{weight_streetnet(..., turn_penalty = TRUE)} should thus \emph{only} be used
 to submit to the \link{dodgr_times} function, and not for any other \code{dodgr}
 functions nor forms of network analysis.
+
+The resultant graph includes only those edges for which the given
+weighting profile specifies finite edge weights. Any edges of types not
+present in a given weighting profile are automatically removed from the
+weighted streetnet.
 }
 \examples{
 # hampi is included with package as an 'osmdata' sf-formatted street network
@@ -112,7 +117,7 @@ dim (net) # 406 11; 406 streets
 library (stplanr)
 # merge all of the 'routes_fast' lines into a single network
 r <- overline (routes_fast, attrib = "length", buff_dist = 1)
-r <- sf::st_as_sf (r)
+r <- sf::st_as_sf (r, crs = 4326)
 # We need to specify both a `type` and `id` column for the
 # \\link{weight_streetnet} function.
 r$type <- 1

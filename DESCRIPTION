@@ -1,6 +1,6 @@
 Package: dodgr
 Title: Distances on Directed Graphs
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: c(
     person("Mark", "Padgham", email="mark.padgham@email.com", role=c("aut", "cre")),
     person("Andreas", "Petutschnig", role="aut"),
@@ -32,7 +32,7 @@ LazyData: true
 URL: https://github.com/ATFutures/dodgr
 BugReports: https://github.com/ATFutures/dodgr/issues
 RoxygenNote: 6.1.1
-Packaged: 2019-06-05 19:23:00 UTC; markus
+Packaged: 2019-09-16 10:15:44 UTC; markus
 Author: Mark Padgham [aut, cre],
   Andreas Petutschnig [aut],
   Robin Lovelace [ctb],
@@ -42,4 +42,4 @@ Author: Mark Padgham [aut, cre],
     heaps)
 Maintainer: Mark Padgham <mark.padgham@email.com>
 Repository: CRAN
-Date/Publication: 2019-06-05 22:10:22 UTC
+Date/Publication: 2019-09-16 16:10:02 UTC

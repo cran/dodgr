@@ -155,6 +155,49 @@ void PF::PathFinder::Dijkstra (
     delete [] is_target;
 }
 
+// Modified pathfinder only out to specified distance limit. Done as separate
+// routine to avoid costs of the `if` clause in general non-limited case.
+void PF::PathFinder::DijkstraLimit (
+        std::vector<double>& d,
+        std::vector<double>& w,
+        std::vector<int>& prev,
+        const unsigned int v0,
+        const double &dlim)
+{
+    const DGraphEdge *edge;
+
+    const unsigned int n = m_graph->nVertices();
+    const std::vector<DGraphVertex>& vertices = m_graph->vertices();
+
+    PF::PathFinder::init_arrays (d, w, prev, m_open, m_closed, v0, n);
+    m_heap->insert(v0, 0.0);
+
+    while (m_heap->nItems() > 0) {
+        unsigned int v = m_heap->deleteMin();
+
+        m_closed [v] = true;
+        m_open [v] = false;
+
+        // explore the OUT set of v only if distances are < threshold
+        bool explore = false;
+        edge = vertices [v].outHead;
+        while (edge) {
+            if ((d [v] + edge->dist) <= dlim)
+            {
+                explore = true;
+                break;
+            }
+            edge = edge->nextOut;
+        }
+
+        if (explore)
+        {
+            edge = vertices [v].outHead;
+            scan_edges (edge, d, w, prev, m_open, m_closed, v);
+        }
+    } // end while nItems > 0
+}
+
 void PF::PathFinder::AStar (std::vector<double>& d,
         std::vector<double>& w,
         std::vector<int>& prev,

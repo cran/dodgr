@@ -48,26 +48,14 @@ Rcpp::NumericMatrix rcpp_get_sp_dists_par (const Rcpp::DataFrame graph,
         const std::string& heap_type,
         const bool is_spatial);
 
+Rcpp::NumericMatrix rcpp_get_iso (const Rcpp::DataFrame graph,
+        const Rcpp::DataFrame vert_map_in,
+        Rcpp::IntegerVector fromi,
+        Rcpp::NumericVector dlim,
+        const std::string& heap_type);
+
 Rcpp::List rcpp_get_paths (const Rcpp::DataFrame graph,
         const Rcpp::DataFrame vert_map_in,
         Rcpp::IntegerVector fromi,
         Rcpp::IntegerVector toi_in,
         const std::string& heap_type);
-
-void rcpp_flows_aggregate_par (const Rcpp::DataFrame graph,
-        const Rcpp::DataFrame vert_map_in,
-        Rcpp::IntegerVector fromi,
-        Rcpp::IntegerVector toi_in,
-        Rcpp::NumericMatrix flows,
-        const std::string dirtxt,
-        const std::string heap_type);
-
-Rcpp::NumericVector rcpp_aggregate_files (const Rcpp::CharacterVector file_names,
-        const int len);
-
-Rcpp::NumericVector rcpp_flows_disperse (const Rcpp::DataFrame graph,
-        const Rcpp::DataFrame vert_map_in,
-        Rcpp::IntegerVector fromi,
-        double k,
-        Rcpp::NumericMatrix flows,
-        std::string heap_type);

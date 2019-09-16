@@ -21,12 +21,10 @@ test_that("SC", {
               expect_true (nrow (net_sc) > 0)
 
               net_sf <- weight_streetnet (hampi)
-              # The SC version is sanitised by, for example, removing duplicate
-              # edges, so is a more compact graph:
-              expect_true (nrow (net_sf) > nrow (net_sc))
+              expect_equal (nrow (net_sf), nrow (net_sc))
               v_sc <- dodgr_vertices (net_sc)
               v_sf <- dodgr_vertices (net_sf)
-              expect_true (nrow (v_sf) > nrow (v_sc))
+              expect_equal (nrow (v_sf), nrow (v_sc))
 
               class (hsc) <- class (hsc) [!class (hsc) %in% "osmdata_sc"]
               expect_error (net_sc <- weight_streetnet (hsc),
@@ -90,6 +88,10 @@ test_that ("traffic light nodes", {
                expect_identical (net_sc0$d_weighted, net_sc1$d_weighted)
                expect_identical (net_sc0$time, net_sc1$time)
                expect_identical (net_sc0$time_weighted, net_sc1$time_weighted)
+
+               expect_silent (net_sc1 <- weight_streetnet (hsc, wt_profile = 1))
+               expect_identical (net_sc1$d, net_sc1$d_weighted)
+               expect_identical (net_sc1$time, net_sc1$time_weighted)
 })
 
 test_that ("elevation", {
