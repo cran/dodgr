@@ -223,7 +223,7 @@ nrow (grc)
 #  dp <- dodgr_paths (graph, from = from, to = to)
 
 ## ------------------------------------------------------------------------
-graph <- weight_streetnet (hampi)
+graph <- weight_streetnet (hampi, wt_profile = "foot")
 head (graph)
 
 ## ------------------------------------------------------------------------
@@ -263,7 +263,7 @@ path1 <- verts [match (dp [[i]] [[j]], verts$id), ]
 head (path1)
 
 ## ------------------------------------------------------------------------
-graph <- weight_streetnet (hampi)
+graph <- weight_streetnet (hampi, wt_profile = "foot")
 from <- sample (graph$from_id, size = 10)
 to <- sample (graph$to_id, size = 10)
 flows <- matrix (10 * runif (length (from) * length (to)),

@@ -4,6 +4,7 @@
 #include "dgraph.h"
 #include "heaps/heap_lib.h"
 
+// # nocov start
 template <typename T>
 void inst_graph (std::shared_ptr<DGraph> g, unsigned int nedges,
         const std::map <std::string, unsigned int>& vert_map,
@@ -19,6 +20,7 @@ void inst_graph (std::shared_ptr<DGraph> g, unsigned int nedges,
         g->addNewEdge (fromi, toi, dist [i], wt [i]);
     }
 }
+// # nocov end
 
 
 std::shared_ptr <HeapDesc> run_sp::getHeapImpl(const std::string& heap_type)
@@ -162,23 +164,26 @@ struct OneIso : public RcppParallel::Worker
             unsigned int from_i = static_cast <unsigned int> (dp_fromi [i]);
             std::fill (w.begin (), w.end (), INFINITE_DOUBLE);
             std::fill (d.begin (), d.end (), INFINITE_DOUBLE);
+            std::fill (prev.begin (), prev.end (), INFINITE_INT);
 
             pathfinder->DijkstraLimit (d, w, prev, from_i, dlimit_max);
 
-            // Get the set of terminal vertices.
+            // Get the set of terminal vertices: those with w<dlimit_max but 
+            // with no previous (outward-going) nodes
             std::set <int> terminal_verts;
             for (int j: prev)
             {
-                size_t sj = static_cast <size_t> (j);
-                if (w [sj] > INFINITE_INT && w [sj] < dlimit_max)
+                if (j < INFINITE_INT)
                 {
-                    // # nocov start
-                    if (prev [sj] < INFINITE_INT)
+                    size_t sj = static_cast <size_t> (j);
+                    if (prev [sj] == INFINITE_INT && w [sj] < dlimit_max)
                     {
-                        terminal_verts.erase (j);
+                        // # nocov start
+                        if (terminal_verts.find (j) != terminal_verts.end ())
+                            terminal_verts.erase (j);
                         terminal_verts.emplace (prev [sj]);
+                        // # nocov end
                     }
-                    // # nocov end
                 }
             }
 
@@ -268,7 +273,7 @@ Rcpp::NumericMatrix rcpp_get_sp_dists_par (const Rcpp::DataFrame graph,
     std::vector <std::string> from = graph ["from"];
     std::vector <std::string> to = graph ["to"];
     std::vector <double> dist = graph ["d"];
-    std::vector <double> wt = graph ["w"];
+    std::vector <double> wt = graph ["d_weighted"];
 
     unsigned int nedges = static_cast <unsigned int> (graph.nrow ());
     std::map <std::string, unsigned int> vert_map;
@@ -318,7 +323,7 @@ Rcpp::NumericMatrix rcpp_get_iso (const Rcpp::DataFrame graph,
     std::vector <std::string> from = graph ["from"];
     std::vector <std::string> to = graph ["to"];
     std::vector <double> dist = graph ["d"];
-    std::vector <double> wt = graph ["w"];
+    std::vector <double> wt = graph ["d_weighted"];
 
     unsigned int nedges = static_cast <unsigned int> (graph.nrow ());
     std::map <std::string, unsigned int> vert_map;
@@ -365,7 +370,7 @@ Rcpp::NumericMatrix rcpp_get_sp_dists (const Rcpp::DataFrame graph,
     std::vector <std::string> from = graph ["from"];
     std::vector <std::string> to = graph ["to"];
     std::vector <double> dist = graph ["d"];
-    std::vector <double> wt = graph ["w"];
+    std::vector <double> wt = graph ["d_weighted"];
 
     unsigned int nedges = static_cast <unsigned int> (graph.nrow ());
     std::map <std::string, unsigned int> vert_map;
@@ -377,15 +382,9 @@ Rcpp::NumericMatrix rcpp_get_sp_dists (const Rcpp::DataFrame graph,
     std::shared_ptr<DGraph> g = std::make_shared<DGraph>(nverts);
     inst_graph (g, nedges, vert_map, from, to, dist, wt);
 
-    std::shared_ptr <PF::PathFinder> pathfinder =
-        std::make_shared <PF::PathFinder> (
-            nverts, *run_sp::getHeapImpl(heap_type), g);
-
     std::vector<double> w (nverts);
     std::vector<double> d (nverts);
     std::vector<int> prev (nverts);
-
-    pathfinder->init (g); // specify the graph
 
     // initialise dout matrix to NA
     Rcpp::NumericVector na_vec = Rcpp::NumericVector (nfrom * nto,
@@ -394,19 +393,26 @@ Rcpp::NumericMatrix rcpp_get_sp_dists (const Rcpp::DataFrame graph,
             static_cast <int> (nto), na_vec.begin ());
 
 
-    for (unsigned int v = 0; v < nfrom; v++)
+    for (unsigned int i = 0; i < nfrom; i++)
     {
+        // These lines (re-)initialise the heap, so have to be called for each v
+        std::shared_ptr <PF::PathFinder> pathfinder =
+            std::make_shared <PF::PathFinder> (
+                nverts, *run_sp::getHeapImpl(heap_type), g);
+
+        pathfinder->init (g); // specify the graph
+
         Rcpp::checkUserInterrupt ();
         std::fill (w.begin(), w.end(), INFINITE_DOUBLE);
         std::fill (d.begin(), d.end(), INFINITE_DOUBLE);
 
         pathfinder->Dijkstra (d, w, prev,
-                static_cast <unsigned int> (fromi [v]), toi);
-        for (unsigned int vi = 0; vi < nto; vi++)
+                static_cast <unsigned int> (fromi [i]), toi);
+        for (unsigned int j = 0; j < nto; j++)
         {
-            if (w [static_cast <size_t> (toi [vi])] < INFINITE_DOUBLE)
+            if (w [static_cast <size_t> (toi [j])] < INFINITE_DOUBLE)
             {
-                dout (v, vi) = d [static_cast <size_t> (toi [vi])];
+                dout (i, j) = d [static_cast <size_t> (toi [j])];
             }
         }
     }
@@ -448,7 +454,7 @@ Rcpp::List rcpp_get_paths (const Rcpp::DataFrame graph,
     std::vector <std::string> from = graph ["from"];
     std::vector <std::string> to = graph ["to"];
     std::vector <double> dist = graph ["d"];
-    std::vector <double> wt = graph ["w"];
+    std::vector <double> wt = graph ["d_weighted"];
 
     unsigned int nedges = static_cast <unsigned int> (graph.nrow ());
     std::map <std::string, unsigned int> vert_map;
@@ -460,51 +466,53 @@ Rcpp::List rcpp_get_paths (const Rcpp::DataFrame graph,
     std::shared_ptr<DGraph> g = std::make_shared<DGraph>(nverts);
     inst_graph (g, nedges, vert_map, from, to, dist, wt);
 
-    std::shared_ptr<PF::PathFinder> pathfinder =
-        std::make_shared <PF::PathFinder> (nverts,
-            *run_sp::getHeapImpl(heap_type), g);
-    
     Rcpp::List res (nfrom);
     std::vector<double> w (nverts);
     std::vector<double> d (nverts);
     std::vector<int> prev (nverts);
 
-    pathfinder->init (g); // specify the graph
-
-    for (unsigned int v = 0; v < nfrom; v++)
+    for (unsigned int i = 0; i < nfrom; i++)
     {
+        // These lines (re-)initialise the heap, so have to be called for each i
+        std::shared_ptr<PF::PathFinder> pathfinder =
+            std::make_shared <PF::PathFinder> (nverts,
+                *run_sp::getHeapImpl(heap_type), g);
+        
+        pathfinder->init (g); // specify the graph
+
         Rcpp::checkUserInterrupt ();
         std::fill (w.begin(), w.end(), INFINITE_DOUBLE);
         std::fill (d.begin(), d.end(), INFINITE_DOUBLE);
+        std::fill (prev.begin(), prev.end(), 0);
 
         pathfinder->Dijkstra (d, w, prev,
-                static_cast <unsigned int> (fromi [v]), toi);
+                static_cast <unsigned int> (fromi [i]), toi);
 
         Rcpp::List res1 (nto);
-        for (unsigned int vi = 0; vi < nto; vi++)
+        for (unsigned int j = 0; j < nto; j++)
         {
             std::vector <int> onePath;
-            if (w [toi [vi]] < INFINITE_DOUBLE)
+            if (w [toi [j]] < INFINITE_DOUBLE)
             {
-                int target = toi_in [vi]; // target can be -1!
+                int target = toi_in [j]; // target can be -1!
                 while (target < INFINITE_INT)
                 {
                     // Note that targets are all C++ 0-indexed and are converted
                     // directly here to R-style 1-indexes.
                     onePath.push_back (target + 1);
                     target = static_cast <int> (prev [static_cast <unsigned int> (target)]);
-                    if (target < 0 || target == fromi [v])
+                    if (target < 0 || target == fromi [i])
                         break;
                 }
             }
             if (onePath.size () >= 1)
             {
-                onePath.push_back (fromi [v] + 1);
+                onePath.push_back (fromi [i] + 1);
                 std::reverse (onePath.begin (), onePath.end ());
-                res1 [vi] = onePath;
+                res1 [j] = onePath;
             }
         }
-        res [v] = res1;
+        res [i] = res1;
     }
     return (res);
 }

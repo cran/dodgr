@@ -60,6 +60,13 @@
 #' present in a given weighting profile are automatically removed from the
 #' weighted streetnet.
 #'
+#' @note If the resultant graph is to be contracted via
+#' \link{dodgr_contract_graph}, **and** if the columns of the graph have been,
+#' or will be, modified, then automatic caching must be switched off with
+#' \link{dodgr_cache_off}. If not, the \link{dodgr_contract_graph} function will
+#' return the automatically cached version, which is the contracted version of
+#' the full graph prior to any modification of columns.
+#'
 #' @seealso \link{write_dodgr_wt_profile}, \link{dodgr_times}
 #'
 #' @export
@@ -199,7 +206,7 @@ weight_streetnet.sf <- function (x, wt_profile = "bicycle",
             calc_edge_time (wt_profile_name)
 
     gr_cols <- dodgr_graph_cols (graph)
-    graph <- graph [which (!is.na (graph [[gr_cols$w]])), ]
+    graph <- graph [which (!is.na (graph [[gr_cols$d_weighted]])), ]
 
     class (graph) <- c (class (graph), "dodgr_streetnet")
     attr (graph, "turn_penalty") <- FALSE
@@ -492,7 +499,7 @@ weight_streetnet.sc <- weight_streetnet.SC <-
     class (graph) <- cl
 
     gr_cols <- dodgr_graph_cols (graph)
-    graph <- graph [which (!is.na (graph [[gr_cols$w]])), ]
+    graph <- graph [which (!is.na (graph [[gr_cols$d_weighted]])), ]
 
     attr (graph, "turn_penalty") <- 0
 
@@ -511,7 +518,7 @@ weight_streetnet.sc <- weight_streetnet.SC <-
     }
 
     gr_cols <- dodgr_graph_cols (graph)
-    graph <- graph [which (!is.na (graph [[gr_cols$w]]) |
+    graph <- graph [which (!is.na (graph [[gr_cols$d_weighted]]) |
                            !is.na (graph [[gr_cols$time]])), ]
 
     class (graph) <- c (class (graph), "dodgr_streetnet", "dodgr_streetnet_sc")

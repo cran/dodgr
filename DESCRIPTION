@@ -1,6 +1,6 @@
 Package: dodgr
 Title: Distances on Directed Graphs
-Version: 0.2.1
+Version: 0.2.4
 Authors@R: c(
     person("Mark", "Padgham", email="mark.padgham@email.com", role=c("aut", "cre")),
     person("Andreas", "Petutschnig", role="aut"),
@@ -18,11 +18,11 @@ Description: Distances on dual-weighted directed graphs using priority-queue
     transport, yet lengths of routes must be calculated from direct distances.
 Depends: R (>= 3.5.0)
 License: GPL-3
-Imports: callr, digest, igraph, magrittr, methods, osmdata, rbenchmark,
-        Rcpp (>= 0.12.6), RcppParallel
+Imports: callr, digest, igraph, magrittr, methods, osmdata, Rcpp (>=
+        0.12.6), RcppParallel
 Suggests: dplyr, geodist, ggplot2, igraphdata, jsonlite, knitr, purrr,
-        RColorBrewer, rmarkdown, roxygen2, scales, sf, testthat,
-        tidygraph
+        rbenchmark, RColorBrewer, rmarkdown, roxygen2, scales, sf,
+        testthat, tidygraph
 LinkingTo: Rcpp, RcppParallel
 SystemRequirements: C++11, GNU make
 VignetteBuilder: knitr
@@ -32,7 +32,7 @@ LazyData: true
 URL: https://github.com/ATFutures/dodgr
 BugReports: https://github.com/ATFutures/dodgr/issues
 RoxygenNote: 6.1.1
-Packaged: 2019-09-16 10:15:44 UTC; markus
+Packaged: 2019-10-02 10:20:17 UTC; markus
 Author: Mark Padgham [aut, cre],
   Andreas Petutschnig [aut],
   Robin Lovelace [ctb],
@@ -42,4 +42,4 @@ Author: Mark Padgham [aut, cre],
     heaps)
 Maintainer: Mark Padgham <mark.padgham@email.com>
 Repository: CRAN
-Date/Publication: 2019-09-16 16:10:02 UTC
+Date/Publication: 2019-10-02 15:00:02 UTC
