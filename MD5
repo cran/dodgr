@@ -1,6 +1,6 @@
-0f07a1c9fe376af12419a15dadbd630a *DESCRIPTION
+bc8330be57df015de669d6c66e4b8dc5 *DESCRIPTION
 4120476f4b8927caf8e5a333c47271e4 *NAMESPACE
-28260fe14bc05dc5d18f469b7b2a70a5 *NEWS.md
+e7a4d1fb48890df33840bca23c32c877 *NEWS.md
 9e91ed1bf4cf11ede743034f8851a951 *R/RcppExports.R
 8e7516ab25cee5f5c5c4b045b48f2bd2 *R/compare-heaps.R
 266469eb01d92afbb0ad9e2718dcd708 *R/dists.R
@@ -17,10 +17,10 @@ f75dd79cb1b0ec60d26d50f2659447c6 *R/iso.R
 2e79544ef615d3991331671a58e6325e *R/paths.R
 1b8c140b5a8a9840f6b9d2eb89450aa9 *R/times.R
 4376f12cae9181d0b819579b702f9101 *R/utils.R
-ac400ef993bdf5d3f8b727026fec10ba *R/weight-streetnet-times.R
+359e3b8317773f60353d3ea3673aaa17 *R/weight-streetnet-times.R
 5b58169b7ef9f4a4d600c7d013d2c381 *R/weight-streetnet.R
 0e5a2e909468bcb96aa9997884de1c49 *R/weighting_profiles.R
-554d7940db2121e006470e291434649a *README.md
+475524d81ca9acea3aa2685a6f97d50d *README.md
 7297bef9a3c0e18e0f2ed6c10c6640dc *build/vignette.rds
 0cbc99c515576909ec0aa6e3e37ec970 *data/hampi.rda
 db6166257e8c89a872de4e2e06886fd4 *data/os_roads_bristol.rda
@@ -28,10 +28,10 @@ d11bb4be3b9543846ad289db60bd2086 *data/weighting_profiles.rda
 12a4f309b5ad4388321af204cc013cf7 *inst/CITATION
 47774d843c951f7956d43654999a0be7 *inst/doc/dodgr.R
 7bd068f5b6a626e754bdfdbcff706748 *inst/doc/dodgr.Rmd
-3dfa0bbeb4af954358269c4dcba64760 *inst/doc/dodgr.html
+4224bac3b7785f8bebba724310f562dd *inst/doc/dodgr.html
 2dd680c902e2a3435519b7abf2a65fd7 *inst/doc/times.R
 e680dac159ec70a982136699c811fc0d *inst/doc/times.Rmd
-a4381047ff1b16b01975f5a7535d6c90 *inst/doc/times.html
+ce12a563ce2de008272b537de2f0f281 *inst/doc/times.html
 7a7a3a149a3ab1242a59e91ab214d04f *man/clear_dodgr_cache.Rd
 07276de39ec6ff6fa2ceeef1300ba104 *man/compare_heaps.Rd
 6417775d9b940911ef11385bb4b68e23 *man/dodgr.Rd
@@ -42,8 +42,8 @@ eafd315f5142ce27b7d51ca49d42b9be *man/dodgr_cache_on.Rd
 f526228ed233be9e6ed8ef7465d9d1d4 *man/dodgr_distances.Rd
 8d7ecaef769ba04646afd6d76b83a64a *man/dodgr_dists.Rd
 ff2de6b185d3cf9d8422e5d64952d636 *man/dodgr_flowmap.Rd
-9cb1c3839347e82f9e053f182cef8801 *man/dodgr_flows_aggregate.Rd
-33e59176dbbf873bcbbd4f7b30fde202 *man/dodgr_flows_disperse.Rd
+ab6b3812b5d7743c794c949c9622ee69 *man/dodgr_flows_aggregate.Rd
+07f015922b576d4341302f0a3cbbbbfb *man/dodgr_flows_disperse.Rd
 bd0b4c1e2440e67417e11ef076f75afb *man/dodgr_full_cycles.Rd
 6995e6e70339eb7e348e3e15176861f5 *man/dodgr_fundamental_cycles.Rd
 32e9100e96d6308a709846db2d8399e0 *man/dodgr_isochrones.Rd
@@ -78,7 +78,7 @@ e99abf45d21ca997c8f8e4936e248874 *src/dgraph.cpp
 e7f9911ef6010df85f52e53d0f80ca3b *src/dgraph.h
 b15eaa534b4677a8be3859e44947b7b1 *src/dodgr-to-sf.cpp
 36a1ea13f45311d841c0ebe6bdf26811 *src/dodgr-to-sf.h
-764efa73032ee0413d2125b2146d41e6 *src/flows.cpp
+4b17a1c4f8d9dd0361335dd53f982830 *src/flows.cpp
 3cecd896d27f0bf1ba76a87f8d87f7c1 *src/flows.h
 147b4a4f38bf8ea30397bd24406d5f9f *src/fund-cycles.cpp
 a88eacae0bb12ede7c18b7adb8c6c577 *src/fund-cycles.h
@@ -103,7 +103,7 @@ e3279c17a89f688fdea361e7d1ea85b2 *src/heaps/triheap_ext.cpp
 4e7242a16fefbdb06da8cd177d6cc234 *src/heaps/triheap_ext.h
 d7d041463db17e89f71ab8caf8eb1fe9 *src/pathfinders.cpp
 0ffc68990b477a59631add9994cd972c *src/pathfinders.h
-9178d73af99feb78d87899150883638f *src/run_sp.cpp
+0095998c37bf458a9e9c37b3488ae41b *src/run_sp.cpp
 75968dd401a229936222a7b032996965 *src/run_sp.h
 94bf69547d5a93427f33c0b4117389b9 *src/sc-as-network.cpp
 49edd88b93de809bc6606a3cca0fd046 *src/sc-as-network.h
@@ -118,10 +118,10 @@ a6aae4920c3fbdea9fc55c17026dee56 *tests/testthat/test-cache.R
 0eff39bd0046a2fc5f256d3b95efc6aa *tests/testthat/test-dists.R
 98efa40569047a307aa730f4d7af7a42 *tests/testthat/test-flows.R
 569c6a8224802d223c44e04b9d1fab1b *tests/testthat/test-graph-conversion.R
-adcabaaf6c73cab1243e0ddf69b18297 *tests/testthat/test-graph-fns.R
-3d5aea073d00f24832b3829ec2e54d11 *tests/testthat/test-iso.R
+50630b937c2c4fa0a9430189065ce0fb *tests/testthat/test-graph-fns.R
+8167df3c7c4a5754d197bc93434a34eb *tests/testthat/test-iso.R
 86b01fa87d25940bad0adc86379d72bb *tests/testthat/test-paths.R
-94d8ab3f1510b32f149a3a833f532aa3 *tests/testthat/test-sc.R
+53b79678c14f6d706e5e7e7f1bfae5ad *tests/testthat/test-sc.R
 539fcf81c4690bd0bd7930ff90c72ddd *tests/testthat/test-streetnet.R
 5dd24219359c661dfb8d669ee6622c87 *tests/testthat/test-wt-profiles.R
 7bd068f5b6a626e754bdfdbcff706748 *vignettes/dodgr.Rmd

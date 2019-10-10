@@ -91,6 +91,7 @@ struct OneFlow : public RcppParallel::Worker
             std::fill (d.begin (), d.end (), INFINITE_DOUBLE);
 
             unsigned int from_i = static_cast <unsigned int> (dp_fromi [i]);
+            d [from_i] = w [from_i] = 0.0;
 
             // reduce toi to only those within tolerance limt
             double fmax = 0.0;
@@ -231,13 +232,15 @@ struct OneDisperse : public RcppParallel::Worker
 
             std::fill (w.begin (), w.end (), INFINITE_DOUBLE);
             std::fill (d.begin (), d.end (), INFINITE_DOUBLE);
+            std::fill (prev.begin (), prev.end (), INFINITE_INT);
 
             const unsigned int from_i = static_cast <unsigned int> (dp_fromi [i]);
+            d [from_i] = w [from_i] = 0.0;
 
             pathfinder->DijkstraLimit (d, w, prev, from_i, dlim);
             for (size_t j = 0; j < nverts; j++)
             {
-                if (prev [j] > 0)
+                if (prev [j] > 0 && prev [j] < INFINITE_INT)
                 {
                     const std::string vert_to = vert_name [j],
                         vert_from = vert_name [static_cast <size_t> (prev [j])];
