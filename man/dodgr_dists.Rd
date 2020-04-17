@@ -4,8 +4,16 @@
 \alias{dodgr_dists}
 \title{dodgr_dists}
 \usage{
-dodgr_dists(graph, from = NULL, to = NULL, shortest = TRUE,
-  heap = "BHeap", parallel = TRUE, quiet = TRUE)
+dodgr_dists(
+  graph,
+  from = NULL,
+  to = NULL,
+  shortest = TRUE,
+  pairwise = FALSE,
+  heap = "BHeap",
+  parallel = TRUE,
+  quiet = TRUE
+)
 }
 \arguments{
 \item{graph}{\code{data.frame} or equivalent object representing the network
@@ -20,10 +28,12 @@ calculated (see Notes)}
 \item{shortest}{If \code{FALSE}, calculate distances along the \emph{fastest}
 rather than shortest routes (see Notes).}
 
+\item{pairwise}{If \code{TRUE}, calculate distances only between the ordered
+pairs of \code{from} and \code{to}.}
+
 \item{heap}{Type of heap to use in priority queue. Options include
 Fibonacci Heap (default; \code{FHeap}), Binary Heap (\code{BHeap}),
-\code{Radix}, Trinomial Heap (\code{TriHeap}), Extended Trinomial Heap
-(\code{TriHeapExt}, and 2-3 Heap (\code{Heap23}).}
+\verb{Trinomial Heap (}TriHeap\verb{), Extended Trinomial Heap (}TriHeapExt\verb{, and 2-3 Heap (}Heap23`).}
 
 \item{parallel}{If \code{TRUE}, perform routing calculation in parallel (see
 details)}
@@ -59,8 +69,8 @@ The \code{from} and \code{to} columns of \code{graph} may be either single
 columns of numeric or character values specifying the numbers or names of
 graph vertices, or combinations to two columns specifying geographical
 (longitude and latitude) coordinates. In the latter case, almost any sensible
-combination of names will be accepted (for example, \code{fromx, fromy},
-\code{from_x, from_y}, or \code{fr_lat, fr_lon}.)
+combination of names will be accepted (for example, \verb{fromx, fromy},
+\verb{from_x, from_y}, or \verb{fr_lat, fr_lon}.)
 
 \code{from} and \code{to} values can be either two-column matrices of
 equivalent of longitude and latitude coordinates, or else single columns
@@ -73,6 +83,9 @@ Calculations in parallel (\code{parallel = TRUE}) ought very generally be
 advantageous. For small graphs, calculating distances in parallel is likely
 to offer relatively little gain in speed, but increases from parallel
 computation will generally markedly increase with increasing graph sizes.
+By default, parallel computation uses the maximal number of available cores
+or threads. This number can be reduced by specifying a value via
+\verb{RcppParallel::setThreadOptions (numThreads = <desired_number>)}.
 }
 \examples{
 # A simple graph
@@ -107,8 +120,8 @@ d <- dodgr_dists (graph, from = xy, to = xy)
 # should work, but even then note that
 table (essen$level)
 # There are parts of the network on different building levels (because of
-# shopping malls and the like). These may or may not be connected, so it may be
-# necessary to filter out particular levels
+# shopping malls and the like). These may or may not be connected, so it may
+# be necessary to filter out particular levels
 index <- which (! (essen$level == "-1" | essen$level == "1")) # for example
 library (sf) # needed for following sub-select operation
 essen <- essen [index, ]

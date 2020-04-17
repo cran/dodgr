@@ -1,20 +1,5 @@
 #include "graph.h"
 
-/*
-edge_id_t graph_contract::get_new_edge_id (edge_map_t &edge_map, std::mt19937 &rng)
-{
-    const int range = 1e8;
-    std::uniform_int_distribution <unsigned int> unif (0, range);
-
-    edge_id_t new_id = edge_map.begin()->first;
-    while (edge_map.find (new_id) != edge_map.end ())
-    {
-        new_id = std::to_string (unif (rng));
-    }
-    return new_id;
-}
-*/
-
 //' get_to_from
 //'
 //' Get one pair of two and from edges and vertices. Main task is to make sure
@@ -158,9 +143,6 @@ void graph_contract::contract_graph (vertex_map_t &vertex_map,
 
     std::vector <edge_id_t> new_edge_ids;
 
-    // Random generator for new_edge_id
-    std::random_device rd;
-    //std::mt19937 rng (rd()); // mersenne twister
     unsigned int maxid = 123456;
 
     while (verts.size () > 0)
@@ -175,7 +157,6 @@ void graph_contract::contract_graph (vertex_map_t &vertex_map,
             edges_done.emplace (e, false);
 
         new_edge_ids.clear ();
-        //new_edge_ids.push_back (graph_contract::get_new_edge_id (edge_map, rng));
         new_edge_ids.push_back ("a" + std::to_string (maxid++));
 
         if ((vtx.is_intermediate_single () || vtx.is_intermediate_double ()) &&
@@ -183,7 +164,6 @@ void graph_contract::contract_graph (vertex_map_t &vertex_map,
         {
             if (edges.size () == 4) // is_intermediate_double as well!
                 new_edge_ids.push_back ("a" + std::to_string (maxid++));
-            //new_edge_ids.push_back (graph_contract::get_new_edge_id (edge_map, rng));
 
             // Get the two adjacent vertices
             std::unordered_set <vertex_id_t> nbs = vtx.get_all_neighbours ();
@@ -232,6 +212,11 @@ void graph_contract::contract_graph (vertex_map_t &vertex_map,
 
                     edges.erase (edge_from_id);
                     edges.erase (edge_to_id);
+                    // It is possible to have repeated values of two_nbs;
+                    // calling these a second time should then just lead to no
+                    // contraction
+                    if ((vt_from == "") | (vt_to == ""))
+                        continue;
 
                     graph_contract::contract_one_edge (vert2edge_map,
                             vertex_map, edge_map, edgelist, vtx_id, vt_from,
@@ -369,30 +354,31 @@ Rcpp::List rcpp_contract_graph (const Rcpp::DataFrame &graph,
             Rcpp::Named ("edge_map") = edges_new2old);
 }
 
-//' rcpp_merge_flows
+//' rcpp_merge_cols
 //'
-//' Merge flows in directed graph to form aggregate undirected flows, and return
-//' a corresponding undirected graph useful for visualisation.
+//' Merge columns in directed graph to form aggregate undirected columns, and
+//' return a corresponding undirected graph useful for visualisation.
 //'
 //' @param graph The result of a call to \code{dodgr_flows_aggregate/disperse}
-//' @return A single vector of aggregate flows with non-zero values only for
+//' or similar function resuling in columns of directed values.
+//' @return A single vector of aggregate values with non-zero values only for
 //' those edges to be retained in the directed graph.
 //'
 //' @noRd
 // [[Rcpp::export]]
-Rcpp::NumericVector rcpp_merge_flows (Rcpp::DataFrame graph)
+Rcpp::NumericVector rcpp_merge_cols (Rcpp::DataFrame graph)
 {
     std::vector <std::string> from = graph ["from"];
     std::vector <std::string> to = graph ["to"];
     std::vector <double> dist = graph ["d"];
     std::vector <double> wt = graph ["d_weighted"];
-    std::vector <double> flow = graph ["flow"]; // always called "flow"
+    std::vector <double> aggr_var = graph ["merge"]; // always called "merge"
 
     // vertvert_map just holds index of where pair of vertices were first found.
     // These can only be duplicated once, so only one single value is ever
     // needed.
     std::unordered_map <std::string, int> vertvert_map;
-    Rcpp::NumericVector flow_total (from.size ());
+    Rcpp::NumericVector aggr_total (from.size ());
     for (unsigned int i = 0; i < from.size (); i++)
     {
         std::string ft = "a" + from [i] + "b" + to [i],
@@ -401,7 +387,7 @@ Rcpp::NumericVector rcpp_merge_flows (Rcpp::DataFrame graph)
                 vertvert_map.find (tf) == vertvert_map.end ())
         {
             vertvert_map.emplace (ft, i);
-            flow_total [i] = flow [i];
+            aggr_total [i] = aggr_var [i];
         } else
         {
             int where = INFINITE_INT;
@@ -412,9 +398,9 @@ Rcpp::NumericVector rcpp_merge_flows (Rcpp::DataFrame graph)
             if (where == INFINITE_INT)
                 Rcpp::stop ("there is no where; this can never happen"); // # nocov
 
-            flow_total [static_cast <unsigned int> (where)] += flow [i];
+            aggr_total [static_cast <unsigned int> (where)] += aggr_var [i];
         } 
     }
 
-    return flow_total;
+    return aggr_total;
 }

@@ -4,9 +4,13 @@
 \alias{weight_railway}
 \title{weight_railway}
 \usage{
-weight_railway(sf_lines, type_col = "railway", id_col = "osm_id",
-  keep_cols = c("maxspeed"), excluded = c("abandoned", "disused",
-  "proposed", "razed"))
+weight_railway(
+  sf_lines,
+  type_col = "railway",
+  id_col = "osm_id",
+  keep_cols = c("maxspeed"),
+  excluded = c("abandoned", "disused", "proposed", "razed")
+)
 }
 \arguments{
 \item{sf_lines}{A street network represented as \code{sf} \code{LINESTRING}

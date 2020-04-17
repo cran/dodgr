@@ -7,21 +7,49 @@
 \alias{weight_streetnet.sc}
 \title{weight_streetnet}
 \usage{
-weight_streetnet(x, wt_profile = "bicycle", wt_profile_file = NULL,
-  turn_penalty = FALSE, type_col = "highway", id_col = "osm_id",
-  keep_cols = NULL, left_side = FALSE)
+weight_streetnet(
+  x,
+  wt_profile = "bicycle",
+  wt_profile_file = NULL,
+  turn_penalty = FALSE,
+  type_col = "highway",
+  id_col = "osm_id",
+  keep_cols = NULL,
+  left_side = FALSE
+)
 
-\method{weight_streetnet}{default}(x, wt_profile = "bicycle",
-  wt_profile_file = NULL, turn_penalty = FALSE, type_col = "highway",
-  id_col = "osm_id", keep_cols = NULL, left_side = FALSE)
+\method{weight_streetnet}{default}(
+  x,
+  wt_profile = "bicycle",
+  wt_profile_file = NULL,
+  turn_penalty = FALSE,
+  type_col = "highway",
+  id_col = "osm_id",
+  keep_cols = NULL,
+  left_side = FALSE
+)
 
-\method{weight_streetnet}{sf}(x, wt_profile = "bicycle",
-  wt_profile_file = NULL, turn_penalty = FALSE, type_col = "highway",
-  id_col = "osm_id", keep_cols = NULL, left_side = FALSE)
+\method{weight_streetnet}{sf}(
+  x,
+  wt_profile = "bicycle",
+  wt_profile_file = NULL,
+  turn_penalty = FALSE,
+  type_col = "highway",
+  id_col = "osm_id",
+  keep_cols = NULL,
+  left_side = FALSE
+)
 
-\method{weight_streetnet}{sc}(x, wt_profile = "bicycle",
-  wt_profile_file = NULL, turn_penalty = FALSE, type_col = "highway",
-  id_col = "osm_id", keep_cols = NULL, left_side = FALSE)
+\method{weight_streetnet}{sc}(
+  x,
+  wt_profile = "bicycle",
+  wt_profile_file = NULL,
+  turn_penalty = FALSE,
+  type_col = "highway",
+  id_col = "osm_id",
+  keep_cols = NULL,
+  left_side = FALSE
+)
 }
 \arguments{
 \item{x}{A street network represented either as \code{sf} \code{LINESTRING}
@@ -118,7 +146,7 @@ net <- weight_streetnet (os_roads_bristol, wt_profile = wts,
 dim (net) # 406 11; 406 streets
 
 # An example for a generic (non-OSM) highway, represented as the
-# `routes_fast` object of the \\pkg{stplanr} package, which is a
+# `routes_fast` object of the \pkg{stplanr} package, which is a
 # SpatialLinesDataFrame.
 \dontrun{
 library (stplanr)
@@ -126,7 +154,7 @@ library (stplanr)
 r <- overline (routes_fast, attrib = "length", buff_dist = 1)
 r <- sf::st_as_sf (r, crs = 4326)
 # We need to specify both a `type` and `id` column for the
-# \\link{weight_streetnet} function.
+# \link{weight_streetnet} function.
 r$type <- 1
 r$id <- seq (nrow (r))
 graph <- weight_streetnet (r, type_col = "type", id_col = "id",

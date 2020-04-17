@@ -10,9 +10,11 @@
 #' calculated (see Notes)
 #' @param shortest If `FALSE`, calculate distances along the \emph{fastest}
 #' rather than shortest routes (see Notes).
+#' @param pairwise If `TRUE`, calculate distances only between the ordered
+#' pairs of `from` and `to`.
 #' @param heap Type of heap to use in priority queue. Options include
 #' Fibonacci Heap (default; `FHeap`), Binary Heap (`BHeap`),
-#' `Radix`, Trinomial Heap (`TriHeap`), Extended Trinomial Heap
+#' `Trinomial Heap (`TriHeap`), Extended Trinomial Heap
 #' (`TriHeapExt`, and 2-3 Heap (`Heap23`).
 #' @param parallel If `TRUE`, perform routing calculation in parallel (see
 #' details)
@@ -55,8 +57,11 @@
 #' advantageous. For small graphs, calculating distances in parallel is likely
 #' to offer relatively little gain in speed, but increases from parallel
 #' computation will generally markedly increase with increasing graph sizes.
+#' By default, parallel computation uses the maximal number of available cores
+#' or threads. This number can be reduced by specifying a value via
+#' `RcppParallel::setThreadOptions (numThreads = <desired_number>)`.
 #'
-#' @export 
+#' @export
 #' @examples
 #' # A simple graph
 #' graph <- data.frame (from = c ("A", "B", "B", "B", "C", "C", "D", "D"),
@@ -90,8 +95,8 @@
 #' # should work, but even then note that
 #' table (essen$level)
 #' # There are parts of the network on different building levels (because of
-#' # shopping malls and the like). These may or may not be connected, so it may be
-#' # necessary to filter out particular levels
+#' # shopping malls and the like). These may or may not be connected, so it may
+#' # be necessary to filter out particular levels
 #' index <- which (! (essen$level == "-1" | essen$level == "1")) # for example
 #' library (sf) # needed for following sub-select operation
 #' essen <- essen [index, ]
@@ -100,7 +105,8 @@
 #' d <- dodgr_dists (graph, from = xy, to = xy)
 #' }
 dodgr_dists <- function (graph, from = NULL, to = NULL, shortest = TRUE,
-                         heap = 'BHeap', parallel = TRUE, quiet = TRUE)
+                         pairwise = FALSE, heap = 'BHeap', parallel = TRUE,
+                         quiet = TRUE)
 {
     graph <- tbl_to_df (graph)
 
@@ -169,24 +175,30 @@ dodgr_dists <- function (graph, from = NULL, to = NULL, shortest = TRUE,
         to_index <- temp
     }
 
-    if (parallel)
-        d <- rcpp_get_sp_dists_par (graph, vert_map, from_index$index,
-                                    to_index$index, heap, is_spatial)
-    else
+    if (parallel) {
+        if (pairwise)
+            d <- rcpp_get_sp_dists_paired_par (graph, vert_map, from_index$index,
+                                               to_index$index, heap, is_spatial)
+        else
+            d <- rcpp_get_sp_dists_par (graph, vert_map, from_index$index,
+                                        to_index$index, heap, is_spatial)
+    } else
         d <- rcpp_get_sp_dists (graph, vert_map, from_index$index,
                                 to_index$index, heap)
 
-    if (!is.null (from_index$id))
-        rownames (d) <- from_index$id
-    else
-        rownames (d) <- vert_map$vert
-    if (!is.null (to_index$id))
-        colnames (d) <- to_index$id
-    else
-        colnames (d) <- vert_map$vert
+    if (!pairwise) {
+        if (!is.null (from_index$id))
+            rownames (d) <- from_index$id
+        else
+            rownames (d) <- vert_map$vert
+        if (!is.null (to_index$id))
+            colnames (d) <- to_index$id
+        else
+            colnames (d) <- vert_map$vert
 
-    if (flip)
-        d <- t (d)
+        if (flip)
+            d <- t (d)
+    }
 
     if (!quiet)
         message ("done.")
@@ -200,9 +212,10 @@ dodgr_dists <- function (graph, from = NULL, to = NULL, shortest = TRUE,
 #' @inherit dodgr_dists
 #' @export
 dodgr_distances <- function (graph, from = NULL, to = NULL, shortest = TRUE,
-                         heap = 'BHeap', parallel = TRUE, quiet = TRUE)
+                             pairwise = FALSE, heap = 'BHeap', parallel = TRUE,
+                             quiet = TRUE)
 {
-    dodgr_dists (graph, from, to, shortest = shortest,
+    dodgr_dists (graph, from, to, shortest = shortest, pairwise = pairwise,
                  heap = heap, parallel = parallel, quiet = quiet)
 }
 
@@ -232,7 +245,7 @@ get_index_id_cols <- function (graph, gr_cols, vert_map, pts)
                   "character, matrix, or integer")
 
         if (length (pts == 2) & is.numeric (pts) &
-            ( (any (grepl ("x", names (pts), ignore.case = TRUE)) &
+            ((any (grepl ("x", names (pts), ignore.case = TRUE)) &
              any (grepl ("y", names (pts), ignore.case = TRUE))) |
              (any (grepl ("lon", names (pts), ignore.case = TRUE) &
                    (any (grepl ("lat", names (pts), ignore.case = TRUE)))))))
@@ -279,7 +292,7 @@ get_id_cols <- function (pts)
     if (any (grepl ("id", colnames (pts), ignore.case = TRUE)))
     {
         nmc <- which (grepl ("id", colnames (pts)))
-        if (is (pts, "data.frame"))
+        if (methods::is (pts, "data.frame"))
             ids <- pts [[nmc]]
         else if (is.matrix (pts))
             ids <- pts [, nmc, drop = TRUE]
@@ -399,29 +412,15 @@ get_pts_index <- function (graph, gr_cols, vert_map, pts)
 
 #' get_heap
 #'
-#' Match the heap arg and convert graph is necessary (for Radix)
+#' Match the heap arg and convert graph is necessary
 #' @param heap Name of heap as passed to `dodgr_dists`
 #' @param graph `data.frame` of graph edges
 #' @return List of matched heap arg and potentially converted graph
 #' @noRd
 get_heap <- function (heap, graph)
 {
-    heaps <- c ("FHeap", "BHeap", "Radix", "TriHeap", "TriHeapExt", "Heap23",
-                "set")
+    heaps <- c ("FHeap", "BHeap", "TriHeap", "TriHeapExt", "Heap23", "set")
     heap <- match.arg (arg = heap, choices = heaps)
-    if (heap == "Radix")
-    {
-        indx <- which (graph$d > 0)
-        dfr <- min (abs (c (graph$d [indx] %% 1, graph$d  [indx] %% 1 - 1)))
-        if (dfr > 1e-6)
-        {
-            message (paste0 ("RadixHeap can only be implemented for ",
-                             "integer weights; all weights will now be ",
-                             "rounded"))
-            graph$d <- round (graph$d)
-            graph$d_weighted <- round (graph$d_weighted)
-        }
-    }
 
     list (heap = heap, graph = graph)
 }
@@ -465,16 +464,16 @@ graph_from_pts <- function (from, to, expand = 0.1, wt_profile = "bicycle",
 
 #' flip_graph
 #'
-#' Flip from and two vertices of a graph
+#' Flip from and two vertices of a graph. This is only called from
+#' `dodgr_distances`, and only on converted graph, so just needs to switch from
+#' and to vertex columns.
 #' @noRd
 flip_graph <- function (graph)
 {
-    fr_cols <- c ("from_id", "from_lon", "from_lat")
-    fr_cols <- fr_cols [which (fr_cols %in% names (graph))]
-    to_cols <- c ("to_id", "to_lon", "to_lat")
-    to_cols <- to_cols [which (to_cols %in% names (graph))]
-    fr_temp <- graph [, fr_cols]
-    graph [, fr_cols] <- graph [, to_cols]
-    graph [, to_cols] <- fr_temp
+    grcols <- dodgr_graph_cols (graph)
+    fr_temp <- graph [[grcols$from]]
+    graph [[grcols$from]] <- graph [[grcols$to]]
+    graph [[grcols$to]] <- fr_temp
+
     return (graph)
 }

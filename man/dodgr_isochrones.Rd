@@ -17,7 +17,7 @@ be calculated.}
 
 \item{heap}{Type of heap to use in priority queue. Options include
 Fibonacci Heap (default; \code{FHeap}), Binary Heap (\code{BHeap}),
-\code{Radix}, Trinomial Heap (\code{TriHeap}), Extended Trinomial Heap
+Trinomial Heap (\code{TriHeap}), Extended Trinomial Heap
 (\code{TriHeapExt}, and 2-3 Heap (\code{Heap23}).}
 }
 \value{
@@ -26,6 +26,10 @@ around each origin (\code{from}) point, with columns denoting the \code{from} po
 and \code{tlim} value(s). The isochrones are given as \code{id} values and associated
 coordinates of the series of points from each \code{from} point at the specified
 isochrone times.
+
+Isochrones are calculated by default using parallel computation with the
+maximal number of available cores or threads. This number can be reduced by
+specifying a value via \verb{RcppParallel::setThreadOptions (numThreads = <desired_number>)}.
 }
 \description{
 Calculate isochrone contours from specified points. Function is fully

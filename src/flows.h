@@ -7,7 +7,9 @@
 #include <fstream>
 
 #include <Rcpp.h>
-// [[Rcpp::depends(RcppParallel)]]
+// [[Rcpp::plugins(cpp11)]]
+// [[Rcpp::depends(RcppParallel,RcppThread)]]
+#include <RcppThread.h>
 #include <RcppParallel.h>
 
 #include "pathfinders.h"
@@ -19,23 +21,30 @@ class PathFinder;
 //----- functions in flows.cpp
 //----------------------------
 
-void rcpp_flows_aggregate_par (const Rcpp::DataFrame graph,
+Rcpp::NumericVector rcpp_flows_aggregate_par (const Rcpp::DataFrame graph,
         const Rcpp::DataFrame vert_map_in,
         Rcpp::IntegerVector fromi,
         Rcpp::IntegerVector toi_in,
         Rcpp::NumericMatrix flows,
+        const bool norm_sums,
         const double tol,
-        const std::string dirtxt,
         const std::string heap_type);
 
-Rcpp::NumericVector rcpp_aggregate_files (const Rcpp::CharacterVector file_names,
-        const int len);
-
-void rcpp_flows_disperse_par (const Rcpp::DataFrame graph,
+Rcpp::NumericVector rcpp_flows_disperse_par (const Rcpp::DataFrame graph,
         const Rcpp::DataFrame vert_map_in,
         Rcpp::IntegerVector fromi,
         Rcpp::NumericVector k,
-        Rcpp::NumericVector flows,
+        Rcpp::NumericVector dens,
         const double &tol,
-        const std::string &dirtxt,
         std::string heap_type);
+
+Rcpp::NumericVector rcpp_flows_si (const Rcpp::DataFrame graph,
+        const Rcpp::DataFrame vert_map_in,
+        Rcpp::IntegerVector fromi,
+        Rcpp::IntegerVector toi_in,
+        Rcpp::NumericVector kvec,
+        Rcpp::NumericVector dens_from,
+        Rcpp::NumericVector dens_to,
+        const bool norm_sums,
+        const double tol,
+        const std::string heap_type);

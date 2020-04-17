@@ -4,8 +4,16 @@
 \alias{dodgr_distances}
 \title{dodgr_distances}
 \usage{
-dodgr_distances(graph, from = NULL, to = NULL, shortest = TRUE,
-  heap = "BHeap", parallel = TRUE, quiet = TRUE)
+dodgr_distances(
+  graph,
+  from = NULL,
+  to = NULL,
+  shortest = TRUE,
+  pairwise = FALSE,
+  heap = "BHeap",
+  parallel = TRUE,
+  quiet = TRUE
+)
 }
 \arguments{
 \item{graph}{\code{data.frame} or equivalent object representing the network
@@ -20,10 +28,12 @@ calculated (see Notes)}
 \item{shortest}{If \code{FALSE}, calculate distances along the \emph{fastest}
 rather than shortest routes (see Notes).}
 
+\item{pairwise}{If \code{TRUE}, calculate distances only between the ordered
+pairs of \code{from} and \code{to}.}
+
 \item{heap}{Type of heap to use in priority queue. Options include
 Fibonacci Heap (default; \code{FHeap}), Binary Heap (\code{BHeap}),
-\code{Radix}, Trinomial Heap (\code{TriHeap}), Extended Trinomial Heap
-(\code{TriHeapExt}, and 2-3 Heap (\code{Heap23}).}
+\verb{Trinomial Heap (}TriHeap\verb{), Extended Trinomial Heap (}TriHeapExt\verb{, and 2-3 Heap (}Heap23`).}
 
 \item{parallel}{If \code{TRUE}, perform routing calculation in parallel (see
 details)}
@@ -69,8 +79,8 @@ d <- dodgr_dists (graph, from = xy, to = xy)
 # should work, but even then note that
 table (essen$level)
 # There are parts of the network on different building levels (because of
-# shopping malls and the like). These may or may not be connected, so it may be
-# necessary to filter out particular levels
+# shopping malls and the like). These may or may not be connected, so it may
+# be necessary to filter out particular levels
 index <- which (! (essen$level == "-1" | essen$level == "1")) # for example
 library (sf) # needed for following sub-select operation
 essen <- essen [index, ]

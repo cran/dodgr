@@ -4,8 +4,7 @@
 \alias{dodgr_isoverts}
 \title{dodgr_isoverts}
 \usage{
-dodgr_isoverts(graph, from = NULL, dlim = NULL, tlim = NULL,
-  heap = "BHeap")
+dodgr_isoverts(graph, from = NULL, dlim = NULL, tlim = NULL, heap = "BHeap")
 }
 \arguments{
 \item{graph}{\code{data.frame} or equivalent object representing the network
@@ -20,7 +19,7 @@ isochrones are to be calculated.}
 
 \item{heap}{Type of heap to use in priority queue. Options include
 Fibonacci Heap (default; \code{FHeap}), Binary Heap (\code{BHeap}),
-\code{Radix}, Trinomial Heap (\code{TriHeap}), Extended Trinomial Heap
+Trinomial Heap (\code{TriHeap}), Extended Trinomial Heap
 (\code{TriHeapExt}, and 2-3 Heap (\code{Heap23}).}
 }
 \value{
@@ -28,6 +27,10 @@ A single \code{data.frame} of vertex IDs, with columns denoting the \code{from}
 points and \code{tlim} value(s). The isochrones are given as \code{id} values and
 associated coordinates of the series of points from each \code{from} point at the
 specified isochrone times.
+
+Isoverts are calculated by default using parallel computation with the
+maximal number of available cores or threads. This number can be reduced by
+specifying a value via \verb{RcppParallel::setThreadOptions (numThreads = <desired_number>)}.
 }
 \description{
 Calculate isodistance or isochrone contours from specified points, and return

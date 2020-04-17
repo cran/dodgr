@@ -7,6 +7,9 @@ Status](https://ci.appveyor.com/api/projects/status/github/ATFutures/dodgr?branc
 [![codecov](https://codecov.io/gh/ATFutures/dodgr/branch/master/graph/badge.svg)](https://codecov.io/gh/ATFutures/dodgr)
 [![Project Status:
 Active](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
+[![CRAN\_Status\_Badge](http://www.r-pkg.org/badges/version/dodgr)](https://cran.r-project.org/package=dodgr)
+[![CRAN
+Downloads](http://cranlogs.r-pkg.org/badges/grand-total/dodgr?color=orange)](https://cran.r-project.org/package=dodgr)
 [![CII Best
 Practices](https://bestpractices.coreinfrastructure.org/projects/1396/badge)](https://bestpractices.coreinfrastructure.org/projects/1396)
 
@@ -17,6 +20,16 @@ pairwise distances on dual-weighted directed graphs, for aggregation of
 flows throughout networks, and for highly realistic routing through
 street networks (time-based routing considering incline, turn-angles,
 surface quality, everything).
+
+Note that most `dodgr` algorithms implement parallel computation with
+the [`RcppParallel` library](https://rcppcore.github.io/RcppParallel/),
+and by default use the maximal number of available cores or threads. If
+you do not wish `dodgr`to use all available threads, please reduce the
+number manually by first specifying a value via
+
+``` r
+RcppParallel::setThreadOptions (numThreads = <desired_number>)
+```
 
 ## What’s so special?
 
@@ -56,12 +69,21 @@ elevation on both cyclists and pedestrians.
 
 ## Installation
 
-You can install `dodgr` with:
+You can install latest stable version of `dodgr` from CRAN with:
 
 ``` r
 install.packages("dodgr") # current CRAN version
+```
+
+Alternatively, current development versions can be installed using any
+of the following options:
+
+``` r
 # install.packages("remotes")
-remotes::install_github("ATFutures/dodgr") # Development version
+remotes::install_git("https://git.sr.ht/~mpadge/dodgr")
+remotes::install_bitbucket("atfutures/dodgr")
+remotes::install_gitlab("atfutures1/dodgr")
+remotes::install_github("ATFutures/dodgr")
 ```
 
 Then load with
@@ -69,7 +91,7 @@ Then load with
 ``` r
 library (dodgr)
 packageVersion ("dodgr")
-#> [1] '0.2.4'
+#> [1] '0.2.5.37'
 ```
 
 ## Usage: Sample Data and `dodgr` networks
@@ -108,8 +130,8 @@ like this:
 head (graph)
 ```
 
-| geom\_num | edge\_id | from\_id   | from\_lon | from\_lat | to\_id     |  to\_lon |  to\_lat |          d | d\_weighted | highway      | way\_id  | component |      time | time\_weighted |
-| --------: | -------: | :--------- | --------: | --------: | :--------- | -------: | -------: | ---------: | ----------: | :----------- | :------- | --------: | --------: | -------------: |
+| geom\_num | edge\_id | from\_id   | from\_lon | from\_lat |   to\_id   |  to\_lon |  to\_lat |          d | d\_weighted | highway      | way\_id  | component |      time | time\_weighted |
+| --------: | -------: | :--------- | --------: | --------: | :--------: | -------: | -------: | ---------: | ----------: | :----------- | :------- | --------: | --------: | -------------: |
 |         1 |        1 | 339318500  |  76.47489 |  15.34169 | 339318502  | 76.47612 | 15.34173 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 |
 |         1 |        2 | 339318502  |  76.47612 |  15.34173 | 339318500  | 76.47489 | 15.34169 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 |
 |         1 |        3 | 339318502  |  76.47612 |  15.34173 | 2398958028 | 76.47621 | 15.34174 |   8.888670 |    11.11084 | unclassified | 28565950 |         1 |  6.399843 |       7.999803 |
@@ -134,8 +156,8 @@ actual distances. Compare this with:
 head (graph [graph$highway == "path", ])
 ```
 
-|    | geom\_num | edge\_id | from\_id   | from\_lon | from\_lat | to\_id     |  to\_lon |  to\_lat |        d | d\_weighted | highway | way\_id  | component |     time | time\_weighted |
-| -- | --------: | -------: | :--------- | --------: | --------: | :--------- | -------: | -------: | -------: | ----------: | :------ | :------- | --------: | -------: | -------------: |
+|    | geom\_num | edge\_id | from\_id   | from\_lon | from\_lat |   to\_id   |  to\_lon |  to\_lat |        d | d\_weighted | highway | way\_id  | component |     time | time\_weighted |
+| -- | --------: | -------: | :--------- | --------: | --------: | :--------: | -------: | -------: | -------: | ----------: | :------ | :------- | --------: | -------: | -------------: |
 | 47 |         2 |       47 | 338905220  |  76.47398 |  15.31224 | 338907543  | 76.47405 | 15.31241 | 19.70399 |    19.70399 | path    | 30643853 |         1 | 35.46718 |       35.46718 |
 | 48 |         2 |       48 | 338907543  |  76.47405 |  15.31241 | 338905220  | 76.47398 | 15.31224 | 19.70399 |    19.70399 | path    | 30643853 |         1 | 35.46718 |       35.46718 |
 | 49 |         2 |       49 | 338907543  |  76.47405 |  15.31241 | 2398957585 | 76.47410 | 15.31259 | 21.39172 |    21.39172 | path    | 30643853 |         1 | 38.50510 |       38.50510 |
@@ -264,8 +286,8 @@ quantifying the aggregate flows along each edge:
 head (f)
 ```
 
-| geom\_num | edge\_id | from\_id   | from\_lon | from\_lat | to\_id     |  to\_lon |  to\_lat |          d | d\_weighted | highway      | way\_id  | component |      time | time\_weighted | flow |
-| --------: | -------: | :--------- | --------: | --------: | :--------- | -------: | -------: | ---------: | ----------: | :----------- | :------- | --------: | --------: | -------------: | ---: |
+| geom\_num | edge\_id | from\_id   | from\_lon | from\_lat |   to\_id   |  to\_lon |  to\_lat |          d | d\_weighted | highway      | way\_id  | component |      time | time\_weighted | flow |
+| --------: | -------: | :--------- | --------: | --------: | :--------: | -------: | -------: | ---------: | ----------: | :----------- | :------- | --------: | --------: | -------------: | ---: |
 |         1 |        1 | 339318500  |  76.47489 |  15.34169 | 339318502  | 76.47612 | 15.34173 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 |    0 |
 |         1 |        2 | 339318502  |  76.47612 |  15.34173 | 339318500  | 76.47489 | 15.34169 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 |    0 |
 |         1 |        3 | 339318502  |  76.47612 |  15.34173 | 2398958028 | 76.47621 | 15.34174 |   8.888670 |    11.11084 | unclassified | 28565950 |         1 |  6.399843 |       7.999803 |    0 |
@@ -284,10 +306,6 @@ f <- dodgr_flows_disperse (graph = graph, from = from, dens = runif (length (fro
 ## Further detail
 
 For more detail, see the [main package
-vignette](https://atfutures.github.io/dodgr/articles/dodgr.html), the
-second vignette on [street networks and time-based
-routing](https://atfutures.github.io/dodgr/articles/times.html), and a
-third vignette detailing [benchmark
-timings](https://atfutures.github.io/dodgr/articles/benchmark.html),
-showing that under many circumstances, `dodgr` performs considerably
-faster than equivalent routines from the `igraph` package.
+vignette](https://atfutures.github.io/dodgr/articles/dodgr.html), and
+the second vignette on [street networks and time-based
+routing](https://atfutures.github.io/dodgr/articles/times.html)

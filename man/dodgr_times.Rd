@@ -4,8 +4,7 @@
 \alias{dodgr_times}
 \title{dodgr_times}
 \usage{
-dodgr_times(graph, from = NULL, to = NULL, shortest = FALSE,
-  heap = "BHeap")
+dodgr_times(graph, from = NULL, to = NULL, shortest = FALSE, heap = "BHeap")
 }
 \arguments{
 \item{graph}{A \code{dodgr} network returned from the \link{weight_streetnet}
@@ -23,8 +22,7 @@ than fastest paths.}
 
 \item{heap}{Type of heap to use in priority queue. Options include
 Fibonacci Heap (default; \code{FHeap}), Binary Heap (\code{BHeap}),
-\code{Radix}, Trinomial Heap (\code{TriHeap}), Extended Trinomial Heap
-(\code{TriHeapExt}, and 2-3 Heap (\code{Heap23}).}
+\verb{Trinomial Heap (}TriHeap\verb{), Extended Trinomial Heap (}TriHeapExt\verb{, and 2-3 Heap (}Heap23`).}
 }
 \value{
 square matrix of distances between nodes
@@ -65,8 +63,8 @@ d <- dodgr_dists (graph, from = xy, to = xy)
 # should work, but even then note that
 table (essen$level)
 # There are parts of the network on different building levels (because of
-# shopping malls and the like). These may or may not be connected, so it may be
-# necessary to filter out particular levels
+# shopping malls and the like). These may or may not be connected, so it may
+# be necessary to filter out particular levels
 index <- which (! (essen$level == "-1" | essen$level == "1")) # for example
 library (sf) # needed for following sub-select operation
 essen <- essen [index, ]

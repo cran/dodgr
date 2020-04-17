@@ -187,12 +187,10 @@ dodgr_contract_graph_internal <- function (graph, v, verts = NULL)
 #' effect of mapping any new columnns inserted on to the contracted graph back
 #' on to the original graph, as demonstrated in the example.
 #'
-#' @param graph A list of two items returned from \link{dodgr_contract_graph},
-#' the first ("graph") containing the contracted graph, and the second
-#' ("edge_map") mapping edges in the contracted graph back to those in the
-#' original graph.
+#' @param graph A contracted graph created from \link{dodgr_contract_graph}.
 #'
-#' @return A single `data.frame` representing the original, uncontracted graph.
+#' @return A single `data.frame` representing the equivalent original,
+#' uncontracted graph.
 #' @export
 #' @examples
 #' graph0 <- weight_streetnet (hampi)
@@ -201,7 +199,7 @@ dodgr_contract_graph_internal <- function (graph, v, verts = NULL)
 #' nrow (graph1) # 686
 #' graph2 <- dodgr_uncontract_graph (graph1)
 #' nrow (graph2) # 5,845
-#' 
+#'
 #' # Insert new data on to the contracted graph and uncontract it:
 #' graph1$new_col <- runif (nrow (graph1))
 #' graph3 <- dodgr_uncontract_graph (graph1)

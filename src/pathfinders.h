@@ -109,6 +109,15 @@ class PathFinder {
                 std::vector<double>& w,
                 std::vector<int>& prev,
                 unsigned int v0);
+        void Centrality_vertex (
+                std::vector <double>& cent,
+                const unsigned int s,
+                const double dist_threshold);
+        void Centrality_edge (
+                std::vector <double>& cent,
+                const unsigned int s,
+                const unsigned int nedges,
+                const double dist_threshold);
 
     private:
         Heap *m_heap;        // pointer: heap

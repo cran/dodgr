@@ -1,3 +1,20 @@
+#v 0.2.6
+
+Major changes:
+- Added new `dodgr_centrality` function, and associated helper functions.
+- Added new `dodgr_flows_si` function
+- Added new parameter `norm_sums` to `dodgr_flows_aggregate`
+- `merge_directed_flows` renamed to `merge_directed_graph`, with added option
+  of specifying columns to merge.
+- Added new `pairwise` parameter to `dodgr_distances`; see issue #127
+- Added new function `dodgr_insert_vertex` to add new vertices to graph; see #40
+- Removed "radix" heap option
+
+Minor changes:
+- switch off examples that caused previous CRAN failures
+- fix bug in `dodgr_dists` when number of from points >> number of to points
+- fix bug in `weight_streetnet.sc` that prevented `keep_cols` from working
+
 # v0.2.5
 
 - bug fixes from previous versions
