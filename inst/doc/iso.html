@@ -11,7 +11,7 @@
 
 <meta name="author" content="Mark Padgham" />
 
-<meta name="date" content="2020-04-17" />
+<meta name="date" content="2020-05-05" />
 
 <title>dodgr isochrones, isodists, and isoverts</title>
 
@@ -1543,7 +1543,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">dodgr isochrones, isodists, and isoverts</h1>
 <h4 class="author">Mark Padgham</h4>
-<h4 class="date">2020-04-17</h4>
+<h4 class="date">2020-05-05</h4>
 
 </div>
 
@@ -1558,7 +1558,7 @@ from &lt;- sample (graph$from_id, size = 100)
 dlim &lt;- c (1, 2, 5, 10, 20) * 100
 d &lt;- dodgr_isodists (graph, from = from, dlim)
 dim (d)</code></pre>
-<pre><code>## [1] 1739    5</code></pre>
+<pre><code>## [1] 1804    5</code></pre>
 <pre class="r"><code>knitr::kable (head (d))</code></pre>
 <table>
 <thead>
@@ -1572,54 +1572,54 @@ dim (d)</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">313796392</td>
-<td align="right">200</td>
-<td align="left">313796392</td>
-<td align="right">76.47775</td>
-<td align="right">15.34182</td>
+<td align="left">977473118</td>
+<td align="right">100</td>
+<td align="left">1143452406</td>
+<td align="right">76.46110</td>
+<td align="right">15.34093</td>
 </tr>
 <tr class="even">
-<td align="left">313796392</td>
-<td align="right">200</td>
-<td align="left">3921522526</td>
-<td align="right">76.47636</td>
-<td align="right">15.34224</td>
+<td align="left">977473118</td>
+<td align="right">100</td>
+<td align="left">1143452538</td>
+<td align="right">76.46162</td>
+<td align="right">15.34113</td>
 </tr>
 <tr class="odd">
-<td align="left">313796392</td>
-<td align="right">200</td>
-<td align="left">313796392</td>
-<td align="right">76.47775</td>
-<td align="right">15.34182</td>
+<td align="left">977473118</td>
+<td align="right">100</td>
+<td align="left">1143452406</td>
+<td align="right">76.46110</td>
+<td align="right">15.34093</td>
 </tr>
 <tr class="even">
-<td align="left">313796392</td>
-<td align="right">500</td>
-<td align="left">2398958016</td>
-<td align="right">76.48073</td>
-<td align="right">15.34101</td>
+<td align="left">977473118</td>
+<td align="right">200</td>
+<td align="left">2627422264</td>
+<td align="right">76.46112</td>
+<td align="right">15.34006</td>
 </tr>
 <tr class="odd">
-<td align="left">313796392</td>
-<td align="right">500</td>
-<td align="left">2398958016</td>
-<td align="right">76.48073</td>
-<td align="right">15.34101</td>
+<td align="left">977473118</td>
+<td align="right">200</td>
+<td align="left">2627422262</td>
+<td align="right">76.46119</td>
+<td align="right">15.34023</td>
 </tr>
 <tr class="even">
-<td align="left">313796392</td>
-<td align="right">1000</td>
-<td align="left">571423844</td>
-<td align="right">76.47139</td>
-<td align="right">15.33873</td>
+<td align="left">977473118</td>
+<td align="right">200</td>
+<td align="left">1143452213</td>
+<td align="right">76.46239</td>
+<td align="right">15.34117</td>
 </tr>
 </tbody>
 </table>
-<p>This function returns in this case a <code>data.frame</code> with the columns shown above and 1,739 points defining the isodistance contours from each origin (<code>from</code>) point, at the specified distances of 100, 200, 500, 1000, 2000 metres. There are naturally more points defining the contours at longer distances:</p>
+<p>This function returns in this case a <code>data.frame</code> with the columns shown above and 1,804 points defining the isodistance contours from each origin (<code>from</code>) point, at the specified distances of 100, 200, 500, 1000, 2000 metres. There are naturally more points defining the contours at longer distances:</p>
 <pre class="r"><code>table (d$dlim)</code></pre>
 <pre><code>## 
 ##  100  200  500 1000 2000 
-##  213  263  346  425  492</code></pre>
+##  193  269  358  447  537</code></pre>
 <p>The points defining the contours are arranged in an anticlockwise order around each point of origin, and so can be directly visualised using base graphics functions. This is easier to see by using just a single point of origin:</p>
 <pre class="r"><code>from &lt;- sample (graph$from_id, size = 1)
 dlim &lt;- c (1, 2, 5, 10, 20) * 100

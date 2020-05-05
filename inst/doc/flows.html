@@ -11,7 +11,7 @@
 
 <meta name="author" content="Mark Padgham" />
 
-<meta name="date" content="2020-04-17" />
+<meta name="date" content="2020-05-05" />
 
 <title>dodgr flows</title>
 
@@ -1543,7 +1543,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">dodgr flows</h1>
 <h4 class="author">Mark Padgham</h4>
-<h4 class="date">2020-04-17</h4>
+<h4 class="date">2020-05-05</h4>
 
 </div>
 
@@ -1585,7 +1585,7 @@ head (graph_f)</code></pre>
 <p>Most flows are zero because they have only been calculated between very few points in the graph.</p>
 <pre class="r"><code>summary (graph_f$flow)</code></pre>
 <pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##  0.0000  0.0000  0.0000  0.0486  0.0000  2.5488</code></pre>
+## 0.00000 0.00000 0.00000 0.05674 0.00000 2.72950</code></pre>
 </div>
 <div id="flow-dispersal" class="section level2">
 <h2>2 Flow Dispersal</h2>
@@ -1594,7 +1594,7 @@ head (graph_f)</code></pre>
 graph_f &lt;- dodgr_flows_disperse (graph, from = from, dens = dens)
 summary (graph_f$flow)</code></pre>
 <pre><code>##      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-## 0.0000000 0.0000000 0.0001206 0.0016742 0.0015020 0.0696281</code></pre>
+## 0.000e+00 0.000e+00 6.942e-05 1.674e-03 1.197e-03 1.418e-01</code></pre>
 </div>
 <div id="merging-directed-flows" class="section level2">
 <h2>3 Merging directed flows</h2>
@@ -1603,7 +1603,7 @@ summary (graph_f$flow)</code></pre>
 <p>Resultant graphs produced by <a href="https://atfutures.github.io/dodgr/reference/merge_directed_graph.html"><code>merge_directed_graph()</code></a> only include those edges having non-zero flows, and so:</p>
 <pre class="r"><code>nrow (graph_f); nrow (graph_undir) # the latter is much smaller</code></pre>
 <pre><code>## [1] 5973</code></pre>
-<pre><code>## [1] 2871</code></pre>
+<pre><code>## [1] 2881</code></pre>
 <p>The resultant graph can readily be merged with the original graph to regain the original data on vertex coordinates through</p>
 <pre class="r"><code>graph &lt;- graph [graph_undir$edge_id, ]
 graph$flow &lt;- graph_undir$flow</code></pre>
