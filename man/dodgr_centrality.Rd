@@ -8,6 +8,7 @@ dodgr_centrality(
   graph,
   contract = TRUE,
   edges = TRUE,
+  column = "d_weighted",
   dist_threshold = NULL,
   heap = "BHeap"
 )
@@ -28,6 +29,9 @@ the input 'graph' with an additional 'centrality' column; otherwise
 centrality is calculated for vertices, returning the equivalent of
 'dodgr_vertices(graph)', with an additional vertex-based 'centrality' column.}
 
+\item{column}{Column of graph defining the edge properties used to calculate
+centrality (see Note).}
+
 \item{dist_threshold}{If not 'NULL', only calculate centrality for each point
 out to specified threshold. Setting values for this will result in
 approximate estimates for centrality, yet with considerable gains in
@@ -41,13 +45,22 @@ Trinomial Heap ('TriHeap'), Extended Trinomial Heap
 ('TriHeapExt', and 2-3 Heap ('Heap23').}
 }
 \value{
-Modified version of graph with additonal 'centrality' column added.
+Modified version of graph with additional 'centrality' column added.
 }
 \description{
 Calculate betweenness centrality for a 'dodgr' network, in either vertex- or
 edge-based form.
 }
 \note{
+The \code{column} parameter is by default \code{d_weighted}, meaning centrality
+is calculated by routing according to weighted distances. Other possible
+values for this parameter are
+\itemize{
+\item \code{d} for unweighted distances
+\item \code{time} for unweighted time-based routing
+\item \code{time_weighted} for weighted time-based routing
+}
+
 Centrality is calculated by default using parallel computation with the
 maximal number of available cores or threads. This number can be reduced by
 specifying a value via
@@ -76,7 +89,8 @@ graph_sf <- merge_directed_graph (graph_full) \%>\%
 library (mapview)
 centrality <- graph_sf$centrality / max (graph_sf$centrality)
 ncols <- 30
-cols <- colorRampPalette (c ("lawngreen", "red")) (ncols) [ceiling (ncols * centrality)]
+cols <- c ("lawngreen", "red")
+cols <- colorRampPalette (cols) (ncols) [ceiling (ncols * centrality)]
 mapview (graph_sf, color = cols, lwd = 10 * centrality)
 }
 

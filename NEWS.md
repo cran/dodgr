@@ -1,4 +1,16 @@
-#v 0.2.6.00x
+
+#v 0.2.7.00x
+
+Minor changes:
+
+- Bug fix (#142) in `dodgr_flows_disperse()` thanks for @romainFr
+- Fix `keep_cols` param in `weight_streetnet()`; #140 thanks to @agila5
+- Return component vector as `integer` not `numeric`
+
+#v 0.2.7
+
+Minor changes:
+- UBSAN Bug fix
 
 #v 0.2.6
 

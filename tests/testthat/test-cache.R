@@ -1,7 +1,6 @@
 context("cache")
 
-test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") |
-             identical (Sys.getenv ("TRAVIS"), "true"))
+test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true"))
 
 #library (osmdata)
 #devtools::load_all ("../../ropensci/osmdata", export_all = FALSE)
@@ -52,9 +51,10 @@ test_that("cache on", {
               expect_silent (graphtf <- dodgr_uncontract_graph (graphtf))
               expect_silent (graphtf <- merge_directed_graph (graphtf))
 
-              expect_silent (graphtf <- dodgr_flows_disperse (grapht_c,
-                                                              from = pts,
-                                                              dens = rep (1, n)))
+              expect_silent (graphtf <-
+                  dodgr_flows_disperse (grapht_c,
+                                        from = pts,
+                                        dens = rep (1, n)))
 
 })
 
@@ -95,9 +95,10 @@ test_that("cache off", {
               expect_silent (graphtf <- dodgr_uncontract_graph (graphtf))
               expect_silent (graphtf <- merge_directed_graph (graphtf))
 
-              expect_silent (graphtf <- dodgr_flows_disperse (grapht_c,
-                                                              from = pts,
-                                                              dens = rep (1, n)))
+              expect_silent (graphtf <-
+                  dodgr_flows_disperse (grapht_c,
+                                        from = pts,
+                                        dens = rep (1, n)))
 
               expect_silent (dodgr_cache_on ())
 

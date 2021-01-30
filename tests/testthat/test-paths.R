@@ -1,14 +1,16 @@
 context("dodgr_paths")
 
-test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") |
-             identical (Sys.getenv ("TRAVIS"), "true"))
+test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true"))
 
 test_that("paths", {
     graph <- weight_streetnet (hampi)
     from <- graph$from_id [1:100]
     to <- graph$to_id [100:150]
     to <- to [!to %in% from]
-    expect_message (dp <- dodgr_paths (graph, from = from, to = to, quiet = FALSE),
+    expect_message (dp <- dodgr_paths (graph,
+                                       from = from,
+                                       to = to,
+                                       quiet = FALSE),
                     "Calculating shortest paths ...")
     expect_is (dp, "list")
     expect_equal (length (dp), 100)

@@ -15,6 +15,8 @@
 #' the input 'graph' with an additional 'centrality' column; otherwise
 #' centrality is calculated for vertices, returning the equivalent of
 #' 'dodgr_vertices(graph)', with an additional vertex-based 'centrality' column.
+#' @param column Column of graph defining the edge properties used to calculate
+#' centrality (see Note).
 #' @param dist_threshold If not 'NULL', only calculate centrality for each point
 #' out to specified threshold. Setting values for this will result in
 #' approximate estimates for centrality, yet with considerable gains in
@@ -25,7 +27,16 @@
 #' Fibonacci Heap (default; 'FHeap'), Binary Heap ('BHeap'),
 #' Trinomial Heap ('TriHeap'), Extended Trinomial Heap
 #' ('TriHeapExt', and 2-3 Heap ('Heap23').
-#' @return Modified version of graph with additonal 'centrality' column added.
+#' @return Modified version of graph with additional 'centrality' column added.
+#'
+#' @note The `column` parameter is by default `d_weighted`, meaning centrality
+#' is calculated by routing according to weighted distances. Other possible
+#' values for this parameter are
+#' \itemize{
+#' \item `d` for unweighted distances
+#' \item `time` for unweighted time-based routing
+#' \item `time_weighted` for weighted time-based routing
+#' }
 #'
 #' @note Centrality is calculated by default using parallel computation with the
 #' maximal number of available cores or threads. This number can be reduced by
@@ -55,7 +66,8 @@
 #' library (mapview)
 #' centrality <- graph_sf$centrality / max (graph_sf$centrality)
 #' ncols <- 30
-#' cols <- colorRampPalette (c ("lawngreen", "red")) (ncols) [ceiling (ncols * centrality)]
+#' cols <- c ("lawngreen", "red")
+#' cols <- colorRampPalette (cols) (ncols) [ceiling (ncols * centrality)]
 #' mapview (graph_sf, color = cols, lwd = 10 * centrality)
 #' }
 #'
@@ -87,9 +99,17 @@
 #' }
 #'
 #' @export
-dodgr_centrality <- function (graph, contract = TRUE, edges = TRUE,
-                              dist_threshold = NULL, heap = "BHeap")
-{
+dodgr_centrality <- function (graph,
+                              contract = TRUE,
+                              edges = TRUE,
+                              column = "d_weighted",
+                              dist_threshold = NULL,
+                              heap = "BHeap") {
+
+    column <- match.arg (column, c ("d_weighted",
+                                    "d",
+                                    "time",
+                                    "time_weighted"))
     if ("centrality" %in% names (graph))
         warning ("graph already has a 'centrality' column; ",
                   "this will be overwritten")
@@ -106,8 +126,7 @@ dodgr_centrality <- function (graph, contract = TRUE, edges = TRUE,
     if (contract & methods::is (graph, "dodgr_contracted"))
         contract <- FALSE
     graph_full <- edge_map <- NULL
-    if (contract & !methods::is (graph, "dodgr_contracted"))
-    {
+    if (contract & !methods::is (graph, "dodgr_contracted")) {
         graph_full <- graph
         graph <- dodgr_contract_graph (graph)
         hashc <- get_hash (graph, hash = FALSE)
@@ -121,20 +140,28 @@ dodgr_centrality <- function (graph, contract = TRUE, edges = TRUE,
     vert_map <- make_vert_map (graph, gr_cols)
 
     graph2 <- convert_graph (graph, gr_cols)
+    if (column != "d_weighted") {
+        gr_cols2 <- dodgr_graph_cols (graph2)
+        column <- gr_cols2 [[column]]
+        graph2$d_weighted <- graph2 [[column]]
+    }
 
     # final '0' is for sampling calculation to estimate speed - non-zero values
     # used only in 'estimate_centrality_time'
-    centrality <- rcpp_centrality (graph2, vert_map, heap, dist_threshold, edges, 0)
+    centrality <- rcpp_centrality (graph2,
+                                   vert_map,
+                                   heap,
+                                   dist_threshold,
+                                   edges,
+                                   0)
 
     # attach result to edge or vertex objects:
-    if (edges)
-    {
+    if (edges) {
         graph$centrality <- centrality
         if (contract)
             graph <- uncontract_graph (graph, edge_map, graph_full)
         res <- graph
-    } else
-    {
+    } else {
         res <- dodgr_vertices (graph)
         res$centrality <- centrality
     }
@@ -163,8 +190,7 @@ dodgr_centrality <- function (graph, contract = TRUE, edges = TRUE,
 #' reduced below the specified tolerance.
 #'
 #' @export
-estimate_centrality_threshold <- function (graph, tolerance = 0.001)
-{
+estimate_centrality_threshold <- function (graph, tolerance = 0.001) {
     # nocov start - can't be tested on any sample data
 
     # estimate absolute maximum distance in graph
@@ -183,8 +209,7 @@ estimate_centrality_threshold <- function (graph, tolerance = 0.001)
     vsample <- sample (vs$id, 1000)
     dmax <- max (dodgr_dists (graphs, from = vsample, to = vsample),
                  na.rm = TRUE)
-    if (dmax > (0.75 * dabsmax))
-    {
+    if (dmax > (0.75 * dabsmax)) {
         message ("dist_threshold approaches size of graph;\n",
                  "Recommended value of 'dist_threshold' remains 'NULL',\n",
                  "with centrality calculated across entire graph")
@@ -195,18 +220,16 @@ estimate_centrality_threshold <- function (graph, tolerance = 0.001)
     mult <- 1.1
     ss <- 9999
     g_old <- dodgr_centrality (graphs, dist_threshold = d)
-    while (ss > tolerance)
-    {
+    while (ss > tolerance) {
         d <- signif (d * mult, 2)
         g <- dodgr_centrality (graphs, dist_threshold = d)
         mod <- stats::lm (g$centrality ~ g_old$centrality)
         ss <- sum (mod$residuals ^ 2) / sum (g_old$centrality ^ 2)
         message ("d = ", round (d), "; error = ",
                  formatC (ss, format = "f", digits = 4))
-        g_old <- d
+        g_old <- g
 
-        if (d > dmax)
-        {
+        if (d > dmax) {
             message ("re-sampling graph to ", nverts, " vertices")
             nverts <- signif (nverts * mult, 2)
             graphs <- dodgr_sample (graph, nverts)
@@ -214,8 +237,7 @@ estimate_centrality_threshold <- function (graph, tolerance = 0.001)
                 break
         }
     }
-    if (nverts > nrow (v))
-    {
+    if (nverts > nrow (v)) {
         message ("Failed to converge within tolerance;\n",
                  "Recommended value of 'dist_threshold' remains 'NULL',\n",
                  "with centrality calculated across entire graph")
@@ -245,9 +267,12 @@ estimate_centrality_threshold <- function (graph, tolerance = 0.001)
 #' reduced below the specified tolerance.
 #'
 #' @export
-estimate_centrality_time <- function (graph, contract = TRUE, edges = TRUE,
-                                      dist_threshold = NULL, heap = "BHeap")
-{
+estimate_centrality_time <- function (graph,
+                                      contract = TRUE,
+                                      edges = TRUE,
+                                      dist_threshold = NULL,
+                                      heap = "BHeap") {
+
     # copies all code from dodgr_centrality, but uses the otherwise non-exposed
     # 'sample' parameter passed through to C++ routines
     if (is.null (dist_threshold))
@@ -261,16 +286,13 @@ estimate_centrality_time <- function (graph, contract = TRUE, edges = TRUE,
 
     if (contract & methods::is (graph, "dodgr_contracted"))
         contract <- FALSE
-    if (contract & !methods::is (graph, "dodgr_contracted"))
-    {
-        graph_full <- graph
+    if (contract & !methods::is (graph, "dodgr_contracted")) {
         graph <- dodgr_contract_graph (graph)
         hashc <- get_hash (graph, hash = FALSE)
         fname_c <- file.path (tempdir (),
                               paste0 ("dodgr_edge_map_", hashc, ".Rds"))
         if (!file.exists (fname_c))
             stop ("something went wrong extracting the edge_map ... ") # nocov
-        edge_map <- readRDS (fname_c)
     }
 
     vert_map <- make_vert_map (graph, gr_cols)

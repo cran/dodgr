@@ -83,7 +83,7 @@ rcpp_flows_aggregate_par <- function(graph, vert_map_in, fromi, toi_in, flows, n
 #' logistic polynomial will be used.
 #'
 #' @note The flow data to be used for aggregation is a matrix mapping flows
-#' betwen each pair of from and to points.
+#' between each pair of from and to points.
 #'
 #' @noRd
 rcpp_flows_disperse_par <- function(graph, vert_map_in, fromi, k, dens, tol, heap_type) {
@@ -239,6 +239,16 @@ rcpp_get_component_vector <- function(graph) {
     .Call(`_dodgr_rcpp_get_component_vector`, graph)
 }
 
+#' rcpp_unique_rownames
+#'
+#' Construct vertex (from, to) ID values from unique pairs of coordinates
+#' rounded to <precision>. Used when vertices have no ID values.
+#'
+#' @noRd
+rcpp_unique_rownames <- function(xyfrom, xyto, precision = 10L) {
+    .Call(`_dodgr_rcpp_unique_rownames`, xyfrom, xyto, precision)
+}
+
 #' rcpp_get_sp_dists_par
 #'
 #' @noRd
@@ -345,4 +355,3 @@ rcpp_points_index_par <- function(xy, pts) {
 rcpp_route_times <- function(graph, left_side, turn_penalty) {
     .Call(`_dodgr_rcpp_route_times`, graph, left_side, turn_penalty)
 }
-

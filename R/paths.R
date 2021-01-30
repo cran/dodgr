@@ -64,9 +64,14 @@
 #' dp <- dodgr_paths (graph, from = from, to = to, pairwise = TRUE)
 #' # dp is a list of 5 items, each of which just has a single path between each
 #' # pairwise from and to point.
-dodgr_paths <- function (graph, from, to, vertices = TRUE, pairwise = FALSE,
-                         heap = 'BHeap', quiet = TRUE)
-{
+dodgr_paths <- function (graph,
+                         from,
+                         to,
+                         vertices = TRUE,
+                         pairwise = FALSE,
+                         heap = "BHeap",
+                         quiet = TRUE) {
+
     hps <- get_heap (heap, graph)
     heap <- hps$heap
     graph <- hps$graph
@@ -75,39 +80,31 @@ dodgr_paths <- function (graph, from, to, vertices = TRUE, pairwise = FALSE,
     # cols are (edge_id, from, to, d, w, component, xfr, yfr, xto, yto)
     vert_map <- make_vert_map (graph, gr_cols)
 
-    index_id <- get_index_id_cols (graph, gr_cols, vert_map, from)
-    from_index <- index_id$index - 1 # 0-based
-    if (!is.null (index_id$id))
-        from_id <- index_id$id
-    else
-        from_id <- vert_map$vert # nocov
-
-    index_id <- get_index_id_cols (graph, gr_cols, vert_map, to)
-    to_index <- index_id$index - 1 # 0-based
-    if (!is.null (index_id$id))
-        to_id <- index_id$id
-    else
-        to_id <- vert_map$vert # nocov
+    from_index <- get_path_indices (graph, gr_cols, vert_map, from)
+    to_index <- get_path_indices (graph, gr_cols, vert_map, to)
 
     graph <- convert_graph (graph, gr_cols)
 
     if (!quiet)
         message ("Calculating shortest paths ... ", appendLF = FALSE)
-    if (pairwise)
-    {
-        if (length (from_index) != length (to_index))
+    if (pairwise) {
+        if (length (from_index$index) != length (to_index$index))
             stop ("pairwise paths require from and to to have same length")
         paths <- list ()
-        for (i in seq (from_index))
-        {
-            paths [[i]] <- rcpp_get_paths (graph, vert_map,
-                                           from_index [i], to_index [i],
+        for (i in seq_along (from_index$index)) {
+            paths [[i]] <- rcpp_get_paths (graph,
+                                           vert_map,
+                                           from_index$index [i],
+                                           to_index$index [i],
                                            heap) [[1]]
 
         }
-    } else
-    {
-        paths <- rcpp_get_paths (graph, vert_map, from_index, to_index, heap)
+    } else {
+        paths <- rcpp_get_paths (graph,
+                                 vert_map,
+                                 from_index$index,
+                                 to_index$index,
+                                 heap)
     }
 
     # convert 1-based indices back into vertex IDs. Note both paths that can not
@@ -115,34 +112,31 @@ dodgr_paths <- function (graph, from, to, vertices = TRUE, pairwise = FALSE,
     # former are retained as NULL, while the following converts the latter to
     # appropriate start-end vertices.
     paths <- lapply (paths, function (i)
-                     lapply (i, function (j)
-                             {
+                     lapply (i, function (j) {
                                  if (is.null (j))
                                      return (j)     # nocov
                                  vert_map$vert [j]
-                             }  )   )
+                             }  )   ) # nolint
 
 
     # name path lists
-    if (!is.null (from_id) & !is.null (to_id))
-    {
-        if (!pairwise)
-        {
-            for (i in seq (from_id))
-                names (paths [[i]]) <- paste0 (from_id [i], "-", to_id)
+    if (!is.null (from_index$id) & !is.null (to_index$id)) {
+        if (!pairwise) {
+            for (i in seq (from_index$id))
+                names (paths [[i]]) <- paste0 (from_index$id [i],
+                                               "-",
+                                               to_index$id [i])
         }
-        names (paths) <- from_id
+        names (paths) <- from_index$id
     }
 
-    if (!vertices)
-    {
+    if (!vertices) {
         graph_verts <- paste0 ("f", graph$from, "t", graph$to)
 
         # convert vertex IDs to corresponding sequences of edge numbers
         paths <- lapply (paths, function (i)
                          lapply (i, function (j)
-                                 if (length (j) > 1)
-                                 {
+                                 if (length (j) > 1) {
                                      indx <- 2:length (j)
                                      pij <- paste0 ("f", j [indx - 1],
                                                     "t", j [indx])
@@ -150,8 +144,22 @@ dodgr_paths <- function (graph, from, to, vertices = TRUE, pairwise = FALSE,
                                      res <- res [which (!is.na (res))]
                                      return (if (length (res) == 0) NULL
                                              else res)
-                                 } ))
+                                 } )) # nolint
     }
 
     return (paths)
+}
+
+get_path_indices <- function (graph, gr_cols, vert_map, to_from) {
+
+    index_id <- get_index_id_cols (graph, gr_cols, vert_map, to_from)
+
+    index <- index_id$index - 1 # 0-based
+    if (!is.null (index_id$id)) {
+        id <- index_id$id
+    } else {
+        id <- vert_map$vert # nocov
+    }
+
+    return (list (index = index, id = id))
 }

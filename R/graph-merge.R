@@ -30,11 +30,10 @@
 #' graph_undir <- merge_directed_graph (graph)
 #' # This graph will only include those edges having non-zero flows, and so:
 #' nrow (graph); nrow (graph_undir) # the latter is much smaller
-merge_directed_graph <- function (graph, col_names = c ("flow"))
-{
+merge_directed_graph <- function (graph, col_names = c ("flow")) {
+
     # auto-detect either flow or centrality as col_names:
-    if (length (col_names) == 1)
-    {
+    if (length (col_names) == 1) {
         if (col_names == "flow" & !"flow" %in% names (graph) &
             "centrality" %in% names (graph))
             col_names <- "centrality"
@@ -45,7 +44,7 @@ merge_directed_graph <- function (graph, col_names = c ("flow"))
                       "] do not match columns in graph"))
 
     gr_cols <- dodgr_graph_cols (graph)
-    graph2 <- convert_graph (graph, gr_cols)
+    graph2 <- convert_graph (graph, gr_cols) # nolint
     res <- lapply (col_names, function (i) {
         graph2$merge <- graph [[i]]
         rcpp_merge_cols (graph2)
@@ -54,7 +53,7 @@ merge_directed_graph <- function (graph, col_names = c ("flow"))
     index <- which (rowSums (res) > 0)
     graph <- graph [index, , drop = FALSE] #nolint
     for (i in seq (col_names))
-        graph [[col_names [i] ]] <- res [index, i]
+        graph [[col_names [i] ]] <- res [index, i] # nolint
     class (graph) <- c (class (graph), "dodgr_merged")
 
     attr (graph, "hash") <- digest::digest (graph [[gr_cols$edge_id]])

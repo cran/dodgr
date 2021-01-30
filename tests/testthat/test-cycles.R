@@ -1,7 +1,6 @@
 context("fundamental cycles")
 
-test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") |
-             identical (Sys.getenv ("TRAVIS"), "true"))
+test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true"))
 
 test_that("dodgr_fundamental_cycles", {
               net <- weight_streetnet (hampi)
@@ -25,7 +24,8 @@ test_that("cycles_with_max_graph_size", {
               expect_length (x, 45) # more cycles than before!
 
               expect_silent (
-                    xf <- dodgr_full_cycles (graph = net, graph_max_size = 1000))
+                    xf <- dodgr_full_cycles (graph = net,
+                                             graph_max_size = 1000))
               # full_cycles creates the contracted graph, which is < 1000!
               expect_true (length (x) > 1)
              })

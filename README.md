@@ -1,15 +1,14 @@
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-[![Build
-Status](https://travis-ci.org/ATFutures/dodgr.svg)](https://travis-ci.org/ATFutures/dodgr)
-[![AppVeyor Build
-Status](https://ci.appveyor.com/api/projects/status/github/ATFutures/dodgr?branch=master&svg=true)](https://ci.appveyor.com/project/ATFutures/dodgr)
+[![R build
+status](https://github.com/atfutures/dodgr/workflows/R-CMD-check/badge.svg)](https://github.com/atfutures/dodgr/actions?query=workflow%3AR-CMD-check)
 [![codecov](https://codecov.io/gh/ATFutures/dodgr/branch/master/graph/badge.svg)](https://codecov.io/gh/ATFutures/dodgr)
 [![Project Status:
-Active](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
-[![CRAN\_Status\_Badge](http://www.r-pkg.org/badges/version/dodgr)](https://cran.r-project.org/package=dodgr)
+Active](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
+
+[![CRAN\_Status\_Badge](https://www.r-pkg.org/badges/version/dodgr)](https://cran.r-project.org/package=dodgr)
 [![CRAN
-Downloads](http://cranlogs.r-pkg.org/badges/grand-total/dodgr?color=orange)](https://cran.r-project.org/package=dodgr)
+Downloads](https://cranlogs.r-pkg.org/badges/grand-total/dodgr?color=orange)](https://cran.r-project.org/package=dodgr)
 [![CII Best
 Practices](https://bestpractices.coreinfrastructure.org/projects/1396/badge)](https://bestpractices.coreinfrastructure.org/projects/1396)
 
@@ -34,7 +33,7 @@ RcppParallel::setThreadOptions (numThreads = <desired_number>)
 ## What’s so special?
 
 Four aspects. First, while other packages exist for calculating
-distances on directed graphs, notably [`igraph`](https://igraph.org/r),
+distances on directed graphs, notably [`igraph`](https://igraph.org/r/),
 even that otherwise fabulous package does not (readily) permit analysis
 of *dual-weighted* graphs. Dual-weighted graphs have two sets of weights
 for each edge, so routing can be evaluated with one set of weights,
@@ -48,7 +47,7 @@ networks requires a dual-weighted representation. In **R**, `dodgr` is
 currently the only package that offers this functionality (without
 excessive data wrangling).
 
-Second, while [`igraph`](https://igraph.org/r) and almost all other
+Second, while [`igraph`](https://igraph.org/r/) and almost all other
 routing packages are primarily designed for one-to-one routing, `dodgr`
 is specifically designed for many-to-many routing, and will generally
 outperform equivalent packages in large routing tasks.
@@ -91,7 +90,7 @@ Then load with
 ``` r
 library (dodgr)
 packageVersion ("dodgr")
-#> [1] '0.2.6'
+#> [1] '0.2.7.23'
 ```
 
 ## Usage: Sample Data and `dodgr` networks
@@ -130,8 +129,8 @@ like this:
 head (graph)
 ```
 
-| geom\_num | edge\_id | from\_id   | from\_lon | from\_lat |   to\_id   |  to\_lon |  to\_lat |          d | d\_weighted | highway      | way\_id  | component |      time | time\_weighted |
-| --------: | -------: | :--------- | --------: | --------: | :--------: | -------: | -------: | ---------: | ----------: | :----------- | :------- | --------: | --------: | -------------: |
+| geom\_num | edge\_id | from\_id   | from\_lon | from\_lat | to\_id     |  to\_lon |  to\_lat |          d | d\_weighted | highway      | way\_id  | component |      time | time\_weighted |
+|----------:|---------:|:-----------|----------:|----------:|:-----------|---------:|---------:|-----------:|------------:|:-------------|:---------|----------:|----------:|---------------:|
 |         1 |        1 | 339318500  |  76.47489 |  15.34169 | 339318502  | 76.47612 | 15.34173 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 |
 |         1 |        2 | 339318502  |  76.47612 |  15.34173 | 339318500  | 76.47489 | 15.34169 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 |
 |         1 |        3 | 339318502  |  76.47612 |  15.34173 | 2398958028 | 76.47621 | 15.34174 |   8.888670 |    11.11084 | unclassified | 28565950 |         1 |  6.399843 |       7.999803 |
@@ -156,14 +155,14 @@ actual distances. Compare this with:
 head (graph [graph$highway == "path", ])
 ```
 
-|    | geom\_num | edge\_id | from\_id   | from\_lon | from\_lat |   to\_id   |  to\_lon |  to\_lat |        d | d\_weighted | highway | way\_id  | component |     time | time\_weighted |
-| -- | --------: | -------: | :--------- | --------: | --------: | :--------: | -------: | -------: | -------: | ----------: | :------ | :------- | --------: | -------: | -------------: |
-| 47 |         2 |       47 | 338905220  |  76.47398 |  15.31224 | 338907543  | 76.47405 | 15.31241 | 19.70399 |    19.70399 | path    | 30643853 |         1 | 35.46718 |       35.46718 |
-| 48 |         2 |       48 | 338907543  |  76.47405 |  15.31241 | 338905220  | 76.47398 | 15.31224 | 19.70399 |    19.70399 | path    | 30643853 |         1 | 35.46718 |       35.46718 |
-| 49 |         2 |       49 | 338907543  |  76.47405 |  15.31241 | 2398957585 | 76.47410 | 15.31259 | 21.39172 |    21.39172 | path    | 30643853 |         1 | 38.50510 |       38.50510 |
-| 50 |         2 |       50 | 2398957585 |  76.47410 |  15.31259 | 338907543  | 76.47405 | 15.31241 | 21.39172 |    21.39172 | path    | 30643853 |         1 | 38.50510 |       38.50510 |
-| 51 |         2 |       51 | 2398957585 |  76.47410 |  15.31259 | 338907597  | 76.47413 | 15.31279 | 22.15205 |    22.15205 | path    | 30643853 |         1 | 39.87370 |       39.87370 |
-| 52 |         2 |       52 | 338907597  |  76.47413 |  15.31279 | 2398957585 | 76.47410 | 15.31259 | 22.15205 |    22.15205 | path    | 30643853 |         1 | 39.87370 |       39.87370 |
+|     | geom\_num | edge\_id | from\_id   | from\_lon | from\_lat | to\_id     |  to\_lon |  to\_lat |        d | d\_weighted | highway | way\_id  | component |     time | time\_weighted |
+|:----|----------:|---------:|:-----------|----------:|----------:|:-----------|---------:|---------:|---------:|------------:|:--------|:---------|----------:|---------:|---------------:|
+| 47  |         2 |       47 | 338905220  |  76.47398 |  15.31224 | 338907543  | 76.47405 | 15.31241 | 19.70399 |    19.70399 | path    | 30643853 |         1 | 35.46718 |       35.46718 |
+| 48  |         2 |       48 | 338907543  |  76.47405 |  15.31241 | 338905220  | 76.47398 | 15.31224 | 19.70399 |    19.70399 | path    | 30643853 |         1 | 35.46718 |       35.46718 |
+| 49  |         2 |       49 | 338907543  |  76.47405 |  15.31241 | 2398957585 | 76.47410 | 15.31259 | 21.39172 |    21.39172 | path    | 30643853 |         1 | 38.50510 |       38.50510 |
+| 50  |         2 |       50 | 2398957585 |  76.47410 |  15.31259 | 338907543  | 76.47405 | 15.31241 | 21.39172 |    21.39172 | path    | 30643853 |         1 | 38.50510 |       38.50510 |
+| 51  |         2 |       51 | 2398957585 |  76.47410 |  15.31259 | 338907597  | 76.47413 | 15.31279 | 22.15205 |    22.15205 | path    | 30643853 |         1 | 39.87370 |       39.87370 |
+| 52  |         2 |       52 | 338907597  |  76.47413 |  15.31279 | 2398957585 | 76.47410 | 15.31259 | 22.15205 |    22.15205 | path    | 30643853 |         1 | 39.87370 |       39.87370 |
 
 A `"path"` offers ideal walking conditions, and so weighted distances
 are equal to actual distances.
@@ -196,14 +195,14 @@ v <- dodgr_vertices (graph)
 head (v)
 ```
 
-|    | id         |        x |        y | component | n |
-| -- | :--------- | -------: | -------: | --------: | -: |
-| 1  | 339318500  | 76.47489 | 15.34169 |         1 | 0 |
-| 2  | 339318502  | 76.47612 | 15.34173 |         1 | 1 |
-| 4  | 2398958028 | 76.47621 | 15.34174 |         1 | 2 |
-| 6  | 1427116077 | 76.47628 | 15.34179 |         1 | 3 |
-| 8  | 339318503  | 76.47641 | 15.34190 |         1 | 4 |
-| 10 | 2398958034 | 76.47650 | 15.34199 |         1 | 5 |
+|     | id         |        x |        y | component |   n |
+|:----|:-----------|---------:|---------:|----------:|----:|
+| 1   | 339318500  | 76.47489 | 15.34169 |         1 |   0 |
+| 2   | 339318502  | 76.47612 | 15.34173 |         1 |   1 |
+| 4   | 2398958028 | 76.47621 | 15.34174 |         1 |   2 |
+| 6   | 1427116077 | 76.47628 | 15.34179 |         1 |   3 |
+| 8   | 339318503  | 76.47641 | 15.34190 |         1 |   4 |
+| 10  | 2398958034 | 76.47650 | 15.34199 |         1 |   5 |
 
 For OSM data extracted with the `osmdata` package (or, equivalently, via
 the `dodgr::dodgr_streetnet()` function), each object (vertices, ways,
@@ -286,14 +285,14 @@ quantifying the aggregate flows along each edge:
 head (f)
 ```
 
-| geom\_num | edge\_id | from\_id   | from\_lon | from\_lat |   to\_id   |  to\_lon |  to\_lat |          d | d\_weighted | highway      | way\_id  | component |      time | time\_weighted |      flow |
-| --------: | -------: | :--------- | --------: | --------: | :--------: | -------: | -------: | ---------: | ----------: | :----------- | :------- | --------: | --------: | -------------: | --------: |
-|         1 |        1 | 339318500  |  76.47489 |  15.34169 | 339318502  | 76.47612 | 15.34173 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 | 0.0822301 |
-|         1 |        2 | 339318502  |  76.47612 |  15.34173 | 339318500  | 76.47489 | 15.34169 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 | 0.0000000 |
-|         1 |        3 | 339318502  |  76.47612 |  15.34173 | 2398958028 | 76.47621 | 15.34174 |   8.888670 |    11.11084 | unclassified | 28565950 |         1 |  6.399843 |       7.999803 | 0.0822301 |
-|         1 |        4 | 2398958028 |  76.47621 |  15.34174 | 339318502  | 76.47612 | 15.34173 |   8.888670 |    11.11084 | unclassified | 28565950 |         1 |  6.399843 |       7.999803 | 0.0000000 |
-|         1 |        5 | 2398958028 |  76.47621 |  15.34174 | 1427116077 | 76.47628 | 15.34179 |   9.326536 |    11.65817 | unclassified | 28565950 |         1 |  6.715106 |       8.393882 | 0.0822301 |
-|         1 |        6 | 1427116077 |  76.47628 |  15.34179 | 2398958028 | 76.47621 | 15.34174 |   9.326536 |    11.65817 | unclassified | 28565950 |         1 |  6.715106 |       8.393882 | 0.0000000 |
+| geom\_num | edge\_id | from\_id   | from\_lon | from\_lat | to\_id     |  to\_lon |  to\_lat |          d | d\_weighted | highway      | way\_id  | component |      time | time\_weighted |      flow |
+|----------:|---------:|:-----------|----------:|----------:|:-----------|---------:|---------:|-----------:|------------:|:-------------|:---------|----------:|----------:|---------------:|----------:|
+|         1 |        1 | 339318500  |  76.47489 |  15.34169 | 339318502  | 76.47612 | 15.34173 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 | 0.0644745 |
+|         1 |        2 | 339318502  |  76.47612 |  15.34173 | 339318500  | 76.47489 | 15.34169 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 | 0.1131806 |
+|         1 |        3 | 339318502  |  76.47612 |  15.34173 | 2398958028 | 76.47621 | 15.34174 |   8.888670 |    11.11084 | unclassified | 28565950 |         1 |  6.399843 |       7.999803 | 0.0644745 |
+|         1 |        4 | 2398958028 |  76.47621 |  15.34174 | 339318502  | 76.47612 | 15.34173 |   8.888670 |    11.11084 | unclassified | 28565950 |         1 |  6.399843 |       7.999803 | 0.1131806 |
+|         1 |        5 | 2398958028 |  76.47621 |  15.34174 | 1427116077 | 76.47628 | 15.34179 |   9.326536 |    11.65817 | unclassified | 28565950 |         1 |  6.715106 |       8.393882 | 0.0644745 |
+|         1 |        6 | 1427116077 |  76.47628 |  15.34179 | 2398958028 | 76.47621 | 15.34174 |   9.326536 |    11.65817 | unclassified | 28565950 |         1 |  6.715106 |       8.393882 | 0.1131806 |
 
 An additional flow aggregation function can be applied in cases where
 only densities at origin points are known, and movement throughout a
@@ -309,3 +308,237 @@ For more detail, see the [main package
 vignette](https://atfutures.github.io/dodgr/articles/dodgr.html), and
 the second vignette on [street networks and time-based
 routing](https://atfutures.github.io/dodgr/articles/times.html)
+
+## Contributors
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+
+All contributions to this project are gratefully acknowledged using the
+[`allcontributors`
+package](https://github.com/ropenscilabs/allcontributors) following the
+[all-contributors](https://allcontributors.org) specification.
+Contributions of any kind are welcome!
+
+### Code
+
+<table>
+<tr>
+<td align="center">
+<a href="https://github.com/mpadge">
+<img src="https://avatars1.githubusercontent.com/u/6697851?v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/commits?author=mpadge">mpadge</a>
+</td>
+<td align="center">
+<a href="https://github.com/karpfen">
+<img src="https://avatars3.githubusercontent.com/u/11758039?v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/commits?author=karpfen">karpfen</a>
+</td>
+<td align="center">
+<a href="https://github.com/Robinlovelace">
+<img src="https://avatars2.githubusercontent.com/u/1825120?v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/commits?author=Robinlovelace">Robinlovelace</a>
+</td>
+<td align="center">
+<a href="https://github.com/agila5">
+<img src="https://avatars1.githubusercontent.com/u/22221146?v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/commits?author=agila5">agila5</a>
+</td>
+<td align="center">
+<a href="https://github.com/JimShady">
+<img src="https://avatars1.githubusercontent.com/u/2901470?v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/commits?author=JimShady">JimShady</a>
+</td>
+<td align="center">
+<a href="https://github.com/layik">
+<img src="https://avatars3.githubusercontent.com/u/408568?v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/commits?author=layik">layik</a>
+</td>
+<td align="center">
+<a href="https://github.com/virgesmith">
+<img src="https://avatars3.githubusercontent.com/u/19323577?v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/commits?author=virgesmith">virgesmith</a>
+</td>
+</tr>
+</table>
+
+### Issue Authors
+
+<table>
+<tr>
+<td align="center">
+<a href="https://github.com/tbuckl">
+<img src="https://avatars1.githubusercontent.com/u/98956?u=9580c2ee3c03cbbe44ac8180b0f6a6725b0415f0&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3Atbuckl">tbuckl</a>
+</td>
+<td align="center">
+<a href="https://github.com/douglascm">
+<img src="https://avatars1.githubusercontent.com/u/29764356?v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3Adouglascm">douglascm</a>
+</td>
+<td align="center">
+<a href="https://github.com/mem48">
+<img src="https://avatars1.githubusercontent.com/u/15819577?u=4a4078aff5fa01d9ef82b5a504c3068d3ad21f0d&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3Amem48">mem48</a>
+</td>
+<td align="center">
+<a href="https://github.com/rafapereirabr">
+<img src="https://avatars0.githubusercontent.com/u/7448421?u=9a760f26e72cd66150784babc5da6862e7775542&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3Arafapereirabr">rafapereirabr</a>
+</td>
+<td align="center">
+<a href="https://github.com/darinchristensen">
+<img src="https://avatars0.githubusercontent.com/u/6937320?u=b5a5f5dca24d1b509236ca6d3871182f9171bd14&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3Adarinchristensen">darinchristensen</a>
+</td>
+<td align="center">
+<a href="https://github.com/edzer">
+<img src="https://avatars0.githubusercontent.com/u/520851?u=9bc892c3523be428dc211f2ccbcf04e8e0e564ff&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3Aedzer">edzer</a>
+</td>
+<td align="center">
+<a href="https://github.com/romainFr">
+<img src="https://avatars1.githubusercontent.com/u/1626262?v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3AromainFr">romainFr</a>
+</td>
+</tr>
+<tr>
+<td align="center">
+<a href="https://github.com/dcooley">
+<img src="https://avatars0.githubusercontent.com/u/8093396?u=2c8d9162f246d90d433034d212b29a19e0f245c1&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3Adcooley">dcooley</a>
+</td>
+<td align="center">
+<a href="https://github.com/Hussein-Mahfouz">
+<img src="https://avatars2.githubusercontent.com/u/45176416?u=ceef68f4fec4aed25b069522e8c90fde3629c7f0&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3AHussein-Mahfouz">Hussein-Mahfouz</a>
+</td>
+</tr>
+</table>
+
+### Issue Contributors
+
+<table>
+<tr>
+<td align="center">
+<a href="https://github.com/richardellison">
+<img src="https://avatars0.githubusercontent.com/u/10625733?u=8d7cd55a61f1a1b3f9973ddff5adbb45e0b193c6&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3Arichardellison">richardellison</a>
+</td>
+<td align="center">
+<a href="https://github.com/polettif">
+<img src="https://avatars3.githubusercontent.com/u/17431069?u=757eac2821736acbb02e7c90b456411d256d5780&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3Apolettif">polettif</a>
+</td>
+<td align="center">
+<a href="https://github.com/chrjangit">
+<img src="https://avatars2.githubusercontent.com/u/13800425?v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3Achrjangit">chrjangit</a>
+</td>
+<td align="center">
+<a href="https://github.com/mdsumner">
+<img src="https://avatars1.githubusercontent.com/u/4107631?u=c7a3627c592123651d51d002f421c2bd00be172f&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3Amdsumner">mdsumner</a>
+</td>
+<td align="center">
+<a href="https://github.com/chrijo">
+<img src="https://avatars1.githubusercontent.com/u/37801457?v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3Achrijo">chrijo</a>
+</td>
+<td align="center">
+<a href="https://github.com/mrsensible">
+<img src="https://avatars1.githubusercontent.com/u/25252172?u=2c62dac1ac9bfef3f26ee56c3d63b18dccc553a3&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3Amrsensible">mrsensible</a>
+</td>
+<td align="center">
+<a href="https://github.com/SymbolixAU">
+<img src="https://avatars2.githubusercontent.com/u/18344164?u=022e0d3bdcca3e224021bae842672bda12b599df&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3ASymbolixAU">SymbolixAU</a>
+</td>
+</tr>
+<tr>
+<td align="center">
+<a href="https://github.com/coatless">
+<img src="https://avatars2.githubusercontent.com/u/833642?u=4f003526aa302417ef486034c4a7f95267d49637&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3Acoatless">coatless</a>
+</td>
+<td align="center">
+<a href="https://github.com/fzenoni">
+<img src="https://avatars3.githubusercontent.com/u/6040873?u=bf32b8c1bc7ffc30c34bb09a1b0ae0f851414a48&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3Afzenoni">fzenoni</a>
+</td>
+<td align="center">
+<a href="https://github.com/nacnudus">
+<img src="https://avatars1.githubusercontent.com/u/3522552?u=53524b68ca89335d9079b7272ee6c2b0afda340a&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3Anacnudus">nacnudus</a>
+</td>
+<td align="center">
+<a href="https://github.com/mkvasnicka">
+<img src="https://avatars2.githubusercontent.com/u/8019045?u=16ba8f6406bcb20ade64481fbc177998bd1549fb&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3Amkvasnicka">mkvasnicka</a>
+</td>
+<td align="center">
+<a href="https://github.com/znmeb">
+<img src="https://avatars2.githubusercontent.com/u/4938?u=e9e8d4bececded56a36606575ae85ab55ab7633c&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3Aznmeb">znmeb</a>
+</td>
+<td align="center">
+<a href="https://github.com/yihui">
+<img src="https://avatars2.githubusercontent.com/u/163582?v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3Ayihui">yihui</a>
+</td>
+<td align="center">
+<a href="https://github.com/lga455">
+<img src="https://avatars3.githubusercontent.com/u/8452822?u=498a6b3125470c20e4057b0f12b794571cfd49e1&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3Alga455">lga455</a>
+</td>
+</tr>
+<tr>
+<td align="center">
+<a href="https://github.com/Maschette">
+<img src="https://avatars2.githubusercontent.com/u/14663215?u=93694159d02e924e6413bd067d7746f1d16d64c1&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3AMaschette">Maschette</a>
+</td>
+<td align="center">
+<a href="https://github.com/orlando-sabogal">
+<img src="https://avatars1.githubusercontent.com/u/7365739?u=f6ac9be2676c4b2cedcc047715c292248b468d3e&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3Aorlando-sabogal">orlando-sabogal</a>
+</td>
+</tr>
+</table>
+<!-- markdownlint-enable -->
+<!-- prettier-ignore-end -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
