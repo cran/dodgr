@@ -2,7 +2,8 @@
 #'
 #' Weight (or re-weight) an \pkg{sf} or `SC` (`silicate`)-formatted OSM street
 #' network according to a named profile, selected from (foot, horse, wheelchair,
-#' bicycle, moped, motorcycle, motorcar, goods, hgv, psv).
+#' bicycle, moped, motorcycle, motorcar, goods, hgv, psv), or a cusstomized
+#' version dervied from those.
 #'
 #' @param x A street network represented either as `sf` `LINESTRING`
 #' objects, typically extracted with \link{dodgr_streetnet}, or as an `SC`
@@ -19,7 +20,8 @@
 #' `data.frame` object which provides unique identifiers for each highway
 #' (default works with `osmdata` objects).
 #' @param keep_cols Vectors of columns from `x` to be kept in the resultant
-#' `dodgr` network; vector can be either names or indices of desired columns.
+#' `dodgr` network; vector can be either names or indices of desired columns
+#' (see notes).
 #' @param turn_penalty Including time penalty on edges for turning across
 #' oncoming traffic at intersections (see Note).
 #' @param left_side Does traffic travel on the left side of the road (`TRUE`) or
@@ -44,16 +46,43 @@
 #' with the separate function \link{weight_railway}. Alternatively, the entire
 #' `weighting_profile` structures can be written to a local `.json`-formatted
 #' file with \link{write_dodgr_wt_profile}, the values edited as desired, and
-#' the name of this file passed as the `wt_profile_file` parameter. Construction
-#' of custom weighting profiles is illustrated in the following example.
+#' the name of this file passed as the `wt_profile_file` parameter.
 #'
-#' @note Calculating edge times to account for turn angles (that is, with
-#' `turn_penalty = TRUE`) involves calculating the temporal delay involving in
-#' turning across oncoming traffic. Resultant graphs are fundamentally different
-#' from the default for distance-based routing. The result of
+#' @note Realistic routing include factors such as access restrictions, turn
+#' penalties, and effects of incline, can only be implemented when the objects
+#' passed to `weight_streetnet` are of \pkg{sc} ("silicate") format, generated
+#' with \link{dodgr_streetnet_sc}. Restrictions applies to ways (in Open
+#' Streetmap Terminology) may be controlled by ensuring specific columns are
+#' retained in the `dodgr` network with the `keep_cols` argument. For example,
+#' restrictions on access are generally specified by specifying a value for the
+#' key of "access". Include "access" in `keep_cols` will ensure these values are
+#' retained in the `dodgr` version, from which ways with specified values can
+#' easily be removed or modified, as demonstrated in the examples.
+#'
+#' The additional Open Street Map (OSM) keys which can be used to specify
+#' restrictions are which are automatically extracted with
+#' \link{dodgr_streetnet_sc}, and so may be added to the `keep_cols` argument,
+#' include:
+#' \itemize{
+#' \item "highway"
+#' \item "restriction"
+#' \item "access"
+#' \item "bicycle"
+#' \item "motorcar"
+#' \item "motor_vehicle"
+#' \item "vehicle"
+#' \item "toll"
+#' }
+#'
+#' Restrictions and time-penalties on turns can be implemented from such
+#' objects by setting `turn_penalty = TRUE`. Resultant graphs are fundamentally
+#' different from the default for distance-based routing. The result of
 #' `weight_streetnet(..., turn_penalty = TRUE)` should thus \emph{only} be used
 #' to submit to the \link{dodgr_times} function, and not for any other `dodgr`
-#' functions nor forms of network analysis.
+#' functions nor forms of network analysis. Setting `turn_penalty = TRUE` will
+#' honour turn restrictions specified in Open Street Map (unless the "penalties"
+#' table of \link{weighting_profiles} has `restrictions = FALSE` for a specified
+#' `wt_profile`).
 #'
 #' @note The resultant graph includes only those edges for which the given
 #' weighting profile specifies finite edge weights. Any edges of types not
@@ -487,6 +516,9 @@ weight_streetnet.sc <- weight_streetnet.SC <-
         if (attr (graph, "turn_penalty") > 0) {
             res <- join_junctions_to_graph (graph, wt_profile, wt_profile_file,
                                             left_side)
+            if (are_turns_restricted (wt_profile, wt_profile_file)) {
+                res <- remove_turn_restrictions (x, graph, res)
+            }
             # res has the expanded graph as well as an edge map from new
             # cross-junction edges to old single edges. This is cached below:
             graph <- res$graph

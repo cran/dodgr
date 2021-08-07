@@ -5,7 +5,7 @@
 #'
 #' @param file Full name (including path) of file to which to write. The `.json`
 #' suffix will be automatically appended.
-#' @return TRUE if writing succussful.
+#' @return TRUE if writing successful.
 #' @seealso \link{weight_streetnet}
 #' @export
 write_dodgr_wt_profile <- function (file = NULL) {
@@ -81,4 +81,10 @@ get_turn_penalties <- function (wt_profile, file = NULL) {
 
     tp <- get_profiles (file)$penalties
     tp [tp$name == wt_profile, ]
+}
+
+are_turns_restricted <- function (wt_profile, file = NULL) {
+
+    tp <- get_profiles (file)$penalties
+    tp$restrictions [tp$name == wt_profile]
 }

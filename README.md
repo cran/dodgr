@@ -1,3 +1,4 @@
+
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
 [![R build
@@ -6,7 +7,7 @@ status](https://github.com/atfutures/dodgr/workflows/R-CMD-check/badge.svg)](htt
 [![Project Status:
 Active](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 
-[![CRAN\_Status\_Badge](https://www.r-pkg.org/badges/version/dodgr)](https://cran.r-project.org/package=dodgr)
+[![CRAN_Status_Badge](https://www.r-pkg.org/badges/version/dodgr)](https://cran.r-project.org/package=dodgr)
 [![CRAN
 Downloads](https://cranlogs.r-pkg.org/badges/grand-total/dodgr?color=orange)](https://cran.r-project.org/package=dodgr)
 [![CII Best
@@ -63,8 +64,11 @@ Fourth and finally, `dodgr` implements highly realistic and
 fully-customisable profiles for routing through street networks with
 various modes of transport, and using either distance- or time-based
 routing. Routing can include such factors as waiting times at traffic
-lights, delays for turning across oncoming traffic, and the effects of
-elevation on both cyclists and pedestrians.
+lights, delays for turning across oncoming traffic, access restrictions,
+and the effects of elevation on both cyclists and pedestrians. See the
+dedicated vignette on [street networks and time-based
+routing](https://atfutures.github.io/dodgr/articles/times.html) for more
+detail.
 
 ## Installation
 
@@ -90,7 +94,7 @@ Then load with
 ``` r
 library (dodgr)
 packageVersion ("dodgr")
-#> [1] '0.2.7.23'
+#> [1] '0.2.8.12'
 ```
 
 ## Usage: Sample Data and `dodgr` networks
@@ -129,14 +133,14 @@ like this:
 head (graph)
 ```
 
-| geom\_num | edge\_id | from\_id   | from\_lon | from\_lat | to\_id     |  to\_lon |  to\_lat |          d | d\_weighted | highway      | way\_id  | component |      time | time\_weighted |
-|----------:|---------:|:-----------|----------:|----------:|:-----------|---------:|---------:|-----------:|------------:|:-------------|:---------|----------:|----------:|---------------:|
-|         1 |        1 | 339318500  |  76.47489 |  15.34169 | 339318502  | 76.47612 | 15.34173 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 |
-|         1 |        2 | 339318502  |  76.47612 |  15.34173 | 339318500  | 76.47489 | 15.34169 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 |
-|         1 |        3 | 339318502  |  76.47612 |  15.34173 | 2398958028 | 76.47621 | 15.34174 |   8.888670 |    11.11084 | unclassified | 28565950 |         1 |  6.399843 |       7.999803 |
-|         1 |        4 | 2398958028 |  76.47621 |  15.34174 | 339318502  | 76.47612 | 15.34173 |   8.888670 |    11.11084 | unclassified | 28565950 |         1 |  6.399843 |       7.999803 |
-|         1 |        5 | 2398958028 |  76.47621 |  15.34174 | 1427116077 | 76.47628 | 15.34179 |   9.326536 |    11.65817 | unclassified | 28565950 |         1 |  6.715106 |       8.393882 |
-|         1 |        6 | 1427116077 |  76.47628 |  15.34179 | 2398958028 | 76.47621 | 15.34174 |   9.326536 |    11.65817 | unclassified | 28565950 |         1 |  6.715106 |       8.393882 |
+| geom_num | edge_id | from_id    | from_lon | from_lat | to_id      |   to_lon |   to_lat |          d | d_weighted | highway      | way_id   | component |      time | time_weighted |
+|---------:|--------:|:-----------|---------:|---------:|:-----------|---------:|---------:|-----------:|-----------:|:-------------|:---------|----------:|----------:|--------------:|
+|        1 |       1 | 339318500  | 76.47489 | 15.34169 | 339318502  | 76.47612 | 15.34173 | 132.442169 |  165.55271 | unclassified | 28565950 |         1 | 95.358362 |    119.197952 |
+|        1 |       2 | 339318502  | 76.47612 | 15.34173 | 339318500  | 76.47489 | 15.34169 | 132.442169 |  165.55271 | unclassified | 28565950 |         1 | 95.358362 |    119.197952 |
+|        1 |       3 | 339318502  | 76.47612 | 15.34173 | 2398958028 | 76.47621 | 15.34174 |   8.888670 |   11.11084 | unclassified | 28565950 |         1 |  6.399843 |      7.999803 |
+|        1 |       4 | 2398958028 | 76.47621 | 15.34174 | 339318502  | 76.47612 | 15.34173 |   8.888670 |   11.11084 | unclassified | 28565950 |         1 |  6.399843 |      7.999803 |
+|        1 |       5 | 2398958028 | 76.47621 | 15.34174 | 1427116077 | 76.47628 | 15.34179 |   9.326536 |   11.65817 | unclassified | 28565950 |         1 |  6.715106 |      8.393882 |
+|        1 |       6 | 1427116077 | 76.47628 | 15.34179 | 2398958028 | 76.47621 | 15.34174 |   9.326536 |   11.65817 | unclassified | 28565950 |         1 |  6.715106 |      8.393882 |
 
 The `geom_num` column maps directly onto the sequence of `LINESTRING`
 objects within the `sf`-formatted data. The `highway` column is taken
@@ -144,7 +148,8 @@ directly from Open Street Map, and denotes the kind of “highway”
 represented by each edge. The `component` column is an integer value
 describing which of the connected components of the network each edge
 belongs to (with `1` always being the largest component; `2` the second
-largest; and so on).
+largest; and so on). Note that all spatial data are assumed to be in the
+EPSG:4326 (WGS84) coordinate system.
 
 Note that the `d_weighted` values are often greater than the geometric
 distances, `d`. In the example shown, `service` highways are not ideal
@@ -155,14 +160,14 @@ actual distances. Compare this with:
 head (graph [graph$highway == "path", ])
 ```
 
-|     | geom\_num | edge\_id | from\_id   | from\_lon | from\_lat | to\_id     |  to\_lon |  to\_lat |        d | d\_weighted | highway | way\_id  | component |     time | time\_weighted |
-|:----|----------:|---------:|:-----------|----------:|----------:|:-----------|---------:|---------:|---------:|------------:|:--------|:---------|----------:|---------:|---------------:|
-| 47  |         2 |       47 | 338905220  |  76.47398 |  15.31224 | 338907543  | 76.47405 | 15.31241 | 19.70399 |    19.70399 | path    | 30643853 |         1 | 35.46718 |       35.46718 |
-| 48  |         2 |       48 | 338907543  |  76.47405 |  15.31241 | 338905220  | 76.47398 | 15.31224 | 19.70399 |    19.70399 | path    | 30643853 |         1 | 35.46718 |       35.46718 |
-| 49  |         2 |       49 | 338907543  |  76.47405 |  15.31241 | 2398957585 | 76.47410 | 15.31259 | 21.39172 |    21.39172 | path    | 30643853 |         1 | 38.50510 |       38.50510 |
-| 50  |         2 |       50 | 2398957585 |  76.47410 |  15.31259 | 338907543  | 76.47405 | 15.31241 | 21.39172 |    21.39172 | path    | 30643853 |         1 | 38.50510 |       38.50510 |
-| 51  |         2 |       51 | 2398957585 |  76.47410 |  15.31259 | 338907597  | 76.47413 | 15.31279 | 22.15205 |    22.15205 | path    | 30643853 |         1 | 39.87370 |       39.87370 |
-| 52  |         2 |       52 | 338907597  |  76.47413 |  15.31279 | 2398957585 | 76.47410 | 15.31259 | 22.15205 |    22.15205 | path    | 30643853 |         1 | 39.87370 |       39.87370 |
+|     | geom_num | edge_id | from_id    | from_lon | from_lat | to_id      |   to_lon |   to_lat |        d | d_weighted | highway | way_id   | component |     time | time_weighted |
+|:----|---------:|--------:|:-----------|---------:|---------:|:-----------|---------:|---------:|---------:|-----------:|:--------|:---------|----------:|---------:|--------------:|
+| 47  |        2 |      47 | 338905220  | 76.47398 | 15.31224 | 338907543  | 76.47405 | 15.31241 | 19.70399 |   19.70399 | path    | 30643853 |         1 | 35.46718 |      35.46718 |
+| 48  |        2 |      48 | 338907543  | 76.47405 | 15.31241 | 338905220  | 76.47398 | 15.31224 | 19.70399 |   19.70399 | path    | 30643853 |         1 | 35.46718 |      35.46718 |
+| 49  |        2 |      49 | 338907543  | 76.47405 | 15.31241 | 2398957585 | 76.47410 | 15.31259 | 21.39172 |   21.39172 | path    | 30643853 |         1 | 38.50510 |      38.50510 |
+| 50  |        2 |      50 | 2398957585 | 76.47410 | 15.31259 | 338907543  | 76.47405 | 15.31241 | 21.39172 |   21.39172 | path    | 30643853 |         1 | 38.50510 |      38.50510 |
+| 51  |        2 |      51 | 2398957585 | 76.47410 | 15.31259 | 338907597  | 76.47413 | 15.31279 | 22.15205 |   22.15205 | path    | 30643853 |         1 | 39.87370 |      39.87370 |
+| 52  |        2 |      52 | 338907597  | 76.47413 | 15.31279 | 2398957585 | 76.47410 | 15.31259 | 22.15205 |   22.15205 | path    | 30643853 |         1 | 39.87370 |      39.87370 |
 
 A `"path"` offers ideal walking conditions, and so weighted distances
 are equal to actual distances.
@@ -285,14 +290,14 @@ quantifying the aggregate flows along each edge:
 head (f)
 ```
 
-| geom\_num | edge\_id | from\_id   | from\_lon | from\_lat | to\_id     |  to\_lon |  to\_lat |          d | d\_weighted | highway      | way\_id  | component |      time | time\_weighted |      flow |
-|----------:|---------:|:-----------|----------:|----------:|:-----------|---------:|---------:|-----------:|------------:|:-------------|:---------|----------:|----------:|---------------:|----------:|
-|         1 |        1 | 339318500  |  76.47489 |  15.34169 | 339318502  | 76.47612 | 15.34173 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 | 0.0644745 |
-|         1 |        2 | 339318502  |  76.47612 |  15.34173 | 339318500  | 76.47489 | 15.34169 | 132.442169 |   165.55271 | unclassified | 28565950 |         1 | 95.358362 |     119.197952 | 0.1131806 |
-|         1 |        3 | 339318502  |  76.47612 |  15.34173 | 2398958028 | 76.47621 | 15.34174 |   8.888670 |    11.11084 | unclassified | 28565950 |         1 |  6.399843 |       7.999803 | 0.0644745 |
-|         1 |        4 | 2398958028 |  76.47621 |  15.34174 | 339318502  | 76.47612 | 15.34173 |   8.888670 |    11.11084 | unclassified | 28565950 |         1 |  6.399843 |       7.999803 | 0.1131806 |
-|         1 |        5 | 2398958028 |  76.47621 |  15.34174 | 1427116077 | 76.47628 | 15.34179 |   9.326536 |    11.65817 | unclassified | 28565950 |         1 |  6.715106 |       8.393882 | 0.0644745 |
-|         1 |        6 | 1427116077 |  76.47628 |  15.34179 | 2398958028 | 76.47621 | 15.34174 |   9.326536 |    11.65817 | unclassified | 28565950 |         1 |  6.715106 |       8.393882 | 0.1131806 |
+| geom_num | edge_id | from_id    | from_lon | from_lat | to_id      |   to_lon |   to_lat |          d | d_weighted | highway      | way_id   | component |      time | time_weighted |      flow |
+|---------:|--------:|:-----------|---------:|---------:|:-----------|---------:|---------:|-----------:|-----------:|:-------------|:---------|----------:|----------:|--------------:|----------:|
+|        1 |       1 | 339318500  | 76.47489 | 15.34169 | 339318502  | 76.47612 | 15.34173 | 132.442169 |  165.55271 | unclassified | 28565950 |         1 | 95.358362 |    119.197952 | 0.0000000 |
+|        1 |       2 | 339318502  | 76.47612 | 15.34173 | 339318500  | 76.47489 | 15.34169 | 132.442169 |  165.55271 | unclassified | 28565950 |         1 | 95.358362 |    119.197952 | 0.1452911 |
+|        1 |       3 | 339318502  | 76.47612 | 15.34173 | 2398958028 | 76.47621 | 15.34174 |   8.888670 |   11.11084 | unclassified | 28565950 |         1 |  6.399843 |      7.999803 | 0.0000000 |
+|        1 |       4 | 2398958028 | 76.47621 | 15.34174 | 339318502  | 76.47612 | 15.34173 |   8.888670 |   11.11084 | unclassified | 28565950 |         1 |  6.399843 |      7.999803 | 0.1452911 |
+|        1 |       5 | 2398958028 | 76.47621 | 15.34174 | 1427116077 | 76.47628 | 15.34179 |   9.326536 |   11.65817 | unclassified | 28565950 |         1 |  6.715106 |      8.393882 | 0.0000000 |
+|        1 |       6 | 1427116077 | 76.47628 | 15.34179 | 2398958028 | 76.47621 | 15.34174 |   9.326536 |   11.65817 | unclassified | 28565950 |         1 |  6.715106 |      8.393882 | 0.1452911 |
 
 An additional flow aggregation function can be applied in cases where
 only densities at origin points are known, and movement throughout a
@@ -466,12 +471,6 @@ Contributions of any kind are welcome!
 <img src="https://avatars1.githubusercontent.com/u/37801457?v=4" width="100px;" alt=""/>
 </a><br>
 <a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3Achrijo">chrijo</a>
-</td>
-<td align="center">
-<a href="https://github.com/mrsensible">
-<img src="https://avatars1.githubusercontent.com/u/25252172?u=2c62dac1ac9bfef3f26ee56c3d63b18dccc553a3&v=4" width="100px;" alt=""/>
-</a><br>
-<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3Amrsensible">mrsensible</a>
 </td>
 <td align="center">
 <a href="https://github.com/SymbolixAU">

@@ -28,6 +28,15 @@ the \code{bbox} argument may be omitted, in which case a bounding box will
 be constructed by expanding the range of \code{pts} by the relative amount of
 \code{expand}.
 }
+\note{
+Calls to this function may return "General overpass server error" with
+a note that "Query timed out." The overpass served used to access the data
+has a sophisticated queueing system which prioritises requests that are
+likely to require little time. These timeout errors can thus generally \emph{not}
+be circumvented by changing "timeout" options on the HTTP requests, and
+should rather be interpreted to indicate that a request is too large, and may
+need to be refined, or somehow broken up into smaller queries.
+}
 \examples{
 \dontrun{
 streetnet <- dodgr_streetnet ("hampi india", expand = 0)
@@ -50,5 +59,16 @@ nrow (dodgr_streetnet (bbox = bb)) # around 30,000
 bb <- osmdata::getbb ("gent belgium", format_out = "polygon")
 nrow (dodgr_streetnet (bbox = bb)) # around 17,000
 # The latter has fewer rows because only edges within polygon are returned
+
+# Example with access restrictions
+bbox <- c (-122.2935, 47.62663, -122.28, 47.63289)
+x <- dodgr_streetnet_sc (bbox)
+net <- weight_streetnet (x, keep_cols = "access, turn_penalty = TRUE)
+# has many streets with "access" = "private; these can be removed like this:
+net2 <- net [which (!net$access != "private"), ]
+# or modified in some other way such as strongly penalizing use of those
+# streets:
+index <- which (net$access == "private")
+net$time_weighted [index] <- net$time_weighted [index] * 100
 }
 }

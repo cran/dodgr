@@ -1,6 +1,7 @@
 context("dodgr_flows")
 
-test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true"))
+test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") |
+             identical (Sys.getenv ("GITHUB_WORKFLOW"), "test-coverage"))
 
 testthat::skip_on_cran ()
 
@@ -8,6 +9,7 @@ test_that("flows aggregate", {
     graph <- weight_streetnet (hampi)
     # get routing points from contracted graph:
     graphc <- dodgr_contract_graph (graph)
+    set.seed (1)
     from <- sample (graphc$from_id, size = 10)
     to <- sample (graphc$to_id, size = 5)
     to <- to [!to %in% from]
@@ -48,6 +50,7 @@ test_that("flows aggregate", {
 test_that("flow points", {
     graph <- weight_streetnet (hampi)
     v <- dodgr_vertices (graph)
+    set.seed (1)
     from <- v [sample (nrow (v), size = 10), c ("x", "y")]
     to <- v [sample (nrow (v), size = 10), c ("x", "y")]
     flows <- matrix (10 * runif (length (from) * length (to)),
@@ -61,6 +64,7 @@ test_that("flow points", {
 
 test_that ("flows disperse", {
     graph <- weight_streetnet (hampi)
+    set.seed (1)
     from <- sample (graph$from_id, size = 10)
     dens <- runif (length (from))
 
@@ -108,6 +112,7 @@ test_that ("flows_si", {
                v <- dodgr_vertices (graph)
                nf <- 100
                nt <- nrow (v)
+               set.seed (1)
                from <- sample (v$id, nf)
                to <- v$id
 
@@ -144,6 +149,7 @@ test_that ("flows_si", {
 
 test_that ("flowmap", {
     graph <- weight_streetnet (hampi)
+    set.seed (1)
     from <- sample (graph$from_id, size = 10)
     to <- sample (graph$to_id, size = 5)
     to <- to [!to %in% from]

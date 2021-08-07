@@ -1,6 +1,6 @@
 context("fundamental cycles")
 
-test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true"))
+testthat::skip_on_cran ()
 
 test_that("dodgr_fundamental_cycles", {
               net <- weight_streetnet (hampi)
@@ -21,7 +21,7 @@ test_that("cycles_with_max_graph_size", {
                                                    graph_max_size = 1000),
                               "Now computing fundamental cycles")
               expect_is (x, "list")
-              expect_length (x, 45) # more cycles than before!
+              expect_length (x, 62) # more cycles than before!
 
               expect_silent (
                     xf <- dodgr_full_cycles (graph = net,
@@ -41,7 +41,7 @@ test_that("sflines_to_poly", {
               expect_silent (p <- dodgr_sflines_to_poly (hampi))
               expect_is (hampi$geometry, "sfc_LINESTRING")
               expect_is (p, "sfc_POLYGON")
-              expect_equal (length (p), 58)
+              expect_equal (length (p), 62)
 
               net <- weight_streetnet (hampi, wt_profile = 1)
 

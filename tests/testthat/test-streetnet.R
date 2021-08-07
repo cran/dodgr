@@ -1,6 +1,15 @@
 context("dodgr streetnet")
 
+dodgr_cache_off ()
+clear_dodgr_cache ()
+
+test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") |
+             identical (Sys.getenv ("GITHUB_WORKFLOW"), "test-coverage"))
+# used below in a skip_if call
+
 test_that("streetnet bbox", {
+
+              set.seed (1)
               n <- 12
               bbox <- cbind (runif (n), 2 * runif (n))
               bb <- process_bbox (bbox, NULL, 0)
@@ -22,16 +31,13 @@ test_that("streetnet bbox", {
 
               colnames (bbox) <- c ("x", "y")
               bb4 <- process_bbox (bbox, expand = 0)
-              attr (bb4$bbox, "dimnames") <- NULL
               expect_identical (bb$bbox, bb4$bbox)
 
               # causes bbox to be tranposed:
               colnames (bbox) <- c ("min", "max")
               bb5 <- process_bbox (bbox, expand = 0)
-              attr (bb5$bbox, "dimnames") <- NULL
-              expect_identical (bb$bbox, t (bb5$bbox)) # NOTE `t`!
+              expect_identical (bb$bbox, bb5$bbox)
 
-              attr (bbox, "dimnames") <- NULL
               expect_silent (bb2 <- process_bbox (list (bbox), NULL, 0))
               expect_identical (bb, bb2)
 
@@ -51,24 +57,23 @@ test_that("streetnet bbox", {
 })
 
 test_that ("streetnet pts", {
-              n <- 12
-              pts <- cbind (runif (n), 2 * runif (n))
-              expect_error (bb <- process_bbox (pts = pts, expand = 0),
-                            paste0 ("Can not unambiguously determine ",
-                                    "coordinates in graph"))
 
-              colnames (pts) <- c ("x", "y")
-              expect_silent (bb <- process_bbox (pts = pts, expand = 0))
-              expect_silent (bb2 <- process_bbox (bbox = pts, expand = 0))
+               set.seed (1)
+               n <- 12
+               pts <- cbind (runif (n), 2 * runif (n))
+               expect_error (bb <- process_bbox (pts = pts, expand = 0),
+                             paste0 ("Can not unambiguously determine ",
+                                     "coordinates in graph"))
 
-              bb2_bb <- c (bb2$bbox [1, 1], bb2$bbox [1, 2],
-                           bb2$bbox [2, 1], bb2$bbox [2, 2])
-              names (bb2_bb) <- NULL
-              # -> as.vector (t (bb2$bbox))
-              expect_identical (bb2_bb, bb$bbox)
+               colnames (pts) <- c ("x", "y")
+               expect_silent (bb <- process_bbox (pts = pts, expand = 0))
+               expect_silent (bb2 <- process_bbox (bbox = pts, expand = 0))
+               expect_identical (bb$bbox, bb2$bbox)
 })
 
+
 test_that ("streetnet column names", {
+
     h <- hampi
     h$geometry <- NULL
     expect_error (graph <- weight_streetnet (h))
@@ -98,6 +103,8 @@ test_that ("streetnet column names", {
     h$geom <- 1
     expect_error (graph <- weight_streetnet (h),
                   "Unable to determine geometry column")
+
+    skip_if (!test_all)
 
     h <- hampi
     h$geometry1 <- 1

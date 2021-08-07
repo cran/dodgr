@@ -1,5 +1,23 @@
 
-#v 0.2.7.00x
+#v 0.2.8.00x
+
+Major changes:
+
+- `weight_streetnet` now includes turn restrictions when input data are
+  extracted with `dodgr_streetnet_sc` (#136 thanks to @edzer)
+- Turn restrictions also added as additional column of
+  `weighting_profiles$penalties`
+- `dodgr_streetnet_sc()` now extracts many additional features useful for
+  controlling access restrictions (see #159)
+- `dodgr_centrality` has new `vert_wts` parameter to weight centrality
+  by user-specified weights (#162)
+
+Minor changes:
+
+- Bug fix when submitting contracted graphs to dodgr_to_sf (#155 thanks to @agila5)
+- Fix (internal) process_bbox function for vector inputs (#156 thanks to @agila5@)
+
+#v 0.2.8
 
 Minor changes:
 

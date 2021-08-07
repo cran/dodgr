@@ -37,6 +37,7 @@ struct OneCentralityVert : public RcppParallel::Worker
 {
     size_t nverts; // can't be const because of reinterpret case
     const std::string heap_type;
+    const std::vector <double> vert_wts;
     const double dist_threshold;
     std::shared_ptr <DGraph> g;
 
@@ -46,10 +47,12 @@ struct OneCentralityVert : public RcppParallel::Worker
     OneCentralityVert (
             const size_t nverts_in,
             const std::string heap_type_in,
+            const std::vector <double> vert_wts_in,
             const double dist_threshold_in,
             const std::shared_ptr <DGraph> g_in) :
         nverts (nverts_in), heap_type (heap_type_in), 
-        dist_threshold (dist_threshold_in), g (g_in), output ()
+        vert_wts (vert_wts_in), dist_threshold (dist_threshold_in),
+        g (g_in), output ()
     {
         output.resize (nverts, 0.0);
     }
@@ -60,6 +63,7 @@ struct OneCentralityVert : public RcppParallel::Worker
             RcppParallel::Split) :
         nverts (oneCentralityVert.nverts),
         heap_type (oneCentralityVert.heap_type), 
+        vert_wts (oneCentralityVert.vert_wts),
         dist_threshold (oneCentralityVert.dist_threshold),
         g (oneCentralityVert.g), output ()
     {
@@ -80,7 +84,10 @@ struct OneCentralityVert : public RcppParallel::Worker
         {
             if (RcppThread::isInterrupted (v % static_cast<int>(100) == 0))
                 return;
-            pathfinder->Centrality_vertex (cent, v, dist_threshold);
+            const double vwt = vert_wts [v];
+            pathfinder->Centrality_vertex (cent,
+                    static_cast <unsigned int> (v),
+                    vwt, dist_threshold);
         }
 
         for (size_t i = 0; i < nverts; i++)
@@ -99,6 +106,7 @@ struct OneCentralityEdge : public RcppParallel::Worker
     size_t nverts; // can't be const because of reinterpret case
     size_t nedges;
     const std::string heap_type;
+    const std::vector <double> vert_wts;
     const double dist_threshold;
     std::shared_ptr <DGraph> g;
 
@@ -109,11 +117,13 @@ struct OneCentralityEdge : public RcppParallel::Worker
             const size_t nverts_in,
             const size_t nedges_in,
             const std::string heap_type_in,
+            const std::vector <double> vert_wts_in,
             const double dist_threshold_in,
             const std::shared_ptr <DGraph> g_in) :
         nverts (nverts_in), nedges (nedges_in), 
-        heap_type (heap_type_in), dist_threshold (dist_threshold_in), g (g_in),
-        output ()
+        heap_type (heap_type_in), vert_wts (vert_wts_in),
+        dist_threshold (dist_threshold_in),
+        g (g_in), output ()
     {
         output.resize (nedges, 0.0);
     }
@@ -125,6 +135,7 @@ struct OneCentralityEdge : public RcppParallel::Worker
         nverts (oneCentralityEdge.nverts),
         nedges (oneCentralityEdge.nedges), 
         heap_type (oneCentralityEdge.heap_type),
+        vert_wts (oneCentralityEdge.vert_wts),
         dist_threshold (oneCentralityEdge.dist_threshold),
         g (oneCentralityEdge.g),
         output ()
@@ -145,7 +156,8 @@ struct OneCentralityEdge : public RcppParallel::Worker
         {
             if (RcppThread::isInterrupted (v % static_cast<int>(100) == 0))
                 return;
-            pathfinder->Centrality_edge (cent, v, nedges, dist_threshold);
+            const double vwt = vert_wts [v];
+            pathfinder->Centrality_edge (cent, v, vwt, nedges, dist_threshold);
         }
         for (size_t i = 0; i < nedges; i++)
             output [i] += cent [i];
@@ -161,6 +173,7 @@ struct OneCentralityEdge : public RcppParallel::Worker
 void PF::PathFinder::Centrality_vertex (
         std::vector <double>& cent,
         const unsigned int s,
+        const double vert_wt,
         const double dist_threshold)
 {
     const DGraphEdge *edge;
@@ -241,7 +254,7 @@ void PF::PathFinder::Centrality_vertex (
             delta [ws] += sigma [ws] * tempd;
         }
         if (v != s)
-            cent [v] += delta [v];
+            cent [v] += vert_wt * delta [v];
     }
 }
 
@@ -249,6 +262,7 @@ void PF::PathFinder::Centrality_vertex (
 void PF::PathFinder::Centrality_edge (
         std::vector <double>& cent,
         const unsigned int s,
+        const double vert_wt,
         const unsigned int nedges,
         const double dist_threshold)
 {
@@ -343,7 +357,7 @@ void PF::PathFinder::Centrality_edge (
         {
             delta [*it] += sigma [*it] * tempd;
             it = std::next (it);
-            cent [*it] += sigma_edge [*it] * tempd;
+            cent [*it] += sigma_edge [*it] * tempd * vert_wt;
             it = std::next (it);
         }
     }
@@ -375,6 +389,16 @@ Rcpp::NumericVector rcpp_centrality (const Rcpp::DataFrame graph,
     size_t nverts = run_sp::make_vert_map (vert_map_in, vert_map_id,
             vert_map_n, vert_map);
 
+    Rcpp::CharacterVector v_nms = vert_map_in.attr ("names");
+    std::vector <double> vert_wts (vert_map_in.nrow (), 1.0);
+    for (auto n: v_nms) {
+        if (n == "vert_wts") {
+            std::vector <double> tempd = vert_map_in ["vert_wts"];
+            std::copy (tempd.begin (), tempd.end (), vert_wts.begin ());
+            break;
+        }
+    }
+
     std::shared_ptr <DGraph> g = std::make_shared <DGraph> (nverts);
     inst_graph (g, nedges, vert_map, from, to, dist, wt);
 
@@ -386,13 +410,14 @@ Rcpp::NumericVector rcpp_centrality (const Rcpp::DataFrame graph,
     if (edge_centrality)
     {
         OneCentralityEdge one_centrality (nverts, nedges, heap_type,
-                dist_threshold, g);
+                vert_wts, dist_threshold, g);
 
         RcppParallel::parallelReduce (0, nverts_to_use, one_centrality);
         result = one_centrality.output;
     } else // vertex centrality
     {
-        OneCentralityVert one_centrality (nverts, heap_type, dist_threshold, g);
+        OneCentralityVert one_centrality (nverts, heap_type, vert_wts,
+                dist_threshold, g);
 
         RcppParallel::parallelReduce (0, nverts_to_use, one_centrality);
         result = one_centrality.output;
