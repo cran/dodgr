@@ -9,7 +9,7 @@
 // @param heapD The type of heap used
 // @param g A DGraph object
 // @param twoheap If `TRUE`, uses a bi-directional search.
-PF::PathFinder::PathFinder(unsigned int n,
+PF::PathFinder::PathFinder(size_t n,
         const HeapDesc& heapD,
         std::shared_ptr<const DGraph> g)
 {
@@ -32,10 +32,10 @@ void PF::PathFinder::init(std::shared_ptr<const DGraph> g) {
 void PF::PathFinder::init_arrays (
         std::vector <double>& d,
         std::vector <double>& w,
-        std::vector <int>& prev,
+        std::vector <long int>& prev,
         bool *m_open_vec,
         bool *m_closed_vec,
-        const unsigned int v,
+        const size_t v,
         const size_t n)
 {
     std::fill (w.begin (), w.end (), INFINITE_DOUBLE);
@@ -53,13 +53,13 @@ void PF::PathFinder::init_arrays (
 void PF::PathFinder::scan_edges (const DGraphEdge *edge,
         std::vector<double>& d,
         std::vector<double>& w,
-        std::vector<int>& prev,
+        std::vector<long int>& prev,
         bool *m_open_vec,
         const bool *m_closed_vec,
-        const unsigned int &v0)
+        const size_t &v0)
 {
     while (edge) {
-        unsigned int et = edge->target;
+        size_t et = edge->target;
         if (!m_closed_vec [et])
         {
             double wt = w [v0] + edge->wt;
@@ -85,14 +85,14 @@ void PF::PathFinder::scan_edges (const DGraphEdge *edge,
 void PF::PathFinder::scan_edges_heur (const DGraphEdge *edge,
         std::vector<double>& d,
         std::vector<double>& w,
-        std::vector<int>& prev,
+        std::vector<long int>& prev,
         bool *m_open_vec,
         const bool *m_closed_vec,
-        const unsigned int &v0,
+        const size_t &v0,
         const std::vector<double> &heur)    // heuristic for A*
 {
     while (edge) {
-        unsigned int et = edge->target;
+        size_t et = edge->target;
         if (!m_closed_vec [et])
         {
             double wt = w [v0] + edge->wt;
@@ -122,13 +122,13 @@ void PF::PathFinder::scan_edges_heur (const DGraphEdge *edge,
 void PF::PathFinder::Dijkstra (
         std::vector<double>& d,
         std::vector<double>& w,
-        std::vector<int>& prev,
-        const unsigned int v0,
-        const std::vector <unsigned int> &to_index)
+        std::vector<long int>& prev,
+        const size_t v0,
+        const std::vector <size_t> &to_index)
 {
     const DGraphEdge *edge;
 
-    const unsigned int n = m_graph->nVertices();
+    const size_t n = m_graph->nVertices();
     const std::vector<DGraphVertex>& vertices = m_graph->vertices();
 
     PF::PathFinder::init_arrays (d, w, prev, m_open, m_closed, v0, n);
@@ -142,7 +142,7 @@ void PF::PathFinder::Dijkstra (
         is_target [t] = true;
 
     while (m_heap->nItems() > 0) {
-        unsigned int v = m_heap->deleteMin();
+        size_t v = m_heap->deleteMin();
 
         m_closed [v] = true;
         m_open [v] = false;
@@ -163,20 +163,20 @@ void PF::PathFinder::Dijkstra (
 void PF::PathFinder::DijkstraLimit (
         std::vector<double>& d,
         std::vector<double>& w,
-        std::vector<int>& prev,
-        const unsigned int v0,
+        std::vector<long int>& prev,
+        const size_t v0,
         const double &dlim)
 {
     const DGraphEdge *edge;
 
-    const unsigned int n = m_graph->nVertices();
+    const size_t n = m_graph->nVertices();
     const std::vector<DGraphVertex>& vertices = m_graph->vertices();
 
     PF::PathFinder::init_arrays (d, w, prev, m_open, m_closed, v0, n);
     m_heap->insert (v0, 0.0);
 
     while (m_heap->nItems() > 0) {
-        unsigned int v = m_heap->deleteMin();
+        size_t v = m_heap->deleteMin();
 
         m_closed [v] = true;
         m_open [v] = false;
@@ -203,14 +203,14 @@ void PF::PathFinder::DijkstraLimit (
 
 void PF::PathFinder::AStar (std::vector<double>& d,
         std::vector<double>& w,
-        std::vector<int>& prev,
+        std::vector<long int>& prev,
         const std::vector<double>& heur,
-        const unsigned int v0,
-        const std::vector <unsigned int> &to_index)
+        const size_t v0,
+        const std::vector <size_t> &to_index)
 {
     const DGraphEdge *edge;
 
-    const unsigned int n = m_graph->nVertices();
+    const size_t n = m_graph->nVertices();
     const std::vector<DGraphVertex>& vertices = m_graph->vertices();
 
     PF::PathFinder::init_arrays (d, w, prev, m_open, m_closed, v0, n);
@@ -224,7 +224,7 @@ void PF::PathFinder::AStar (std::vector<double>& d,
         is_target [t] = true;
 
     while (m_heap->nItems() > 0) {
-        unsigned int v = m_heap->deleteMin();
+        size_t v = m_heap->deleteMin();
 
         m_closed [v] = true;
         m_open [v] = false;
@@ -244,12 +244,12 @@ void PF::PathFinder::AStar (std::vector<double>& d,
 // instead of m_heap, and so all routines hard-coded here.
 void PF::PathFinder::Dijkstra_set (std::vector<double>& d,
         std::vector<double>& w,
-        std::vector<int>& prev,
-        unsigned int v0)
+        std::vector<long int>& prev,
+        size_t v0)
 {
     const DGraphEdge *edge;
 
-    const unsigned int n = m_graph->nVertices();
+    const size_t n = m_graph->nVertices();
     const std::vector<DGraphVertex>& vertices = m_graph->vertices();
 
     PF::PathFinder::init_arrays (d, w, prev, m_open, m_closed, v0, n);
@@ -259,7 +259,7 @@ void PF::PathFinder::Dijkstra_set (std::vector<double>& d,
 
     while (edge_set.size () > 0) {
         EdgeSet::iterator ei = edge_set.begin();
-        unsigned int v = ei->geti();
+        size_t v = ei->geti();
         edge_set.erase (ei);
 
         m_closed [v] = true;
@@ -267,7 +267,7 @@ void PF::PathFinder::Dijkstra_set (std::vector<double>& d,
 
         edge = vertices [v].outHead;
         while (edge) {
-            unsigned int et = edge->target;
+            size_t et = edge->target;
 
             if (!m_closed [et]) {
                 double wt = w [v] + edge->wt;

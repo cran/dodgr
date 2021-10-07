@@ -6,17 +6,17 @@
 #include "heaps/heap_lib.h"
 
 template <typename T>
-void inst_graph (std::shared_ptr<DGraph> g, unsigned int nedges,
-        const std::map <std::string, unsigned int>& vert_map,
+void inst_graph (std::shared_ptr<DGraph> g, size_t nedges,
+        const std::map <std::string, size_t>& vert_map,
         const std::vector <std::string>& from,
         const std::vector <std::string>& to,
         const std::vector <T>& dist,
         const std::vector <T>& wt)
 {
-    for (unsigned int i = 0; i < nedges; ++i)
+    for (size_t i = 0; i < nedges; ++i)
     {
-        unsigned int fromi = vert_map.at(from [i]);
-        unsigned int toi = vert_map.at(to [i]);
+        size_t fromi = vert_map.at(from [i]);
+        size_t toi = vert_map.at(to [i]);
         g->addNewEdge (fromi, toi, dist [i], wt [i], i);
     }
 }
@@ -24,10 +24,10 @@ void inst_graph (std::shared_ptr<DGraph> g, unsigned int nedges,
 struct OneAggregate : public RcppParallel::Worker
 {
     RcppParallel::RVector <int> dp_fromi;
-    const std::vector <unsigned int> toi;
+    const std::vector <size_t> toi;
     const RcppParallel::RMatrix <double> flows;
     const std::vector <std::string> vert_name;
-    const std::unordered_map <std::string, unsigned int> verts_to_edge_map;
+    const std::unordered_map <std::string, size_t> verts_to_edge_map;
     size_t nverts; // can't be const because of reinterpret cast
     size_t nedges;
     const bool norm_sums;
@@ -40,10 +40,10 @@ struct OneAggregate : public RcppParallel::Worker
     // Constructor 1: The main constructor
     OneAggregate (
             const RcppParallel::RVector <int> fromi,
-            const std::vector <unsigned int> toi_in,
+            const std::vector <size_t> toi_in,
             const RcppParallel::RMatrix <double> flows_in,
             const std::vector <std::string>  vert_name_in,
-            const std::unordered_map <std::string, unsigned int> verts_to_edge_map_in,
+            const std::unordered_map <std::string, size_t> verts_to_edge_map_in,
             const size_t nverts_in,
             const size_t nedges_in,
             const bool norm_sums_in,
@@ -86,7 +86,7 @@ struct OneAggregate : public RcppParallel::Worker
                     *run_sp::getHeapImpl (heap_type), g);
         std::vector <double> w (nverts);
         std::vector <double> d (nverts);
-        std::vector <int> prev (nverts);
+        std::vector <long int> prev (nverts);
 
         for (size_t i = begin; i < end; i++)
         {
@@ -99,7 +99,7 @@ struct OneAggregate : public RcppParallel::Worker
             std::fill (d.begin (), d.end (), INFINITE_DOUBLE);
             std::fill (prev.begin (), prev.end (), INFINITE_INT);
 
-            unsigned int from_i = static_cast <unsigned int> (dp_fromi [i]);
+            size_t from_i = static_cast <size_t> (dp_fromi [i]);
             d [from_i] = w [from_i] = 0.0;
 
             // reduce toi to only those within tolerance limt
@@ -118,13 +118,13 @@ struct OneAggregate : public RcppParallel::Worker
 
             // toi_index is into cols of flow matrix
             // toi_reduced is into the vertex vectors (d, w, prev)
-            std::vector <unsigned int> toi_reduced, toi_index;
+            std::vector <size_t> toi_reduced, toi_index;
             toi_reduced.reserve (nto);
             toi_index.reserve (nto);
             for (size_t j = 0; j < static_cast <size_t> (flows.ncol ()); j++)
                 if (flows (i, j) > flim)
                 {
-                    toi_index.push_back (static_cast <unsigned int> (j));
+                    toi_index.push_back (static_cast <size_t> (j));
                     toi_reduced.push_back (toi [j]);
                 }
 
@@ -142,18 +142,19 @@ struct OneAggregate : public RcppParallel::Worker
                         if (norm_sums)
                         {
                             path_len = 0;
-                            size_t target_t = toi_reduced [j];
+                            long int target_t = static_cast <long int> (toi_reduced [j]);
                             size_t from_t = static_cast <size_t> (dp_fromi [i]);
                             while (target_t < INFINITE_INT)
                             {
                                 path_len++;
-                                target_t = prev [target_t];
-                                if (target_t < 0 || target_t == from_t)
+                                size_t target_size_t = static_cast <size_t> (target_t);
+                                target_t = prev [target_size_t];
+                                if (target_t < 0 || target_size_t == from_t)
                                     break;
                             }
                         }
 
-                        int target = static_cast <int> (toi_reduced [j]); // can equal -1
+                        long int target = static_cast <int> (toi_reduced [j]); // can equal -1
                         while (target < INFINITE_INT)
                         {
                             size_t stt = static_cast <size_t> (target);
@@ -166,10 +167,10 @@ struct OneAggregate : public RcppParallel::Worker
                                     flow_ij / static_cast <double> (path_len);
                             }
 
-                            target = static_cast <int> (prev [stt]);
+                            target = prev [stt];
                             // Only allocate that flow from origin vertex v to all
                             // previous vertices up until the target vi
-                            if (target < 0 || target == dp_fromi [i])
+                            if (target < 0L || target == dp_fromi [i])
                             {
                                 break;
                             }
@@ -193,7 +194,7 @@ struct OneDisperse : public RcppParallel::Worker
     RcppParallel::RVector <int> dp_fromi;
     const RcppParallel::RVector <double> dens;
     const std::vector <std::string> vert_name;
-    const std::unordered_map <std::string, unsigned int> verts_to_edge_map;
+    const std::unordered_map <std::string, size_t> verts_to_edge_map;
     size_t nverts; // can't be const because of reinterpret cast
     size_t nedges;
     const RcppParallel::RVector <double> kfrom;
@@ -208,7 +209,7 @@ struct OneDisperse : public RcppParallel::Worker
             const RcppParallel::RVector <int> fromi,
             const RcppParallel::RVector <double> dens_in,
             const std::vector <std::string>  vert_name_in,
-            const std::unordered_map <std::string, unsigned int> verts_to_edge_map_in,
+            const std::unordered_map <std::string, size_t> verts_to_edge_map_in,
             const size_t nverts_in,
             const size_t nedges_in,
             const RcppParallel::RVector <double> kfrom_in,
@@ -220,8 +221,8 @@ struct OneDisperse : public RcppParallel::Worker
         nverts (nverts_in), nedges (nedges_in), kfrom (kfrom_in),
         tol (tol_in), heap_type (heap_type_in), g (g_in), output ()
     {
-        const R_xlen_t nfrom = dens.size ();
-        const R_xlen_t nk = kfrom.size () / nfrom;
+        const R_xlen_t nfrom = static_cast <R_xlen_t> (dens.size ());
+        const R_xlen_t nk = static_cast <R_xlen_t> (kfrom.size ()) / nfrom;
         const size_t out_size = nedges * static_cast <size_t> (nk);
         output.resize (out_size, 0.0);
     }
@@ -237,8 +238,8 @@ struct OneDisperse : public RcppParallel::Worker
         kfrom (oneDisperse.kfrom), tol (oneDisperse.tol),
         heap_type (oneDisperse.heap_type), g (oneDisperse.g), output ()
     {
-        const R_xlen_t nfrom = dens.size ();
-        const R_xlen_t nk = kfrom.size () / nfrom;
+        const R_xlen_t nfrom = static_cast <R_xlen_t> (dens.size ());
+        const R_xlen_t nk = static_cast <R_xlen_t> (kfrom.size ()) / nfrom;
         size_t out_size = nedges * static_cast <size_t> (nk);
         output.resize (out_size, 0.0);
     }
@@ -252,11 +253,10 @@ struct OneDisperse : public RcppParallel::Worker
                     *run_sp::getHeapImpl (heap_type), g);
         std::vector <double> w (nverts);
         std::vector <double> d (nverts);
-        std::vector <int> prev (nverts);
+        std::vector <long int> prev (nverts);
 
-        const R_xlen_t nfrom = dens.size ();
-        const R_xlen_t nk = kfrom.size () / nfrom;
-        const size_t nk_st = static_cast <size_t> (nk); 
+        const size_t nfrom = dens.size ();
+        const size_t nk = kfrom.size () / nfrom;
 
         for (size_t i = begin; i < end; i++) // over the from vertices
         {
@@ -264,28 +264,27 @@ struct OneDisperse : public RcppParallel::Worker
             if (RcppThread::isInterrupted ())
                 return;
 
-            R_xlen_t ir = static_cast <R_xlen_t> (i);
             // translate k-value to distance limit based on tol
             // exp(-d / k) = tol -> d = -k * log (tol)
             // k_from holds nk vectors of different k-values, each of length
             // nedges.
             double dlim = 0.0;
-            for (R_xlen_t k = 0; k < nk; k++)
-                if (kfrom [ir + k * nfrom] > dlim)
-                    dlim = kfrom [ir + k * nfrom]; // dlim is max k-value
+            for (size_t k = 0; k < nk; k++)
+                if (kfrom [i + k * nfrom] > dlim)
+                    dlim = kfrom [i + k * nfrom]; // dlim is max k-value
             dlim = -dlim * log (tol); // converted to actual dist limit.
 
             std::fill (w.begin (), w.end (), INFINITE_DOUBLE);
             std::fill (d.begin (), d.end (), INFINITE_DOUBLE);
             std::fill (prev.begin (), prev.end (), INFINITE_INT);
 
-            const unsigned int from_i = static_cast <unsigned int> (dp_fromi [i]);
+            const size_t from_i = static_cast <size_t> (dp_fromi [i]);
             d [from_i] = w [from_i] = 0.0;
 
             pathfinder->DijkstraLimit (d, w, prev, from_i, dlim);
 
-            std::vector <double> flows_i (nedges * nk_st, 0.0);
-            std::vector <double> expsum (nk_st, 0.0);
+            std::vector <double> flows_i (nedges * nk, 0.0);
+            std::vector <double> expsum (nk, 0.0);
 
             for (size_t j = 0; j < nverts; j++)
             {
@@ -298,11 +297,11 @@ struct OneDisperse : public RcppParallel::Worker
                     size_t index = verts_to_edge_map.at (two_verts);
                     if (d [j] < INFINITE_DOUBLE)
                     {
-                        for (R_xlen_t k = 0; k < nk; k++)
+                        for (size_t k = 0; k < nk; k++)
                         {
                             double exp_jk;
-                            if (kfrom [ir + k * nfrom] > 0.0)
-                                exp_jk = exp (-d [j] / kfrom [ir + k * nfrom]);
+                            if (kfrom [i + k * nfrom] > 0.0)
+                                exp_jk = exp (-d [j] / kfrom [i + k * nfrom]);
                             else
                             {
                                 // standard logistic polygonal for UK cycling
@@ -314,12 +313,12 @@ struct OneDisperse : public RcppParallel::Worker
                             }
                             const size_t k_st = static_cast <size_t> (k);
                             expsum [k_st] += exp_jk;
-                            flows_i [index + k_st * nedges] += dens [ir] * exp_jk;
+                            flows_i [index + k_st * nedges] += dens [i] * exp_jk;
                         }
                     }
                 }
             } // end for j
-            for (size_t k = 0; k < nk_st; k++)
+            for (size_t k = 0; k < nk; k++)
                 if (expsum [k] > tol)
                     for (size_t j = 0; j < nedges; j++)
                         output [j + k * nedges] +=
@@ -337,12 +336,12 @@ struct OneDisperse : public RcppParallel::Worker
 struct OneSI : public RcppParallel::Worker
 {
     RcppParallel::RVector <int> dp_fromi;
-    const std::vector <unsigned int> toi;
-    const RcppParallel::RVector <double> (k_from);
-    const RcppParallel::RVector <double> (dens_from);
-    const RcppParallel::RVector <double> (dens_to);
+    const std::vector <size_t> toi;
+    const RcppParallel::RVector <double> k_from;
+    const RcppParallel::RVector <double> dens_from;
+    const RcppParallel::RVector <double> dens_to;
     const std::vector <std::string> vert_name;
-    const std::unordered_map <std::string, unsigned int> verts_to_edge_map;
+    const std::unordered_map <std::string, size_t> verts_to_edge_map;
     size_t nverts; // can't be const because of reinterpret cast
     size_t nedges;
     const bool norm_sums;
@@ -355,12 +354,12 @@ struct OneSI : public RcppParallel::Worker
     // Constructor 1: The main constructor
     OneSI (
             const RcppParallel::RVector <int> fromi,
-            const std::vector <unsigned int> toi_in,
-            const RcppParallel::RVector <double> (k_from_in),
-            const RcppParallel::RVector <double> (dens_from_in),
-            const RcppParallel::RVector <double> (dens_to_in),
+            const std::vector <size_t> toi_in,
+            const RcppParallel::RVector <double> k_from_in,
+            const RcppParallel::RVector <double> dens_from_in,
+            const RcppParallel::RVector <double> dens_to_in,
             const std::vector <std::string>  vert_name_in,
-            const std::unordered_map <std::string, unsigned int> verts_to_edge_map_in,
+            const std::unordered_map <std::string, size_t> verts_to_edge_map_in,
             const size_t nverts_in,
             const size_t nedges_in,
             const bool norm_sums_in,
@@ -373,9 +372,9 @@ struct OneSI : public RcppParallel::Worker
         nverts (nverts_in), nedges (nedges_in), norm_sums (norm_sums_in),
         tol (tol_in), heap_type (heap_type_in), g (g_in), output ()
     {
-        const R_xlen_t nfrom = dens_from.size ();
-        const R_xlen_t nk = k_from.size () / nfrom;
-        const size_t out_size = nedges * static_cast <size_t> (nk);
+        const size_t nfrom = dens_from.size ();
+        const size_t nk = k_from.size () / nfrom;
+        const size_t out_size = nedges * nk;
         output.resize (out_size, 0.0);
     }
 
@@ -390,9 +389,9 @@ struct OneSI : public RcppParallel::Worker
         norm_sums (oneSI.norm_sums), tol (oneSI.tol),
         heap_type (oneSI.heap_type), g (oneSI.g), output ()
     {
-        const R_xlen_t nfrom = dens_from.size ();
-        const R_xlen_t nk = k_from.size () / nfrom;
-        const size_t out_size = nedges * static_cast <size_t> (nk);
+        const size_t nfrom = dens_from.size ();
+        const size_t nk = k_from.size () / nfrom;
+        const size_t out_size = nedges * nk;
         output.resize (out_size, 0.0);
     }
 
@@ -404,14 +403,13 @@ struct OneSI : public RcppParallel::Worker
                     *run_sp::getHeapImpl (heap_type), g);
         std::vector <double> w (nverts);
         std::vector <double> d (nverts);
-        std::vector <int> prev (nverts);
+        std::vector <long int> prev (nverts);
 
         // k_from can have multiple vectors of k-values, each equal in length to
         // the number of 'from' points. The output is then a single vector of
         // 'nedges' wrapped 'nk' times.
-        const R_xlen_t nfrom = dens_from.size ();
-        const R_xlen_t nk = k_from.size () / nfrom;
-        const size_t nk_st = static_cast <size_t> (nk);
+        const size_t nfrom = dens_from.size ();
+        const size_t nk = k_from.size () / nfrom;
 
         for (size_t i = begin; i < end; i++)
         {
@@ -419,14 +417,12 @@ struct OneSI : public RcppParallel::Worker
             if (RcppThread::isInterrupted ())
                 return;
 
-            R_xlen_t i_R = static_cast <R_xlen_t> (i);
-
             // These have to be reserved within the parallel operator function!
             std::fill (w.begin (), w.end (), INFINITE_DOUBLE);
             std::fill (d.begin (), d.end (), INFINITE_DOUBLE);
             std::fill (prev.begin (), prev.end (), INFINITE_INT);
 
-            unsigned int from_i = static_cast <unsigned int> (dp_fromi [i]);
+            size_t from_i = static_cast <size_t> (dp_fromi [i]);
             d [from_i] = w [from_i] = 0.0;
 
             // translate k-value to distance limit based on tol
@@ -435,18 +431,17 @@ struct OneSI : public RcppParallel::Worker
             // k_from holds nk vectors of different k-values, each of length
             // nedges.
             double dlim = 0.0;
-            for (R_xlen_t k = 0; k < nk; k++)
-                if (k_from [i_R + k * nfrom] > dlim)
-                    dlim = k_from [i_R + k * nfrom];
+            for (size_t k = 0; k < nk; k++)
+                if (k_from [i + k * nfrom] > dlim)
+                    dlim = k_from [i + k * nfrom];
             dlim = -dlim * log (tol);
 
             pathfinder->DijkstraLimit (d, w, prev, from_i, dlim);
 
-            std::vector <double> flows_i (nedges * nk_st, 0.0);
-            std::vector <double> expsum (nk_st, 0.0);
+            std::vector <double> flows_i (nedges * nk, 0.0);
+            std::vector <double> expsum (nk, 0.0);
             for (size_t j = 0; j < toi.size (); j++)
             {
-                const R_xlen_t j_R = static_cast <R_xlen_t> (j);
                 if (from_i != toi [j]) // Exclude self-flows
                 {
                     if (d [toi [j]] < INFINITE_DOUBLE)
@@ -464,14 +459,13 @@ struct OneSI : public RcppParallel::Worker
                          * denominator independent of that value in order to
                          * divide all final values.
                          */
-                        std::vector <double> exp_jk (nk_st, 0.0),
-                            flow_ijk (nk_st, 0.0);
-                        for (size_t k = 0; k < nk_st; k++)
+                        std::vector <double> exp_jk (nk, 0.0),
+                            flow_ijk (nk, 0.0);
+                        for (size_t k = 0; k < nk; k++)
                         {
-                            const R_xlen_t k_R = static_cast <R_xlen_t> (k);
-                            exp_jk [k] = dens_to [j_R] *
-                                exp (-d [toi [j]] / k_from [i_R + k_R * nfrom]);
-                            flow_ijk [k] = dens_from [i_R] * exp_jk [k];
+                            exp_jk [k] = dens_to [j] *
+                                exp (-d [toi [j]] / k_from [i + k * nfrom]);
+                            flow_ijk [k] = dens_from [i] * exp_jk [k];
                             expsum [k] += exp_jk [k];
                         }
 
@@ -481,18 +475,19 @@ struct OneSI : public RcppParallel::Worker
                         if (norm_sums)
                         {
                             path_len = 0;
-                            size_t target_t = toi [j];
+                            long int target_t = static_cast <long int> (toi [j]);
                             size_t from_t = static_cast <size_t> (dp_fromi [i]);
                             while (target_t < INFINITE_INT)
                             {
+                                size_t target_size_t = static_cast <size_t> (target_t);
                                 path_len++;
-                                target_t = prev [target_t];
-                                if (target_t < 0 || target_t == from_t)
+                                target_t = prev [target_size_t];
+                                if (target_t < 0 || target_size_t == from_t)
                                     break;
                             }
                         } 
 
-                        int target = static_cast <int> (toi [j]); // can equal -1
+                        long int target = static_cast <long int> (toi [j]); // can equal -1
                         while (target < INFINITE_INT)
                         {
                             size_t stt = static_cast <size_t> (target);
@@ -504,7 +499,7 @@ struct OneSI : public RcppParallel::Worker
                                 // multiple flows can aggregate to same edge, so
                                 // this has to be +=, not just =!
                                 size_t index = verts_to_edge_map.at (v2);
-                                for (size_t k = 0; k < nk_st; k++)
+                                for (size_t k = 0; k < nk; k++)
                                 {
                                     flows_i [index + k * nedges] +=
                                         flow_ijk [k] / 
@@ -512,10 +507,10 @@ struct OneSI : public RcppParallel::Worker
                                 }
                             }
 
-                            target = static_cast <int> (prev [stt]);
+                            target = static_cast <long int> (prev [stt]);
                             // Only allocate that flow from origin vertex v to all
                             // previous vertices up until the target vi
-                            if (target < 0 || target == dp_fromi [i])
+                            if (target < 0L || target == dp_fromi [i])
                             {
                                 break;
                             }
@@ -523,7 +518,7 @@ struct OneSI : public RcppParallel::Worker
                     }
                 }
             } // end for j
-            for (size_t k = 0; k < nk_st; k++)
+            for (size_t k = 0; k < nk; k++)
                 if (expsum [k] > tol)
                     for (size_t j = 0; j < nedges; j++)
                         output [j + k * nedges] +=
@@ -566,8 +561,8 @@ Rcpp::NumericVector rcpp_flows_aggregate_par (const Rcpp::DataFrame graph,
         const double tol,
         const std::string heap_type)
 {
-    std::vector <unsigned int> toi =
-        Rcpp::as <std::vector <unsigned int> > (toi_in);
+    std::vector <size_t> toi =
+        Rcpp::as <std::vector <size_t> > (toi_in);
     const size_t nfrom = static_cast <size_t> (fromi.size ());
 
     const std::vector <std::string> from = graph ["from"];
@@ -575,15 +570,15 @@ Rcpp::NumericVector rcpp_flows_aggregate_par (const Rcpp::DataFrame graph,
     const std::vector <double> dist = graph ["d"];
     const std::vector <double> wt = graph ["d_weighted"];
 
-    const unsigned int nedges = static_cast <unsigned int> (graph.nrow ());
+    const size_t nedges = static_cast <size_t> (graph.nrow ());
     const std::vector <std::string> vert_name = vert_map_in ["vert"];
-    const std::vector <unsigned int> vert_indx = vert_map_in ["id"];
+    const std::vector <size_t> vert_indx = vert_map_in ["id"];
     // Make map from vertex name to integer index
-    std::map <std::string, unsigned int> vert_map_i;
+    std::map <std::string, size_t> vert_map_i;
     const size_t nverts = run_sp::make_vert_map (vert_map_in, vert_name,
             vert_indx, vert_map_i);
 
-    std::unordered_map <std::string, unsigned int> verts_to_edge_map;
+    std::unordered_map <std::string, size_t> verts_to_edge_map;
     std::unordered_map <std::string, double> verts_to_dist_map;
     run_sp::make_vert_to_edge_maps (from, to, wt, verts_to_edge_map, verts_to_dist_map);
 
@@ -637,15 +632,15 @@ Rcpp::NumericVector rcpp_flows_disperse_par (const Rcpp::DataFrame graph,
     std::vector <double> dist = graph ["d"];
     std::vector <double> wt = graph ["d_weighted"];
 
-    unsigned int nedges = static_cast <unsigned int> (graph.nrow ());
+    size_t nedges = static_cast <size_t> (graph.nrow ());
     std::vector <std::string> vert_name = vert_map_in ["vert"];
-    std::vector <unsigned int> vert_indx = vert_map_in ["id"];
+    std::vector <size_t> vert_indx = vert_map_in ["id"];
     // Make map from vertex name to integer index
-    std::map <std::string, unsigned int> vert_map_i;
+    std::map <std::string, size_t> vert_map_i;
     size_t nverts = run_sp::make_vert_map (vert_map_in, vert_name,
             vert_indx, vert_map_i);
 
-    std::unordered_map <std::string, unsigned int> verts_to_edge_map;
+    std::unordered_map <std::string, size_t> verts_to_edge_map;
     std::unordered_map <std::string, double> verts_to_dist_map;
     run_sp::make_vert_to_edge_maps (from, to, wt, verts_to_edge_map, verts_to_dist_map);
 
@@ -691,8 +686,8 @@ Rcpp::NumericVector rcpp_flows_si (const Rcpp::DataFrame graph,
         const double tol,
         const std::string heap_type)
 {
-    std::vector <unsigned int> toi =
-        Rcpp::as <std::vector <unsigned int> > ( toi_in);
+    std::vector <size_t> toi =
+        Rcpp::as <std::vector <size_t> > ( toi_in);
     const size_t nfrom = static_cast <size_t> (fromi.size ());
 
     const std::vector <std::string> from = graph ["from"];
@@ -700,15 +695,15 @@ Rcpp::NumericVector rcpp_flows_si (const Rcpp::DataFrame graph,
     const std::vector <double> dist = graph ["d"];
     const std::vector <double> wt = graph ["d_weighted"];
 
-    const unsigned int nedges = static_cast <unsigned int> (graph.nrow ());
+    const size_t nedges = static_cast <size_t> (graph.nrow ());
     const std::vector <std::string> vert_name = vert_map_in ["vert"];
-    const std::vector <unsigned int> vert_indx = vert_map_in ["id"];
+    const std::vector <size_t> vert_indx = vert_map_in ["id"];
     // Make map from vertex name to integer index
-    std::map <std::string, unsigned int> vert_map_i;
+    std::map <std::string, size_t> vert_map_i;
     const size_t nverts = run_sp::make_vert_map (vert_map_in, vert_name,
             vert_indx, vert_map_i);
 
-    std::unordered_map <std::string, unsigned int> verts_to_edge_map;
+    std::unordered_map <std::string, size_t> verts_to_edge_map;
     std::unordered_map <std::string, double> verts_to_dist_map;
     run_sp::make_vert_to_edge_maps (from, to, wt, verts_to_edge_map, verts_to_dist_map);
 

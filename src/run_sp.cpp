@@ -6,17 +6,17 @@
 
 // # nocov start
 template <typename T>
-void inst_graph (std::shared_ptr<DGraph> g, unsigned int nedges,
-        const std::map <std::string, unsigned int>& vert_map,
+void inst_graph (std::shared_ptr<DGraph> g, size_t nedges,
+        const std::map <std::string, size_t>& vert_map,
         const std::vector <std::string>& from,
         const std::vector <std::string>& to,
         const std::vector <T>& dist,
         const std::vector <T>& wt)
 {
-    for (unsigned int i = 0; i < nedges; ++i)
+    for (size_t i = 0; i < nedges; ++i)
     {
-        unsigned int fromi = vert_map.at(from [i]);
-        unsigned int toi = vert_map.at(to [i]);
+        size_t fromi = vert_map.at(from [i]);
+        size_t toi = vert_map.at(to [i]);
         g->addNewEdge (fromi, toi, dist [i], wt [i], i);
     }
 }
@@ -61,7 +61,7 @@ std::shared_ptr <HeapDesc> run_sp::getHeapImpl(const std::string& heap_type)
 struct OneDist : public RcppParallel::Worker
 {
     RcppParallel::RVector <int> dp_fromi;
-    const std::vector <unsigned int> toi;
+    const std::vector <size_t> toi;
     const size_t nverts;
     const std::vector <double> vx;
     const std::vector <double> vy;
@@ -74,7 +74,7 @@ struct OneDist : public RcppParallel::Worker
     // constructor
     OneDist (
             const RcppParallel::RVector <int> fromi,
-            const std::vector <unsigned int> toi_in,
+            const std::vector <size_t> toi_in,
             const size_t nverts_in,
             const std::vector <double> vx_in,
             const std::vector <double> vy_in,
@@ -97,13 +97,13 @@ struct OneDist : public RcppParallel::Worker
                     *run_sp::getHeapImpl (heap_type), g);
         std::vector <double> w (nverts);
         std::vector <double> d (nverts);
-        std::vector <int> prev (nverts);
+        std::vector <long int> prev (nverts);
 
         std::vector <double> heuristic (nverts, 0.0);
 
         for (std::size_t i = begin; i < end; i++)
         {
-            unsigned int from_i = static_cast <unsigned int> (dp_fromi [i]);
+            size_t from_i = static_cast <size_t> (dp_fromi [i]);
 
             if (is_spatial)
             {
@@ -170,21 +170,21 @@ struct OneDistPaired : public RcppParallel::Worker
                     *run_sp::getHeapImpl (heap_type), g);
         std::vector <double> w (nverts);
         std::vector <double> d (nverts);
-        std::vector <int> prev (nverts);
+        std::vector <long int> prev (nverts);
 
         std::vector <double> heuristic (nverts, 0.0);
 
         for (std::size_t i = begin; i < end; i++)
         {
-            const unsigned int from_i = static_cast <unsigned int> (dp_fromtoi [i]);
-            const std::vector <unsigned int> to_i = {static_cast <unsigned int> (dp_fromtoi [nfrom + i])};
+            const size_t from_i = static_cast <size_t> (dp_fromtoi [i]);
+            const std::vector <size_t> to_i = {static_cast <size_t> (dp_fromtoi [nfrom + i])};
 
             if (is_spatial)
             {
                 // need to set an additional target vertex that is somewhat
                 // beyond the single actual target vertex. Default here is max
                 // heuristic, but reduced in following loop.
-                unsigned int max_h_index = -1;
+                long int max_h_index = -1;
                 double max_h_value = -1.0;
                 for (size_t j = 0; j < nverts; j++)
                 {
@@ -193,12 +193,12 @@ struct OneDistPaired : public RcppParallel::Worker
                     heuristic [j] = sqrt (dx * dx + dy * dy);
                     if (heuristic [j] > max_h_value) {
                         max_h_value = heuristic [j];
-                        max_h_index = j;
+                        max_h_index = static_cast <long int> (j);
                     }
                 }
-                const unsigned int htemp = heuristic [dp_fromtoi [nfrom + i]];
+                const double htemp = heuristic [static_cast <size_t> (dp_fromtoi [nfrom + i])];
                 double min_h_value = max_h_value;
-                unsigned int min_h_index = max_h_index;
+                long int min_h_index = max_h_index;
                 // Arbitrary relative distance threshold
                 // TODO: Are there likely to be cases where this might need to
                 // be adjusted?
@@ -206,10 +206,10 @@ struct OneDistPaired : public RcppParallel::Worker
                 for (size_t j = 0; j < nverts; j++) {
                     if ((heuristic [j] < (thr * htemp)) && (heuristic [j] > min_h_value)) {
                         min_h_value = heuristic [j];
-                        min_h_index = j;
+                        min_h_index = static_cast <long int> (j);
                     }
                 }
-                const std::vector <unsigned int> to_i2 = {to_i [0], min_h_index};
+                const std::vector <size_t> to_i2 = {to_i [0], static_cast <size_t> (min_h_index)};
                 pathfinder->AStar (d, w, prev, heuristic, from_i, to_i2);
             } else if (heap_type.find ("set") == std::string::npos)
                 pathfinder->Dijkstra (d, w, prev, from_i, to_i);
@@ -256,7 +256,7 @@ struct OneIso : public RcppParallel::Worker
                     *run_sp::getHeapImpl (heap_type), g);
         std::vector <double> w (nverts);
         std::vector <double> d (nverts);
-        std::vector <int> prev (nverts);
+        std::vector <long int> prev (nverts);
 
         const double dlimit_max = *std::max_element (dlimit.begin (), dlimit.end ());
 
@@ -266,7 +266,7 @@ struct OneIso : public RcppParallel::Worker
             std::fill (d.begin (), d.end (), INFINITE_DOUBLE);
             std::fill (prev.begin (), prev.end (), INFINITE_INT);
 
-            unsigned int from_i = static_cast <unsigned int> (dp_fromi [i]);
+            size_t from_i = static_cast <size_t> (dp_fromi [i]);
 
             pathfinder->DijkstraLimit (d, w, prev, from_i, dlimit_max);
 
@@ -275,7 +275,7 @@ struct OneIso : public RcppParallel::Worker
             std::unordered_set <int> terminal_verts;
             for (size_t j = 0; j < nverts; j++)
             {
-                if (prev [j] == INFINITE_INT && w [j] < dlimit_max)
+                if (prev [j] == INFINITE_INT && d [j] < dlimit_max)
                 {
                     terminal_verts.emplace (static_cast <int> (j));
                 }
@@ -288,16 +288,16 @@ struct OneIso : public RcppParallel::Worker
                         terminal_verts.end ())
                 {
                     // Flag terminal verts with -d
-                    dout (i, j) = -w [j]; // # nocov
-                } else if (prev [j] < INFINITE_INT && w [j] < dlimit_max)
+                    dout (i, j) = -d [j]; // # nocov
+                } else if (prev [j] < INFINITE_INT && d [j] < dlimit_max)
                 {
                     size_t st_prev = static_cast <size_t> (prev [j]);
                     for (auto k: dlimit)
                     {
-                        if (w [j] > k && w [st_prev] < k)
+                        if (d [j] > k && d [st_prev] < k)
                             dout (i, st_prev) = -k; // flag isohull verts with -k
                         else
-                            dout (i, j) = w [j]; // distance of other internal verts
+                            dout (i, j) = d [j]; // distance of other internal verts
                     }
                 }
             }
@@ -309,11 +309,11 @@ struct OneIso : public RcppParallel::Worker
 
 size_t run_sp::make_vert_map (const Rcpp::DataFrame &vert_map_in,
         const std::vector <std::string> &vert_map_id,
-        const std::vector <unsigned int> &vert_map_n,
-        std::map <std::string, unsigned int> &vert_map)
+        const std::vector <size_t> &vert_map_n,
+        std::map <std::string, size_t> &vert_map)
 {
-    for (unsigned int i = 0;
-            i < static_cast <unsigned int> (vert_map_in.nrow ()); ++i)
+    for (size_t i = 0;
+            i < static_cast <size_t> (vert_map_in.nrow ()); ++i)
     {
         vert_map.emplace (vert_map_id [i], vert_map_n [i]);
     }
@@ -329,10 +329,10 @@ size_t run_sp::make_vert_map (const Rcpp::DataFrame &vert_map_in,
 // only.
 void run_sp::make_vert_to_edge_maps (const std::vector <std::string> &from,
         const std::vector <std::string> &to, const std::vector <double> &wt,
-        std::unordered_map <std::string, unsigned int> &verts_to_edge_map,
+        std::unordered_map <std::string, size_t> &verts_to_edge_map,
         std::unordered_map <std::string, double> &verts_to_dist_map)
 {
-    for (unsigned int i = 0; i < from.size (); i++)
+    for (size_t i = 0; i < from.size (); i++)
     {
         std::string two_verts = "f" + from [i] + "t" + to [i];
         verts_to_edge_map.emplace (two_verts, i);
@@ -357,8 +357,8 @@ Rcpp::NumericMatrix rcpp_get_sp_dists_par (const Rcpp::DataFrame graph,
         const std::string& heap_type,
         const bool is_spatial)
 {
-    std::vector <unsigned int> toi =
-        Rcpp::as <std::vector <unsigned int> > ( toi_in);
+    std::vector <size_t> toi =
+        Rcpp::as <std::vector <size_t> > ( toi_in);
 
     size_t nfrom = static_cast <size_t> (fromi.size ());
     size_t nto = static_cast <size_t> (toi.size ());
@@ -368,10 +368,10 @@ Rcpp::NumericMatrix rcpp_get_sp_dists_par (const Rcpp::DataFrame graph,
     const std::vector <double> dist = graph ["d"];
     const std::vector <double> wt = graph ["d_weighted"];
 
-    const unsigned int nedges = static_cast <unsigned int> (graph.nrow ());
-    std::map <std::string, unsigned int> vert_map;
+    const size_t nedges = static_cast <size_t> (graph.nrow ());
+    std::map <std::string, size_t> vert_map;
     std::vector <std::string> vert_map_id = vert_map_in ["vert"];
-    std::vector <unsigned int> vert_map_n = vert_map_in ["id"];
+    std::vector <size_t> vert_map_n = vert_map_in ["id"];
     const size_t nverts = run_sp::make_vert_map (vert_map_in, vert_map_id,
             vert_map_n, vert_map);
 
@@ -414,17 +414,18 @@ Rcpp::NumericMatrix rcpp_get_sp_dists_paired_par (const Rcpp::DataFrame graph,
 {
     if (fromi.size () != toi.size ())
         Rcpp::stop ("pairwise dists must have from.size == to.size");
-    size_t n = static_cast <size_t> (fromi.size ());
+    long int n = fromi.size ();
+    size_t n_st = static_cast <size_t> (n);
 
     const std::vector <std::string> from = graph ["from"];
     const std::vector <std::string> to = graph ["to"];
     const std::vector <double> dist = graph ["d"];
     const std::vector <double> wt = graph ["d_weighted"];
 
-    const unsigned int nedges = static_cast <unsigned int> (graph.nrow ());
-    std::map <std::string, unsigned int> vert_map;
+    const size_t nedges = static_cast <size_t> (graph.nrow ());
+    std::map <std::string, size_t> vert_map;
     std::vector <std::string> vert_map_id = vert_map_in ["vert"];
-    std::vector <unsigned int> vert_map_n = vert_map_in ["id"];
+    std::vector <size_t> vert_map_n = vert_map_in ["id"];
     const size_t nverts = run_sp::make_vert_map (vert_map_in, vert_map_id,
             vert_map_n, vert_map);
 
@@ -438,25 +439,26 @@ Rcpp::NumericMatrix rcpp_get_sp_dists_paired_par (const Rcpp::DataFrame graph,
     std::shared_ptr <DGraph> g = std::make_shared <DGraph> (nverts);
     inst_graph (g, nedges, vert_map, from, to, dist, wt);
 
-    Rcpp::NumericVector na_vec = Rcpp::NumericVector (n,
+    Rcpp::NumericVector na_vec = Rcpp::NumericVector (n_st,
             Rcpp::NumericVector::get_na ());
     Rcpp::NumericMatrix dout (static_cast <int> (n), 1, na_vec.begin ());
 
     // Paired (fromi, toi) in a single vector
-    Rcpp::IntegerVector fromto (2 * n);
-    for (int i = 0; i < static_cast <int> (n); i++)
+    Rcpp::IntegerVector fromto (2 * n_st);
+    for (int i = 0; i < n; i++)
     {
-        fromto [i] = fromi (i);
-        fromto [i + n] = toi (i);
+        size_t i_t = static_cast <size_t> (i);
+        fromto [i] = fromi (i_t);
+        fromto [i + n] = toi (i_t);
     }
 
     // Create parallel worker
     OneDistPaired one_dist_paired (RcppParallel::RVector <int> (fromto),
-            nverts, n, vx, vy, g, heap_type, is_spatial,
+            nverts, n_st, vx, vy, g, heap_type, is_spatial,
             RcppParallel::RMatrix <double> (dout));
 
-    size_t chunk_size = run_sp::get_chunk_size (n);
-    RcppParallel::parallelFor (0, n, one_dist_paired, chunk_size);
+    size_t chunk_size = run_sp::get_chunk_size (n_st);
+    RcppParallel::parallelFor (0, n_st, one_dist_paired, chunk_size);
     
     return (dout);
 }
@@ -478,10 +480,10 @@ Rcpp::NumericMatrix rcpp_get_iso (const Rcpp::DataFrame graph,
     std::vector <double> dist = graph ["d"];
     std::vector <double> wt = graph ["d_weighted"];
 
-    unsigned int nedges = static_cast <unsigned int> (graph.nrow ());
-    std::map <std::string, unsigned int> vert_map;
+    size_t nedges = static_cast <size_t> (graph.nrow ());
+    std::map <std::string, size_t> vert_map;
     std::vector <std::string> vert_map_id = vert_map_in ["vert"];
-    std::vector <unsigned int> vert_map_n = vert_map_in ["id"];
+    std::vector <size_t> vert_map_n = vert_map_in ["id"];
     size_t nverts = run_sp::make_vert_map (vert_map_in, vert_map_id,
             vert_map_n, vert_map);
 
@@ -516,8 +518,8 @@ Rcpp::NumericMatrix rcpp_get_sp_dists (const Rcpp::DataFrame graph,
         Rcpp::IntegerVector toi_in,
         const std::string& heap_type)
 {
-    std::vector <unsigned int> toi =
-        Rcpp::as <std::vector <unsigned int> > ( toi_in);
+    std::vector <size_t> toi =
+        Rcpp::as <std::vector <size_t> > ( toi_in);
     size_t nfrom = static_cast <size_t> (fromi.size ());
     size_t nto = static_cast <size_t> (toi.size ());
 
@@ -526,10 +528,10 @@ Rcpp::NumericMatrix rcpp_get_sp_dists (const Rcpp::DataFrame graph,
     std::vector <double> dist = graph ["d"];
     std::vector <double> wt = graph ["d_weighted"];
 
-    unsigned int nedges = static_cast <unsigned int> (graph.nrow ());
-    std::map <std::string, unsigned int> vert_map;
+    size_t nedges = static_cast <size_t> (graph.nrow ());
+    std::map <std::string, size_t> vert_map;
     std::vector <std::string> vert_map_id = vert_map_in ["vert"];
-    std::vector <unsigned int> vert_map_n = vert_map_in ["id"];
+    std::vector <size_t> vert_map_n = vert_map_in ["id"];
     size_t nverts = run_sp::make_vert_map (vert_map_in, vert_map_id,
             vert_map_n, vert_map);
 
@@ -538,7 +540,7 @@ Rcpp::NumericMatrix rcpp_get_sp_dists (const Rcpp::DataFrame graph,
 
     std::vector<double> w (nverts);
     std::vector<double> d (nverts);
-    std::vector<int> prev (nverts);
+    std::vector<long int> prev (nverts);
 
     // initialise dout matrix to NA
     Rcpp::NumericVector na_vec = Rcpp::NumericVector (nfrom * nto,
@@ -547,7 +549,7 @@ Rcpp::NumericMatrix rcpp_get_sp_dists (const Rcpp::DataFrame graph,
             static_cast <int> (nto), na_vec.begin ());
 
 
-    for (unsigned int i = 0; i < nfrom; i++)
+    for (size_t i = 0; i < nfrom; i++)
     {
         // These lines (re-)initialise the heap, so have to be called for each v
         std::shared_ptr <PF::PathFinder> pathfinder =
@@ -559,11 +561,11 @@ Rcpp::NumericMatrix rcpp_get_sp_dists (const Rcpp::DataFrame graph,
         Rcpp::checkUserInterrupt ();
         std::fill (w.begin(), w.end(), INFINITE_DOUBLE);
         std::fill (d.begin(), d.end(), INFINITE_DOUBLE);
-        d [fromi [i]] = w [fromi [i]] = 0.0;
+        size_t fromi_i = static_cast <size_t> (fromi [static_cast <R_xlen_t> (i)]);
+        d [fromi_i] = w [fromi_i] = 0.0;
 
-        pathfinder->Dijkstra (d, w, prev,
-                static_cast <unsigned int> (fromi [i]), toi);
-        for (unsigned int j = 0; j < nto; j++)
+        pathfinder->Dijkstra (d, w, prev, fromi_i, toi);
+        for (size_t j = 0; j < nto; j++)
         {
             if (w [static_cast <size_t> (toi [j])] < INFINITE_DOUBLE)
             {
@@ -600,8 +602,8 @@ Rcpp::List rcpp_get_paths (const Rcpp::DataFrame graph,
         Rcpp::IntegerVector toi_in,
         const std::string& heap_type)
 {
-    std::vector <unsigned int> toi =
-        Rcpp::as <std::vector <unsigned int> > ( toi_in);
+    std::vector <size_t> toi =
+        Rcpp::as <std::vector <size_t> > ( toi_in);
     size_t nfrom = static_cast <size_t> (fromi.size ());
     size_t nto = static_cast <size_t> (toi.size ());
 
@@ -610,10 +612,10 @@ Rcpp::List rcpp_get_paths (const Rcpp::DataFrame graph,
     std::vector <double> dist = graph ["d"];
     std::vector <double> wt = graph ["d_weighted"];
 
-    unsigned int nedges = static_cast <unsigned int> (graph.nrow ());
-    std::map <std::string, unsigned int> vert_map;
+    size_t nedges = static_cast <size_t> (graph.nrow ());
+    std::map <std::string, size_t> vert_map;
     std::vector <std::string> vert_map_id = vert_map_in ["vert"];
-    std::vector <unsigned int> vert_map_n = vert_map_in ["id"];
+    std::vector <size_t> vert_map_n = vert_map_in ["id"];
     size_t nverts = run_sp::make_vert_map (vert_map_in, vert_map_id,
             vert_map_n, vert_map);
 
@@ -623,10 +625,12 @@ Rcpp::List rcpp_get_paths (const Rcpp::DataFrame graph,
     Rcpp::List res (nfrom);
     std::vector<double> w (nverts);
     std::vector<double> d (nverts);
-    std::vector<int> prev (nverts);
+    std::vector<long int> prev (nverts);
 
-    for (unsigned int i = 0; i < nfrom; i++)
+    for (size_t i = 0; i < nfrom; i++)
     {
+        const R_xlen_t i_R = static_cast <R_xlen_t> (i);
+
         // These lines (re-)initialise the heap, so have to be called for each i
         std::shared_ptr<PF::PathFinder> pathfinder =
             std::make_shared <PF::PathFinder> (nverts,
@@ -638,36 +642,37 @@ Rcpp::List rcpp_get_paths (const Rcpp::DataFrame graph,
         std::fill (w.begin(), w.end(), INFINITE_DOUBLE);
         std::fill (d.begin(), d.end(), INFINITE_DOUBLE);
         std::fill (prev.begin(), prev.end(), INFINITE_INT);
-        d [fromi [i]] = w [fromi [i]] = 0.0;
+        d [static_cast <size_t> (fromi [i_R])] =
+            w [static_cast <size_t> (fromi [i_R])] = 0.0;
 
         pathfinder->Dijkstra (d, w, prev,
-                static_cast <unsigned int> (fromi [i]), toi);
+                static_cast <size_t> (fromi [i_R]), toi);
 
         Rcpp::List res1 (nto);
-        for (unsigned int j = 0; j < nto; j++)
+        for (size_t j = 0; j < nto; j++)
         {
-            std::vector <int> onePath;
+            std::vector <long int> onePath;
             if (w [toi [j]] < INFINITE_DOUBLE)
             {
-                int target = toi_in [j]; // target can be -1!
+                long int target = toi_in [static_cast <R_xlen_t> (j)]; // target can be -1!
                 while (target < INFINITE_INT)
                 {
                     // Note that targets are all C++ 0-indexed and are converted
                     // directly here to R-style 1-indexes.
-                    onePath.push_back (target + 1);
-                    target = static_cast <int> (prev [static_cast <unsigned int> (target)]);
-                    if (target < 0 || target == fromi [i])
+                    onePath.push_back (target + 1L);
+                    target = prev [static_cast <size_t> (target)];
+                    if (target < 0L || target == fromi [i_R])
                         break;
                 }
             }
             if (onePath.size () >= 1)
             {
-                onePath.push_back (fromi [i] + 1);
+                onePath.push_back (static_cast <R_xlen_t> (fromi [i_R] + 1L));
                 std::reverse (onePath.begin (), onePath.end ());
-                res1 [j] = onePath;
+                res1 [static_cast <R_xlen_t> (j)] = onePath;
             }
         }
-        res [i] = res1;
+        res [static_cast <R_xlen_t> (i)] = res1;
     }
     return (res);
 }

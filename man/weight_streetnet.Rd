@@ -192,4 +192,25 @@ graph <- weight_streetnet (r, type_col = "type", id_col = "id",
 }
 \seealso{
 \link{write_dodgr_wt_profile}, \link{dodgr_times}
+
+Other extraction: 
+\code{\link{dodgr_streetnet_sc}()},
+\code{\link{dodgr_streetnet}()},
+\code{\link{weight_railway}()}
+
+Other extraction: 
+\code{\link{dodgr_streetnet_sc}()},
+\code{\link{dodgr_streetnet}()},
+\code{\link{weight_railway}()}
+
+Other extraction: 
+\code{\link{dodgr_streetnet_sc}()},
+\code{\link{dodgr_streetnet}()},
+\code{\link{weight_railway}()}
+
+Other extraction: 
+\code{\link{dodgr_streetnet_sc}()},
+\code{\link{dodgr_streetnet}()},
+\code{\link{weight_railway}()}
 }
+\concept{extraction}

@@ -70,7 +70,7 @@ bool graph::graph_from_df (const Rcpp::DataFrame &gr, vertex_map_t &vm,
 
     std::set <edge_id_t> replacement_edges; // all empty here
 
-    for (int i = 0; i < to.length (); i ++)
+    for (R_xlen_t i = 0; i < to.length (); i ++)
     {
         Rcpp::checkUserInterrupt ();
         vertex_id_t from_id = std::string (from [i]);
@@ -126,8 +126,8 @@ bool graph::graph_from_df (const Rcpp::DataFrame &gr, vertex_map_t &vm,
 //' @param v unordered_map <vertex_id_t, vertex_t>
 //' @param com component map from each vertex to component numbers
 //' @noRd
-unsigned int graph::identify_graph_components (vertex_map_t &v,
-        std::unordered_map <vertex_id_t, unsigned int> &com)
+size_t graph::identify_graph_components (vertex_map_t &v,
+        std::unordered_map <vertex_id_t, size_t> &com)
 {
     // initialize components map
     std::unordered_set <vertex_id_t> all_verts;
@@ -137,7 +137,7 @@ unsigned int graph::identify_graph_components (vertex_map_t &v,
 
     std::unordered_set <vertex_id_t> nbs_todo, nbs_done;
     nbs_todo.insert (*all_verts.begin ());
-    unsigned int compnum = 0;
+    size_t compnum = 0;
     while (all_verts.size () > 0)
     {
         Rcpp::checkUserInterrupt ();
@@ -166,7 +166,7 @@ unsigned int graph::identify_graph_components (vertex_map_t &v,
     long int largest_id = 0;
     if (compnum > 0)
     {
-        std::vector <unsigned int> comp_sizes (compnum + 1, 0);
+        std::vector <size_t> comp_sizes (compnum + 1, 0);
         for (auto c: com)
             comp_sizes [c.second]++;
         auto maxi = std::max_element (comp_sizes.begin (), comp_sizes.end ());
@@ -174,7 +174,7 @@ unsigned int graph::identify_graph_components (vertex_map_t &v,
         largest_id = std::distance (comp_sizes.begin (), maxi);
     }
 
-    return static_cast <unsigned int> (largest_id);
+    return static_cast <size_t> (largest_id);
 }
 
 
@@ -198,13 +198,13 @@ Rcpp::List rcpp_get_component_vector (const Rcpp::DataFrame &graph)
     bool has_times = graph::graph_from_df (graph, vertices, edge_map, vert2edge_map);
     has_times = false; // rm unused variable warning
 
-    std::unordered_map <vertex_id_t, unsigned int> components;
-    unsigned int largest_component =
+    std::unordered_map <vertex_id_t, size_t> components;
+    size_t largest_component =
         graph::identify_graph_components (vertices, components);
     largest_component++; // suppress unused variable warning
 
     // Then map component numbers of vertices onto edges
-    std::unordered_map <edge_id_t, unsigned int> comp_nums;
+    std::unordered_map <edge_id_t, size_t> comp_nums;
     for (auto ve: vert2edge_map)
     {
         vertex_id_t vi = ve.first;
@@ -215,11 +215,11 @@ Rcpp::List rcpp_get_component_vector (const Rcpp::DataFrame &graph)
 
     Rcpp::StringVector edge_id (comp_nums.size ());
     Rcpp::IntegerVector comp_num (comp_nums.size ());
-    unsigned int i = 0;
+    size_t i = 0;
     for (auto cn: comp_nums)
     {
         edge_id (i) = cn.first;
-        comp_num (i) = cn.second + 1; // 1-indexed for R
+        comp_num (i) = static_cast <int> (cn.second) + 1L; // 1-indexed for R
         i++;
     }
 
@@ -236,55 +236,56 @@ Rcpp::List rcpp_get_component_vector (const Rcpp::DataFrame &graph)
 //' @noRd
 // [[Rcpp::export]]
 Rcpp::DataFrame rcpp_unique_rownames (Rcpp::DataFrame xyfrom,
-                                      Rcpp::DataFrame xyto,
-                                      const int precision = 10)
+        Rcpp::DataFrame xyto,
+        const int precision = 10)
 {
-            std::vector <double> xf = xyfrom ["x"],
-                                 yf = xyfrom ["y"],
-                                 xt = xyto ["x"],
-                                 yt = xyto ["y"];
-            const int n = xyfrom.nrow ();
+    const size_t prec_size_t = static_cast <size_t> (precision);
 
-            std::vector <std::string> s_f (n), s_t (n);
-            std::vector <std::string> i_f (n), i_t (n); // indices as rownames
-            std::unordered_map <std::string, std::string> xynames;
-            int count = 0;
-            for (int i = 0; i < n; i++)
-            {
-                std::string xfs = std::to_string (xf [i]),
-                            yfs = std::to_string (yf [i]),
-                            xts = std::to_string (xt [i]),
-                            yts = std::to_string (yt [i]);
-                s_f [i] = xfs.substr(0, xfs.find(".") + precision + 1) +
-                    yfs.substr (0, yfs.find(".") + precision + 1);
-                s_t [i] = xts.substr (0, xts.find(".") + precision + 1) +
-                    yts.substr (0, yts.find(".") + precision + 1);
+    std::vector <double> xf = xyfrom ["x"],
+    yf = xyfrom ["y"],
+    xt = xyto ["x"],
+    yt = xyto ["y"];
+    const size_t n = static_cast <size_t> (xyfrom.nrow ());
 
-                if (xynames.find (s_f [i]) != xynames.end ())
-                {
-                    i_f [i] = xynames.at (s_f [i]);
-                } else
-                {
-                    i_f [i] = std::to_string (count);
-                    xynames.emplace (s_f [i], i_f [i]);
-                    count++;
-                }
+    std::vector <std::string> s_f (n), s_t (n);
+    std::vector <std::string> i_f (n), i_t (n); // indices as rownames
+    std::unordered_map <std::string, std::string> xynames;
+    size_t count = 0;
+    for (size_t i = 0; i < n; i++)
+    {
+        std::string xfs = std::to_string (xf [i]),
+            yfs = std::to_string (yf [i]),
+            xts = std::to_string (xt [i]),
+            yts = std::to_string (yt [i]);
+        s_f [i] = xfs.substr(0, xfs.find(".") + prec_size_t + 1) +
+            yfs.substr (0, yfs.find(".") + prec_size_t + 1);
+        s_t [i] = xts.substr (0, xts.find(".") + prec_size_t + 1) +
+            yts.substr (0, yts.find(".") + prec_size_t + 1);
 
-                if (xynames.find (s_t [i]) != xynames.end ())
-                {
-                    i_t [i] = xynames.at (s_t [i]);
-                } else
-                {
-                    i_t [i] = std::to_string (count);
-                    xynames.emplace (s_t [i], i_t [i]);
-                    count++;
-                }
-            }
+        if (xynames.find (s_f [i]) != xynames.end ())
+        {
+            i_f [i] = xynames.at (s_f [i]);
+        } else
+        {
+            i_f [i] = std::to_string (count);
+            xynames.emplace (s_f [i], i_f [i]);
+            count++;
+        }
 
-            Rcpp::DataFrame res = Rcpp::DataFrame::create (
-                    Rcpp::Named ("from_id") = i_f,
-                    Rcpp::Named ("to_id") = i_t,
-                    Rcpp::_["stringsAsFactors"] = false);
-            return res;
+        if (xynames.find (s_t [i]) != xynames.end ())
+        {
+            i_t [i] = xynames.at (s_t [i]);
+        } else
+        {
+            i_t [i] = std::to_string (count);
+            xynames.emplace (s_t [i], i_t [i]);
+            count++;
+        }
+    }
+
+    Rcpp::DataFrame res = Rcpp::DataFrame::create (
+            Rcpp::Named ("from_id") = i_f,
+            Rcpp::Named ("to_id") = i_t,
+            Rcpp::_["stringsAsFactors"] = false);
+    return res;
 }
-

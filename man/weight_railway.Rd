@@ -53,3 +53,10 @@ dat <- opq ("shinjuku") \%>\%
 graph <- weight_railway (dat$osm_lines)
 }
 }
+\seealso{
+Other extraction: 
+\code{\link{dodgr_streetnet_sc}()},
+\code{\link{dodgr_streetnet}()},
+\code{\link{weight_streetnet}()}
+}
+\concept{extraction}

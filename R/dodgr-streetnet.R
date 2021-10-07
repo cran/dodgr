@@ -25,6 +25,7 @@
 #' should rather be interpreted to indicate that a request is too large, and may
 #' need to be refined, or somehow broken up into smaller queries.
 #'
+#' @family extraction
 #' @export
 #' @examples
 #' \dontrun{
@@ -90,6 +91,7 @@ dodgr_streetnet <- function (bbox,
 #' bounding box will be constructed by expanding the range of `pts` by the
 #' relative amount of `expand`.
 #'
+#' @family extraction
 #' @inherit dodgr_streetnet
 #' @export
 dodgr_streetnet_sc <- function (bbox,
@@ -111,7 +113,7 @@ dodgr_streetnet_sc <- function (bbox,
               "\"toll\"")
 
     osmdata::opq (bb$bbox) %>%
-        osmdata::add_osm_feature (feature = "highway") %>%
+        osmdata::add_osm_features (features = fts) %>%
         osmdata::osmdata_sc (quiet = quiet)
 }
 

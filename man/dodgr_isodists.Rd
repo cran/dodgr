@@ -44,3 +44,17 @@ from <- sample (graph$from_id, size = 100)
 dlim <- c (1, 2, 5, 10, 20) * 100
 d <- dodgr_isodists (graph, from = from, dlim)
 }
+\seealso{
+Other distances: 
+\code{\link{dodgr_distances}()},
+\code{\link{dodgr_dists_categorical}()},
+\code{\link{dodgr_dists}()},
+\code{\link{dodgr_flows_aggregate}()},
+\code{\link{dodgr_flows_disperse}()},
+\code{\link{dodgr_flows_si}()},
+\code{\link{dodgr_isochrones}()},
+\code{\link{dodgr_isoverts}()},
+\code{\link{dodgr_paths}()},
+\code{\link{dodgr_times}()}
+}
+\concept{distances}

@@ -13,8 +13,8 @@
 
 #include "dgraph.h"
 
-constexpr double INFINITE_INT =  std::numeric_limits<int>::max ();
-constexpr double INFINITE_DOUBLE =  std::numeric_limits<double>::max ();
+constexpr long int INFINITE_INT =  std::numeric_limits <long int>::max ();
+constexpr double INFINITE_DOUBLE =  std::numeric_limits <double>::max ();
 
 class Heap;
 class HeapDesc;
@@ -26,12 +26,12 @@ namespace PF{
  * Shane Saunders's heap sort versions */
 struct DijkstraEdge
 {
-    DijkstraEdge (double wt, unsigned int i): _wt (wt), _i (i) {}
+    DijkstraEdge (double wt, size_t i): _wt (wt), _i (i) {}
     
     double _wt;
-    unsigned int _i;
+    size_t _i;
 
-    unsigned int geti () const { return _i;   }
+    size_t geti () const { return _i;   }
     double getw () const { return _wt;   }
 };
 
@@ -51,7 +51,7 @@ typedef std::set <DijkstraEdge, by_wt> EdgeSet;
 
 class PathFinder {
     public:
-        PathFinder (unsigned int n,
+        PathFinder (size_t n,
                 const HeapDesc& heapD,
                 std::shared_ptr<const DGraph> g);
         ~PathFinder();
@@ -64,61 +64,92 @@ class PathFinder {
         void init_arrays (
                 std::vector<double>& d,
                 std::vector<double>& w,
-                std::vector<int>& prev,
+                std::vector<long int>& prev,
                 bool *m_open_vec,
                 bool *m_closed_vec,
-                const unsigned int v,
+                const size_t v,
                 const size_t n);
         void scan_edges (
                 const DGraphEdge *edge,
                 std::vector<double>& d,
                 std::vector<double>& w,
-                std::vector<int>& prev,
+                std::vector<long int>& prev,
                 bool *m_open_vec,
                 const bool *m_closed_vec,
-                const unsigned int &v0);
+                const size_t &v0);
         void scan_edges_heur ( // with A* heuristic
                 const DGraphEdge *edge,
                 std::vector<double>& d,
                 std::vector<double>& w,
-                std::vector<int>& prev,
+                std::vector<long int>& prev,
                 bool *m_open_vec,
                 const bool *m_closed_vec,
-                const unsigned int &v0,
+                const size_t &v0,
                 const std::vector<double> &heur);
+        // with A* heuristic for dists-categorical
+        void scan_edge_types_heur (
+                const DGraphEdge *edge,
+                std::vector<double>& d,
+                std::vector<double>& w,
+                std::vector<long int>& prev,
+                bool *m_open_vec,
+                const bool *m_closed_vec,
+                const size_t &v0,
+                const std::vector<double> &heur);
+        // run_sp_categorical for threshold dists
+        void scan_edge_types (
+                const DGraphEdge *edge,
+                std::vector<double>& d,
+                std::vector<double>& w,
+                std::vector<long int>& prev,
+                bool *m_open_vec,
+                const bool *m_closed_vec,
+                const size_t &v0);
 
         void Dijkstra (
                 std::vector<double>& d,
                 std::vector<double>& w,
-                std::vector<int>& prev,
-                const unsigned int v0,
-                const std::vector <unsigned int> &to_index);
-        void DijkstraLimit (
+                std::vector<long int>& prev,
+                const size_t v0,
+                const std::vector <size_t> &to_index);
+        void DijkstraLimit ( // run_sp_categorical
                 std::vector<double>& d,
                 std::vector<double>& w,
-                std::vector<int>& prev,
-                const unsigned int v0,
+                std::vector<long int>& prev,
+                const size_t v0,
+                const double &dlim);
+        void DijkstraLimitEdgeType (
+                std::vector<double>& d,
+                std::vector<double>& w,
+                std::vector<long int>& prev,
+                const size_t v0,
                 const double &dlim);
         void AStar (std::vector<double>& d,
                 std::vector<double>& w,
-                std::vector<int>& prev,
+                std::vector<long int>& prev,
                 const std::vector<double>& heur,
-                const unsigned int v0,
-                const std::vector <unsigned int> &to_index);
+                const size_t v0,
+                const std::vector <size_t> &to_index);
+        void AStarEdgeType (std::vector<double>& d,
+                std::vector<double>& w,
+                std::vector<long int>& prev,
+                const std::vector<double>& heur,
+                const size_t v0,
+                const std::vector <size_t> &to_index);
         void Dijkstra_set (std::vector <double>& d,
                 std::vector<double>& w,
-                std::vector<int>& prev,
-                unsigned int v0);
+                std::vector<long int>& prev,
+                size_t v0);
         void Centrality_vertex (
                 std::vector <double>& cent,
-                const unsigned int s,
+                const size_t s,
                 const double vert_wt,
                 const double dist_threshold);
         void Centrality_edge (
                 std::vector <double>& cent,
-                const unsigned int s,
+                const size_t s,
                 const double vert_wt,
-                const unsigned int nedges,
+                const size_t nedges,
                 const double dist_threshold);
 
     private:
