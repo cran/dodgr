@@ -163,8 +163,9 @@ graph_connected <- graph [graph$component == 1, ]
 #  bb <- osmdata::getbb ("york uk")
 #  npts <- 100
 #  xy <- apply (bb, 1, function (i) min (i) + runif (npts) * diff (i))
-#  routed_points <- function (expand = 0, pts)
-#  {
+#  
+#  routed_points <- function (expand = 0, pts) {
+#  
 #      gr0 <- dodgr_streetnet (pts = pts, expand = expand) %>%
 #          weight_streetnet ()
 #      d0 <- dodgr_dists (gr0, from = pts)
@@ -189,7 +190,7 @@ d <- dodgr_dists (graph_min, from = fr, to = to)
 dim (d)
 
 ## ----compare-heaps------------------------------------------------------------
-compare_heaps (graph, nverts = 1000, replications = 1)
+compare_heaps (graph, nverts = 100)
 
 ## ----graph-code, eval = FALSE-------------------------------------------------
 #  v <- dodgr_vertices (graph)
@@ -206,10 +207,11 @@ nrow (graph); nrow (grc); nrow (grc) / nrow (graph)
 ## ----benchmark1, eval = TRUE--------------------------------------------------
 from <- sample (grc$from_id, size = 100)
 to <- sample (grc$to_id, size = 100)
-rbenchmark::benchmark (
-                       d2 <- dodgr_dists (grc, from = from, to = to),
-                       d2 <- dodgr_dists (graph, from = from, to = to),
-                       replications = 2)
+bench::mark (
+    full = dodgr_dists (graph, from = from, to = to),
+    contracted = dodgr_dists (grc, from = from, to = to),
+    check = FALSE # numeric rounding errors can lead to differences
+    )
 
 ## ----contracted-with-verts----------------------------------------------------
 grc <- dodgr_contract_graph (graph)
@@ -239,12 +241,11 @@ length (dp)
 # make sure there are some paths:
 maxlen <- max (unlist (lapply (dp, function (i)
                                max (unlist (lapply (i, length))))))
-if (maxlen > 0)
-{
+if (maxlen > 0) {
+
     n <- 0
     i <- 0
-    while (all (n == 0))
-    {
+    while (all (n == 0)) {
         i <- i + 1
         n <- which (lapply (dp [[i]], length) > 0)
     }

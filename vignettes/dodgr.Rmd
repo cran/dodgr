@@ -429,8 +429,9 @@ which calculates distances between 100 random points:
 bb <- osmdata::getbb ("york uk")
 npts <- 100
 xy <- apply (bb, 1, function (i) min (i) + runif (npts) * diff (i))
-routed_points <- function (expand = 0, pts)
-{
+
+routed_points <- function (expand = 0, pts) {
+
     gr0 <- dodgr_streetnet (pts = pts, expand = expand) %>%
         weight_streetnet ()
     d0 <- dodgr_dists (gr0, from = pts)
@@ -497,7 +498,7 @@ The comparisons are actually made on a randomly selected sub-component of the
 graph containing a defined number of vertices (with a default of 1,000, or the
 entire graph if it contains fewer than 1,000 vertices).
 ```{r compare-heaps}
-compare_heaps (graph, nverts = 1000, replications = 1)
+compare_heaps (graph, nverts = 100)
 ```
 The key column of that `data.frame` is `relative`, which quantifies the relative
 performance of each test in relation to the best which is given a score of 1.
@@ -569,10 +570,11 @@ efficiency can then be seen with the following code
 ```{r benchmark1, eval = TRUE}
 from <- sample (grc$from_id, size = 100)
 to <- sample (grc$to_id, size = 100)
-rbenchmark::benchmark (
-                       d2 <- dodgr_dists (grc, from = from, to = to),
-                       d2 <- dodgr_dists (graph, from = from, to = to),
-                       replications = 2)
+bench::mark (
+    full = dodgr_dists (graph, from = from, to = to),
+    contracted = dodgr_dists (grc, from = from, to = to),
+    check = FALSE # numeric rounding errors can lead to differences
+    )
 ```
 
 And contracting the graph has a similar effect of speeding up pairwise routing
@@ -640,12 +642,11 @@ dp [[1]] [[1]]
 # make sure there are some paths:
 maxlen <- max (unlist (lapply (dp, function (i)
                                max (unlist (lapply (i, length))))))
-if (maxlen > 0)
-{
+if (maxlen > 0) {
+
     n <- 0
     i <- 0
-    while (all (n == 0))
-    {
+    while (all (n == 0)) {
         i <- i + 1
         n <- which (lapply (dp [[i]], length) > 0)
     }

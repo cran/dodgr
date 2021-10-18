@@ -11,7 +11,7 @@
 
 <meta name="author" content="Mark Padgham" />
 
-<meta name="date" content="2021-10-07" />
+<meta name="date" content="2021-10-18" />
 
 <title>dodgr flows</title>
 
@@ -243,7 +243,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">dodgr flows</h1>
 <h4 class="author">Mark Padgham</h4>
-<h4 class="date">2021-10-07</h4>
+<h4 class="date">2021-10-18</h4>
 
 </div>
 
@@ -268,17 +268,24 @@ head (graph_f)</code></pre>
 ## 4        1       4 2398958028 76.47621 15.34174  339318502 76.47612 15.34173
 ## 5        1       5 2398958028 76.47621 15.34174 1427116077 76.47628 15.34179
 ## 6        1       6 1427116077 76.47628 15.34179 2398958028 76.47621 15.34174
-##            d d_weighted highway   way_id component      time time_weighted flow
-## 1 129.972181 129.972181    path 28565950         1 93.579970     93.579970    0
-## 2 129.972181 129.972181    path 28565950         1 93.579970     93.579970    0
-## 3   8.888670   8.888670    path 28565950         1  6.399842      6.399842    0
-## 4   8.888670   8.888670    path 28565950         1  6.399842      6.399842    0
-## 5   9.326536   9.326536    path 28565950         1  6.715106      6.715106    0
-## 6   9.326536   9.326536    path 28565950         1  6.715106      6.715106    0</code></pre>
+##            d d_weighted highway   way_id component      time time_weighted
+## 1 129.972181 129.972181    path 28565950         1 93.579970     93.579970
+## 2 129.972181 129.972181    path 28565950         1 93.579970     93.579970
+## 3   8.888670   8.888670    path 28565950         1  6.399842      6.399842
+## 4   8.888670   8.888670    path 28565950         1  6.399842      6.399842
+## 5   9.326536   9.326536    path 28565950         1  6.715106      6.715106
+## 6   9.326536   9.326536    path 28565950         1  6.715106      6.715106
+##        flow
+## 1 0.0000000
+## 2 0.2107034
+## 3 0.0000000
+## 4 0.2107034
+## 5 0.0000000
+## 6 0.2107034</code></pre>
 <p>Most flows are zero because they have only been calculated between very few points in the graph.</p>
 <pre class="r"><code>summary (graph_f$flow)</code></pre>
 <pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-## 0.00000 0.00000 0.00000 0.04514 0.00000 0.79764</code></pre>
+## 0.00000 0.00000 0.00000 0.03582 0.00000 1.43206</code></pre>
 </div>
 <div id="flow-dispersal" class="section level2">
 <h2>2 Flow Dispersal</h2>
@@ -287,7 +294,7 @@ head (graph_f)</code></pre>
 graph_f &lt;- dodgr_flows_disperse (graph, from = from, dens = dens)
 summary (graph_f$flow)</code></pre>
 <pre><code>##      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-## 0.0000000 0.0000000 0.0002491 0.0014678 0.0020511 0.0205228</code></pre>
+## 0.0000000 0.0000000 0.0001094 0.0014678 0.0006226 0.0597006</code></pre>
 </div>
 <div id="merging-directed-flows" class="section level2">
 <h2>3 Merging directed flows</h2>
