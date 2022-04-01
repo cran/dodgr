@@ -1,18 +1,37 @@
+# v 0.2.12.00X
 
-#v 0.2.11.00X
+Major changes:
+
+- New `save_dodgr_streetnet` and `load_dodgr_streetnet` functions; thanks to
+  idea from @FlxPo
+- Edge maps used to uncontract graphs now store edges in original order,
+  enabling complex edge sequences such as polygons to be reconstructed (#173).
+- Add "Imports: fs" to ensure cache paths work on all (ie windows) machines (#163)
+- Implement directional travel in roundabouts on weight_streetnet.sc, thanks to
+  @deanmarchiori (#175).
+
+Minor changes:
+
+- Add example code for `dodgr_dists_categorical`
+- Slightly extend categorical routing vignette
+- fix caching bug in dodgr_centrality (#138), thanks to @mem48
+- Fix bug with bbox in `dodgr_streetnet`, thanks to @LeshunXu (#174)
+- Fix bug in src/graph-contract.cpp that led to CRAN warning (`|` -> `||`)
+
+# v 0.2.12
 
 Minor changes:
 
 - Bug fix for `dists_categorical(proportions_only = TRUE)` to ensure all edge
   types are aggregated (final type was previously not aggregated).
 
-#v 0.2.11
+# v 0.2.11
 
 Major changes:
 
 - New `dodgr_dists_categorical` function + accompanying vignette
 
-#v 0.2.9
+# v 0.2.9
 
 Major changes:
 
@@ -30,7 +49,7 @@ Minor changes:
 - Bug fix when submitting contracted graphs to dodgr_to_sf (#155 thanks to @agila5)
 - Fix (internal) process_bbox function for vector inputs (#156 thanks to @agila5@)
 
-#v 0.2.8
+# v 0.2.8
 
 Minor changes:
 
@@ -38,12 +57,12 @@ Minor changes:
 - Fix `keep_cols` param in `weight_streetnet()`; #140 thanks to @agila5
 - Return component vector as `integer` not `numeric`
 
-#v 0.2.7
+# v 0.2.7
 
 Minor changes:
 - UBSAN Bug fix
 
-#v 0.2.6
+# v 0.2.6
 
 Major changes:
 - Added new `dodgr_centrality` function, and associated helper functions.
