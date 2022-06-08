@@ -3,7 +3,9 @@ context("weighting profiles")
 test_that("wp", {
               f <- file.path (tempdir (), "wp")
               expect_false (file.exists (paste0 (f, ".json")))
-              expect_silent (write_dodgr_wt_profile (f))
+              #expect_silent ( # pkg startup msgs on some systems
+                             write_dodgr_wt_profile (f)
+              #)
               expect_true (file.exists (paste0 (f, ".json")))
               w <- read_dodgr_wt_profile (f)
               expect_identical (w, dodgr::weighting_profiles)
@@ -14,7 +16,9 @@ test_that ("local wt_profile", {
                       "file name must be given")
 
         f <- file.path (tempdir (), "wp")
-        expect_silent (write_dodgr_wt_profile (f))
+        #expect_silent ( # produces namespace messages on some systems
+        write_dodgr_wt_profile (f)
+        #)
         n0 <- weight_streetnet (hampi, wt_profile = "foot")
         n1 <- weight_streetnet (hampi, wt_profile = "foot",
                               wt_profile_file = f)

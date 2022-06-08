@@ -30,6 +30,7 @@ lapply (dodgr::weighting_profiles, function (i) i [i$name == "bicycle", ])
 ## ----shortest-vs-fastest------------------------------------------------------
 graph <- weight_streetnet (hampi, wt_profile = "foot")
 n <- 100 # number of sample routing vertices
+set.seed (1)
 from <- sample (graph$from_id, size = n)
 to <- sample (graph$from_id, size = n)
 d_dist <- dodgr_dists (graph, from = from, to = to, shortest = TRUE) # default

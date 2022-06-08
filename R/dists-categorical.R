@@ -33,6 +33,9 @@
 #' speed up calculations, but perhaps more importantly it may make possible
 #' calculations which would otherwise require distance matrices too large to be
 #' directly stored.
+#'
+#' @note Calculations are not able to be interrupted (for example, by `Ctrl-C`),
+#' and can only be stopped by killing the R process.
 #' @examples
 #' # Prepare a graph for categorical routing by including an "edge_type" column
 #' graph <- weight_streetnet (hampi, wt_profile = "foot")
@@ -42,7 +45,7 @@
 #' # here.
 #' length (unique (graph$edge_type)) # Number of categories
 #' v <- dodgr_vertices (graph)
-#' from <- to <- v$id
+#' from <- to <- v$id [1:100]
 #' d <- dodgr_dists_categorical (graph, from, to)
 #' class (d)
 #' length (d)
