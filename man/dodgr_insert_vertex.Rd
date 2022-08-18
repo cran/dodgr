@@ -38,7 +38,8 @@ v1 <- graph$from_id [e1]
 v2 <- graph$to_id [e1]
 # insert new vertex in the middle of that randomly-selected edge:
 graph2 <- dodgr_insert_vertex (graph, v1, v2)
-nrow (graph); nrow (graph2) # new edges added to graph2
+nrow (graph)
+nrow (graph2) # new edges added to graph2
 }
 \seealso{
 Other misc: 
@@ -49,8 +50,6 @@ Other misc:
 \code{\link{dodgr_sample}()},
 \code{\link{dodgr_sflines_to_poly}()},
 \code{\link{dodgr_vertices}()},
-\code{\link{match_points_to_graph}()},
-\code{\link{match_pts_to_graph}()},
 \code{\link{merge_directed_graph}()},
 \code{\link{summary.dodgr_dists_categorical}()},
 \code{\link{write_dodgr_wt_profile}()}

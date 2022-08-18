@@ -1,9 +1,10 @@
 Package: dodgr
 Title: Distances on Directed Graphs
-Version: 0.2.14
+Version: 0.2.15
 Authors@R: c(
     person("Mark", "Padgham", , "mark.padgham@email.com", role = c("aut", "cre")),
     person("Andreas", "Petutschnig", role = "aut"),
+    person("David", "Cooley", role = "aut"),
     person("Robin", "Lovelace", role = "ctb"),
     person("Andrew", "Smith", role = "ctb"),
     person("Malcolm", "Morgan", role = "ctb"),
@@ -31,11 +32,12 @@ VignetteBuilder: knitr
 Encoding: UTF-8
 LazyData: true
 NeedsCompilation: yes
-RoxygenNote: 7.2.0
+RoxygenNote: 7.2.1
 SystemRequirements: C++11, GNU make
-Packaged: 2022-06-08 10:56:56 UTC; smexus
+Packaged: 2022-08-17 09:39:47 UTC; smexus
 Author: Mark Padgham [aut, cre],
   Andreas Petutschnig [aut],
+  David Cooley [aut],
   Robin Lovelace [ctb],
   Andrew Smith [ctb],
   Malcolm Morgan [ctb],
@@ -43,4 +45,4 @@ Author: Mark Padgham [aut, cre],
     heaps)
 Maintainer: Mark Padgham <mark.padgham@email.com>
 Repository: CRAN
-Date/Publication: 2022-06-08 14:40:06 UTC
+Date/Publication: 2022-08-18 12:50:02 UTC

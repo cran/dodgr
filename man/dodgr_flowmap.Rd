@@ -27,8 +27,10 @@ graph <- weight_streetnet (hampi)
 from <- sample (graph$from_id, size = 10)
 to <- sample (graph$to_id, size = 5)
 to <- to [!to \%in\% from]
-flows <- matrix (10 * runif (length (from) * length (to)),
-                 nrow = length (from))
+flows <- matrix (
+    10 * runif (length (from) * length (to)),
+    nrow = length (from)
+)
 graph <- dodgr_flows_aggregate (graph, from = from, to = to, flows = flows)
 # graph then has an additonal 'flows` column of aggregate flows along all
 # edges. These flows are directed, and can be aggregated to equivalent
@@ -47,8 +49,6 @@ Other misc:
 \code{\link{dodgr_sample}()},
 \code{\link{dodgr_sflines_to_poly}()},
 \code{\link{dodgr_vertices}()},
-\code{\link{match_points_to_graph}()},
-\code{\link{match_pts_to_graph}()},
 \code{\link{merge_directed_graph}()},
 \code{\link{summary.dodgr_dists_categorical}()},
 \code{\link{write_dodgr_wt_profile}()}

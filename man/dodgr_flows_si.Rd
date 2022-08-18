@@ -11,7 +11,7 @@ dodgr_flows_si(
   k = 500,
   dens_from = NULL,
   dens_to = NULL,
-  contract = FALSE,
+  contract = TRUE,
   norm_sums = TRUE,
   heap = "BHeap",
   tol = 0.000000000001,
@@ -38,9 +38,10 @@ for each 'from' point, so 'nrow(k)==length(from)'. See Note.}
 
 \item{dens_to}{Vector of densities at destination ('to') points}
 
-\item{contract}{If \code{TRUE}, calculate flows on contracted graph before
-mapping them back on to the original full graph (recommended as this will
-generally be much faster).}
+\item{contract}{If \code{TRUE} (default), calculate flows on contracted graph
+before mapping them back on to the original full graph (recommended as this
+will generally be much faster). \code{FALSE} should only be used if the \code{graph}
+has already been contracted.}
 
 \item{norm_sums}{Standardise sums from all origin points, so sum of flows
 throughout entire network equals sum of densities from all origins (see
@@ -103,14 +104,16 @@ from <- sample (graph$from_id, size = 10)
 to <- sample (graph$to_id, size = 5)
 to <- to [!to \%in\% from]
 flows <- matrix (10 * runif (length (from) * length (to)),
-                 nrow = length (from))
+    nrow = length (from)
+)
 graph <- dodgr_flows_aggregate (graph, from = from, to = to, flows = flows)
 # graph then has an additonal 'flows' column of aggregate flows along all
 # edges. These flows are directed, and can be aggregated to equivalent
 # undirected flows on an equivalent undirected graph with:
 graph_undir <- merge_directed_graph (graph)
 # This graph will only include those edges having non-zero flows, and so:
-nrow (graph); nrow (graph_undir) # the latter is much smaller
+nrow (graph)
+nrow (graph_undir) # the latter is much smaller
 }
 \seealso{
 Other distances: 

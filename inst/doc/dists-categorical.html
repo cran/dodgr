@@ -11,7 +11,7 @@
 
 <meta name="author" content="Mark Padgham" />
 
-<meta name="date" content="2022-06-08" />
+<meta name="date" content="2022-08-17" />
 
 <title>Aggregating distances along categories of edges</title>
 
@@ -1531,7 +1531,7 @@ div.tocify {
 <h1 class="title toc-ignore">Aggregating distances along categories of
 edges</h1>
 <h4 class="author">Mark Padgham</h4>
-<h4 class="date">2022-06-08</h4>
+<h4 class="date">2022-08-17</h4>
 
 </div>
 
@@ -1637,8 +1637,8 @@ faster queries, as illustrated in the following benchmark:</p>
 <pre><code>## # A tibble: 2 × 3
 ##   expression    min median
 ##   &lt;bch:expr&gt;  &lt;dbl&gt;  &lt;dbl&gt;
-## 1 full       0.613  0.613 
-## 2 prop_only  0.0810 0.0839</code></pre>
+## 1 full       0.452  0.458 
+## 2 prop_only  0.0803 0.0828</code></pre>
 <p>The default value of <code>proportions_only = FALSE</code> should be
 used only if additional information from the distance matrices
 themselves is required or desired. Examples of such additional
@@ -1723,9 +1723,9 @@ the three modes:</p>
 <pre><code>## # A tibble: 3 × 3
 ##   expression    min median
 ##   &lt;bch:expr&gt;  &lt;dbl&gt;  &lt;dbl&gt;
-## 1 full       0.517  0.517 
-## 2 prop_only  0.0867 0.0916
-## 3 dlimit     0.0281 0.0296</code></pre>
+## 1 full       0.475  0.476 
+## 2 prop_only  0.0821 0.0848
+## 3 dlimit     0.0272 0.0277</code></pre>
 <p>Finally, note that the efficiency of distance-threshold queries
 scales non-linearly with increases in <code>dlimit</code>, with queries
 quickly becoming less efficient for larger values of
