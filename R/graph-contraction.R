@@ -22,6 +22,7 @@
 #' graph <- dodgr_contract_graph (graph)
 #' nrow (graph) # 662
 dodgr_contract_graph <- function (graph, verts = NULL) {
+
     if (nrow (graph) == 0) {
         stop ("graph is empty")
     } # nocov
@@ -47,6 +48,7 @@ dodgr_contract_graph <- function (graph, verts = NULL) {
         verts <- verts [which (verts %in% v$id)]
     }
 
+    attr (graph, "hash") <- attr (graph, "hashc") <- NULL
     hash <- get_hash (graph, hash = TRUE)
     hashc <- get_hash (graph, verts = verts, hash = FALSE)
     fname_c <- fs::path (
@@ -235,12 +237,6 @@ dodgr_uncontract_graph <- function (graph) {
     gr_cols <- dodgr_graph_cols (graph)
     hashe_ref <- attr (graph, "hashe")
     hashe <- digest::digest (graph [[gr_cols$edge_id]])
-    if (!identical (hashe, hashe_ref)) {
-        stop (
-            "Unable to uncontract this graph because the rows ",
-            "have been changed"
-        )
-    }
 
     hash <- attr (graph, "hash")
     fname <- fs::path (fs::path_temp (), paste0 ("dodgr_graph_", hash, ".Rds"))
@@ -252,52 +248,21 @@ dodgr_uncontract_graph <- function (graph) {
         ))
     } # nocov
 
+    graph_edges <- graph [[gr_cols$edge_id]] # used below if rows have been removed
+
     graph_full <- readRDS (fname)
     attr (graph_full, "px") <- px
 
     graph <- uncontract_graph (graph, edge_map, graph_full)
 
-    tp <- attr (graph, "turn_penalty")
-    tp <- ifelse (is.null (tp), 0, tp)
-    if (is (graph, "dodgr_streetnet_sc") && tp > 0) {
-        # extra code to uncontract the compound turn-angle junctions, including
-        # merging extra rows such as flow from compound junctions back into
-        # "normal" (non-compound) edges
-        hash <- get_hash (graph, hash = TRUE)
-        fname <- fs::path (fs::path_temp (), paste0 (
-            "dodgr_edge_contractions_",
-            hash, ".Rds"
-        ))
-        if (!fs::file_exists (fname)) {
-            stop (paste0 (
-                "Graph must have been contracted in ", # nocov
-                "current R session; and have retained ", # nocov
-                "the same row structure"
-            ))
-        } # nocov
-        ec <- readRDS (fname)
-
-        index_junction <- match (ec$edge, graph [[gr_cols$edge_id]])
-        index_edge_in <- match (ec$e_in, graph [[gr_cols$edge_id]])
-        index_edge_out <- match (ec$e_out, graph [[gr_cols$edge_id]])
-        new_cols <- names (graph) [which (!names (graph) %in%
-            names (graph_full))]
-
-        for (n in new_cols) {
-
-            graph [[n]] [index_edge_in] <-
-                graph [[n]] [index_edge_in] +
-                graph [[n]] [index_junction]
-
-            graph [[n]] [index_edge_out] <-
-                graph [[n]] [index_edge_out] +
-                graph [[n]] [index_junction]
-        }
-
-        # next line removes all the compound turn angle edges:
-        graph <- graph [which (!graph [[gr_cols$edge_id]] %in% ec$edge), ]
-        graph$.vx0 <- gsub ("_start$", "", graph$.vx0)
-        graph$.vx1 <- gsub ("_end$", "", graph$.vx1)
+    # Finally, remove any edges which might have been removed from contracted
+    # graph:
+    if (!identical (hashe, hashe_ref)) {
+        index <- which (edge_map$edge_new %in% graph_edges)
+        index_in <- which (graph [[gr_cols$edge_id]] %in% edge_map$edge_old [index])
+        graph <- graph [index_in, ]
+        attr (graph, "hash") <- NULL
+        attr (graph, "hash") <- get_hash (graph, hash = TRUE)
     }
 
     return (graph)

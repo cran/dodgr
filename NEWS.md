@@ -1,3 +1,18 @@
+# v 0.2.15.00x
+
+## Major changes:
+
+- Additional "distances" parameter added to `match_pts_to_graph()` to return geodesic distance to point of edge intersection.
+- Fixed major bug in centrality calculations on graphs with duplicated edges (#186).
+- Added new vignette with instructions on parallel thread control
+- New function, `dodgr_deduplicate_graph()` to reduce duplicated edges and insert minimal distances/times (#187)
+- `weight_streetnet` function now returns standard graphs even when `turn_penalty = TRUE`; compound junctions are calculated within each function (#190).
+
+## Minor changes:
+
+- Walking cost function in networks with elevation improved (#124)
+- Fixed `weight_streetnet.sc` to respect "bicycle" and "foot" tags for those weighting profiles (#189)
+
 # v 0.2.15
 
 ## Breaking changes:

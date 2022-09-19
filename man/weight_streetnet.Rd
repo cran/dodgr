@@ -113,7 +113,7 @@ the name of this file passed as the \code{wt_profile_file} parameter.
 Realistic routing include factors such as access restrictions, turn
 penalties, and effects of incline, can only be implemented when the objects
 passed to \code{weight_streetnet} are of \pkg{sc} ("silicate") format, generated
-with \link{dodgr_streetnet_sc}. Restrictions applies to ways (in Open
+with \link{dodgr_streetnet_sc}. Restrictions applied to ways (in Open
 Streetmap Terminology) may be controlled by ensuring specific columns are
 retained in the \code{dodgr} network with the \code{keep_cols} argument. For example,
 restrictions on access are generally specified by specifying a value for the
@@ -126,25 +126,30 @@ restrictions are which are automatically extracted with
 \link{dodgr_streetnet_sc}, and so may be added to the \code{keep_cols} argument,
 include:
 \itemize{
-\item "highway"
-\item "restriction"
 \item "access"
 \item "bicycle"
+\item "foot"
+\item "highway"
 \item "motorcar"
 \item "motor_vehicle"
-\item "vehicle"
+\item "restriction"
 \item "toll"
+\item "vehicle"
 }
 
 Restrictions and time-penalties on turns can be implemented from such
-objects by setting \code{turn_penalty = TRUE}. Resultant graphs are fundamentally
-different from the default for distance-based routing. The result of
-\code{weight_streetnet(..., turn_penalty = TRUE)} should thus \emph{only} be used
-to submit to the \link{dodgr_times} function, and not for any other \code{dodgr}
-functions nor forms of network analysis. Setting \code{turn_penalty = TRUE} will
+objects by setting \code{turn_penalty = TRUE}. Setting \code{turn_penalty = TRUE} will
 honour turn restrictions specified in Open Street Map (unless the "penalties"
 table of \link{weighting_profiles} has \code{restrictions = FALSE} for a specified
-\code{wt_profile}).
+\code{wt_profile}). Resultant graphs are fundamentally different from the default
+for distance-based routing. These graphs may be used directly in the
+\link{dodgr_dists} function. Use in any other functions requires additional
+information obtained in a file in the temporary directory of the current R
+session with a name starting with "dodgr_junctions_", and including the
+value of \code{attr(graph, "hash")}. If graphs with turn penalties are to be used
+in subsequent R sessions, this "dodgr_junctions_" file will need to be moved
+to a more permanent storage location, and then replaced in the temporary
+directory of any subsequent R sessions.
 
 The resultant graph includes only those edges for which the given
 weighting profile specifies finite edge weights. Any edges of types not

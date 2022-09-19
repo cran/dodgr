@@ -118,15 +118,30 @@ convert_hw_types_to_bool <- function (graph, wt_profile) {
 weight_sc_edges <- function (graph, wt_profile, wt_profile_file) {
 
     # no visible binding notes:
-    value <- d <- NULL
+    value <- d <- d_weighted <- NULL
 
     wp <- get_profile (wt_profile, wt_profile_file)
     wp <- wp [, c ("way", "value")]
 
-    dplyr::left_join (graph, wp, by = c ("highway" = "way")) %>%
+    res <- dplyr::left_join (graph, wp, by = c ("highway" = "way")) %>%
         dplyr::filter (!is.na (value)) %>%
         dplyr::mutate (d_weighted = ifelse (value == 0, NA, d / value)) %>%
+        dplyr::filter (!is.na (d_weighted)) %>%
         dplyr::select (-value)
+
+    if (wt_profile %in% c ("foot", "bicycle")) {
+        index <- which (res [[wt_profile]] == "no")
+        if (length (index) > 0L) {
+            res <- res [-index, ]
+        }
+        # Plus remove any untagged "motorway" or "trunk" edges
+        index <- grep ("^(motorway|trunk)", res$highway)
+        if (length (index) > 0L) {
+            res <- res [-index, ]
+        }
+    }
+
+    return (res)
 }
 
 # Set maximum speed for each edge.
@@ -271,14 +286,19 @@ calc_edge_time <- function (graph, wt_profile) {
 # increase both real and weighted times according to elevation increases:
 times_by_incline <- function (graph, wt_profile) {
 
+    cost_tobler <- function (dz, cost0) {
+        cost <- 1 / (6 * exp (-3.5 * abs (dz + 0.05)))
+        cost / cost0
+    }
+
     if (wt_profile == "foot") {
-        # Uses
+        # Used to just be
         # [Naismith's Rule](https://en.wikipedia.org/wiki/Naismith%27s_rule)
+        # time <- time + dz / 10
+        # but updated to Tobler's hiking rule; see issue #124
         if ("dz" %in% names (graph)) {
-            index <- which (graph$dz > 0)
-            graph$time [index] <- graph$time [index] + graph$dz [index] / 10
-            graph$time_weighted [index] <- graph$time_weighted [index] +
-                graph$dz [index] / 10
+            cost0 <- 1 / (6 * exp (-3.5 * 0.05))
+            graph$time <- graph$time * cost_tobler (graph$dz, cost0)
         }
 
     } else if (wt_profile == "bicycle") {
@@ -526,105 +546,4 @@ traffic_signal_nodes <- function (x) {
         c ("crossing", "traffic_signals")
     ))
     unique (c (x1, x2))
-}
-
-join_junctions_to_graph <- function (graph, wt_profile, wt_profile_file,
-                                     left_side = FALSE) {
-
-    turn_penalty <- get_turn_penalties (wt_profile, wt_profile_file)$turn
-    resbind <- edge_map <- NULL
-
-    if (turn_penalty > 0) {
-
-        res <- rcpp_route_times (graph, left_side, turn_penalty)
-        edge_map <- data.frame (
-            "edge" = res$graph$edge_,
-            "e_in" = res$graph$old_edge_in,
-            "e_out" = res$graph$old_edge_out,
-            stringsAsFactors = FALSE
-        )
-        res$graph$old_edge_in <- res$graph$old_edge_out <- NULL
-
-        index <- which (graph$.vx0 %in% res$junction_vertices)
-        graph$.vx0 [index] <- paste0 (graph$.vx0 [index], "_start")
-        index <- which (graph$.vx1 %in% res$junction_vertices)
-        graph$.vx1 [index] <- paste0 (graph$.vx1 [index], "_end")
-
-        # pad out extra columns of res to match any extra in original graph
-        resbind <- data.frame (array (NA, dim = c (
-            nrow (res$graph),
-            ncol (graph)
-        )))
-        names (resbind) <- names (graph)
-        resbind [, which (names (graph) %in% names (res$graph))] <- res$graph
-        graph <- rbind (graph, resbind)
-    }
-    list (graph = graph, edge_map = edge_map)
-}
-
-#' Remove turn restrictions
-#'
-#' @param x The original `sc` object which ,when generated from
-#' `dodgr_streetnet_sc`, includes turn restriction data
-#' @param graph The processed by not yet turn-contracted graph
-#' @param res The result of `join_junctions_to_graph`, with turn-contracted
-#' `graph` and `edge_map` components.
-#' @noRd
-remove_turn_restrictions <- function (x, graph, res) {
-
-    rels <- x$relation_properties # x from restrictions query above!!
-    restriction_rels <- rels [rels$key == "restriction", ]
-    index <- which (x$relation_members$relation_ %in%
-        restriction_rels$relation_)
-    restriction_ways <- x$relation_members [index, ]
-
-    rr_no <- restriction_rels [grep ("^no\\_", restriction_rels$value), ]
-    rr_only <- restriction_rels [grep ("^only\\_", restriction_rels$value), ]
-    rw_no <- restriction_ways [restriction_ways$relation_ %in%
-        rr_no$relation_, ]
-    rw_only <- restriction_ways [restriction_ways$relation_ %in%
-        rr_only$relation_, ]
-
-    r_to_df <- function (r) {
-        r <- lapply (
-            split (r, f = factor (r$relation_)),
-            function (i) {
-                c (
-                    i$relation_ [1],
-                    i$member [2],
-                    i$member [c (1, 3)]
-                )
-            }
-        )
-        r <- data.frame (do.call (rbind, r))
-        names (r) <- c ("relation", "node", "from", "to")
-        return (stats::na.omit (r))
-    }
-    rw_no <- r_to_df (rw_no)
-    rw_only <- r_to_df (rw_only)
-
-    index0 <- match (rw_no$node, graph$.vx1) # in-edges
-    index1 <- match (rw_no$node, graph$.vx0) # out-edges
-    in_edges <- graph$edge_ [index0 [which (!is.na (index0))]]
-    out_edges <- graph$edge_ [index1 [which (!is.na (index1))]]
-    index <- which (res$edge_map$e_in %in% in_edges &
-        res$edge_map$e_out %in% out_edges)
-    no_turn_edges <- res$edge_map$edge [index]
-
-    index0 <- match (rw_only$node, graph$.vx1) # in-edges
-    index1 <- match (rw_only$node, graph$.vx0) # out-edges
-    in_edges <- graph$edge_ [index0 [which (!is.na (index0))]]
-    out_edges <- graph$edge_ [index1 [which (!is.na (index1))]]
-    # index of turns to edges other than "only" turn edges, so also to edges
-    # which are to be excluded:
-    index <- which (res$edge_map$e_in %in% in_edges &
-        !res$edge_map$e_out %in% out_edges)
-    no_turn_edges <- unique (c (no_turn_edges, res$edge_map$edge [index]))
-
-    res$graph <- res$graph [which (!res$graph$edge_ %in% no_turn_edges), ]
-    res$edge_map <- res$edge_map [
-        which (!res$edge_map$edge %in% no_turn_edges),
-    ]
-
-    return (res)
 }

@@ -31,6 +31,11 @@
 #' Fibonacci Heap (default; 'FHeap'), Binary Heap ('BHeap'),
 #' Trinomial Heap ('TriHeap'), Extended Trinomial Heap
 #' ('TriHeapExt', and 2-3 Heap ('Heap23').
+#' @param check_graph If `TRUE`, graph is first checked for duplicate edges,
+#' which can cause incorrect centrality calculations. If duplicate edges are
+#' detected in an interactive session, a prompt will ask whether you want to
+#' proceed or rectify edges first. This value may be set to `FALSE` to skip this
+#' check and the interactive prompt.
 #' @return Modified version of graph with additional 'centrality' column added.
 #'
 #' @note The `column` parameter is by default `d_weighted`, meaning centrality
@@ -114,7 +119,8 @@ dodgr_centrality <- function (graph,
                               column = "d_weighted",
                               vert_wts = NULL,
                               dist_threshold = NULL,
-                              heap = "BHeap") {
+                              heap = "BHeap",
+                              check_graph = TRUE) {
 
     column <- match.arg (column, c (
         "d_weighted",
@@ -124,6 +130,16 @@ dodgr_centrality <- function (graph,
     ))
 
     centrality_input_check (graph, vert_wts)
+
+    if (check_graph) {
+        duplicated_edge_check (graph)
+    }
+
+    if (get_turn_penalty (graph) > 0.0) {
+        res <- create_compound_junctions (graph)
+        graph <- res$graph
+        compound_junction_map <- res$edge_map
+    }
 
     if (is.null (dist_threshold)) {
         dist_threshold <- .Machine$double.xmax
@@ -184,6 +200,9 @@ dodgr_centrality <- function (graph,
         edges,
         contract
     )
+    # If 'contract = TRUE`, the return value, `res`, is then uncontracted
+
+    res <- uncompound_junctions (res, "centrality", compound_junction_map)
 
     if (is_dodgr_cache_on () && edges) {
         # re-cache graph with centrality measure:

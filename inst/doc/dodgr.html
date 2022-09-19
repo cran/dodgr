@@ -11,7 +11,7 @@
 
 <meta name="author" content="Mark Padgham" />
 
-<meta name="date" content="2022-08-17" />
+<meta name="date" content="2022-09-19" />
 
 <title>dodgr</title>
 
@@ -1552,7 +1552,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">dodgr</h1>
 <h4 class="author">Mark Padgham</h4>
-<h4 class="date">2022-08-17</h4>
+<h4 class="date">2022-09-19</h4>
 
 </div>
 
@@ -1924,7 +1924,7 @@ analyses of large graphs which may otherwise take too long to
 compute.</p>
 <pre class="r"><code>graph_sub &lt;- dodgr_sample (graph, nverts = 100)
 nrow (graph_sub)</code></pre>
-<pre><code>## [1] 205</code></pre>
+<pre><code>## [1] 197</code></pre>
 <p>The random sample has around twice as many edges as vertices, in
 accordance with the statistics calculated above.</p>
 <pre class="r"><code>nrow (dodgr_vertices (graph_sub))</code></pre>
@@ -2085,17 +2085,17 @@ vertices).</p>
 <pre><code>## # A tibble: 11 × 6
 ##    expression                 min   median `itr/sec` mem_alloc `gc/sec`
 ##    &lt;bch:expr&gt;            &lt;bch:tm&gt; &lt;bch:tm&gt;     &lt;dbl&gt; &lt;bch:byt&gt;    &lt;dbl&gt;
-##  1 BHeap                   1.21ms   1.35ms      740.   37.61KB     8.31
-##  2 FHeap                   1.21ms   1.33ms      747.   37.61KB     8.32
-##  3 TriHeap                  1.2ms    1.3ms      761.   37.61KB     8.29
-##  4 TriHeapExt              1.05ms   1.12ms      878.   40.64KB     8.38
-##  5 Heap23                  1.17ms   1.31ms      754.   37.61KB     8.29
-##  6 BHeap_contracted      955.59µs   1.09ms      914.    5.27KB    10.5 
-##  7 FHeap_contracted      992.74µs    1.1ms      898.    5.27KB     8.30
-##  8 TriHeap_contracted     975.5µs   1.11ms      892.    5.27KB    10.4 
-##  9 TriHeapExt_contracted  826.9µs 878.18µs     1114.    5.27KB    10.4 
-## 10 Heap23_contracted     962.65µs   1.06ms      926.    5.27KB    10.4 
-## 11 igraph                605.95µs 658.58µs     1498.  419.05KB    12.7</code></pre>
+##  1 BHeap                   1.61ms   1.74ms      570.    60.5KB     8.38
+##  2 FHeap                    1.6ms   1.71ms      576.    60.5KB    10.5 
+##  3 TriHeap                 1.62ms   1.74ms      570.    60.5KB     8.32
+##  4 TriHeapExt              1.57ms   1.59ms      620.    63.6KB     8.40
+##  5 Heap23                  1.61ms   1.74ms      565.    60.5KB     8.34
+##  6 BHeap_contracted        1.45ms   1.52ms      642.    35.4KB     8.34
+##  7 FHeap_contracted        1.46ms   1.54ms      635.    35.4KB    10.5 
+##  8 TriHeap_contracted      1.46ms   1.53ms      637.    35.4KB     8.32
+##  9 TriHeapExt_contracted   1.29ms   1.31ms      751.    35.4KB    10.5 
+## 10 Heap23_contracted       1.47ms   1.54ms      634.    35.4KB    10.5 
+## 11 igraph                 683.1µs 706.89µs     1391.   425.5KB    12.6</code></pre>
 <p>The key column of that <code>data.frame</code> is
 <code>relative</code>, which quantifies the relative performance of each
 test in relation to the best which is given a score of 1.
@@ -2166,8 +2166,8 @@ bench::mark (
 <pre><code>## # A tibble: 2 × 6
 ##   expression      min   median `itr/sec` mem_alloc `gc/sec`
 ##   &lt;bch:expr&gt; &lt;bch:tm&gt; &lt;bch:tm&gt;     &lt;dbl&gt; &lt;bch:byt&gt;    &lt;dbl&gt;
-## 1 full        11.49ms  12.21ms      81.9    1.24MB     0   
-## 2 contracted   1.88ms   2.13ms     464.   287.12KB     4.09</code></pre>
+## 1 full        10.69ms  11.12ms      90.0    1.24MB     0   
+## 2 contracted   1.74ms   1.91ms     508.   285.47KB     6.21</code></pre>
 <p>And contracting the graph has a similar effect of speeding up
 pairwise routing between these 100 points. All routing algorithms scale
 non-linearly with size, and relative improvements in efficiency will be
@@ -2186,11 +2186,11 @@ nrow (grc)</code></pre>
 <pre><code>## [1] 772</code></pre>
 <pre class="r"><code>verts &lt;- sample (dodgr_vertices (graph)$id, size = 100)
 head (verts) # a character vector</code></pre>
-<pre><code>## [1] &quot;3921517060&quot; &quot;2398957514&quot; &quot;7799710984&quot; &quot;8634837003&quot; &quot;571423206&quot; 
-## [6] &quot;7799710745&quot;</code></pre>
+<pre><code>## [1] &quot;7794251335&quot; &quot;1148815271&quot; &quot;2588146044&quot; &quot;2588155761&quot; &quot;3456932082&quot;
+## [6] &quot;8618022278&quot;</code></pre>
 <pre class="r"><code>grc &lt;- dodgr_contract_graph (graph, verts)
 nrow (grc)</code></pre>
-<pre><code>## [1] 956</code></pre>
+<pre><code>## [1] 944</code></pre>
 <p>Retaining the nominated vertices yields a graph with considerably
 more edges than the fully contracted graph excluding these vertices. The
 <a href="https://atfutures.github.io/dodgr/reference/dodgr_distances.html"><code>dodgr_distances()</code></a>
@@ -2236,43 +2236,32 @@ length (dp)</code></pre>
 <p>The result (<code>dp</code>) is a list of 10 items, each of which
 contains 5 vectors. An example is,</p>
 <pre class="r"><code>dp [[1]] [[1]]</code></pre>
-<pre><code>##   [1] &quot;2588155744&quot; &quot;7794286107&quot; &quot;7794286106&quot; &quot;2588155766&quot; &quot;2588155775&quot;
-##   [6] &quot;7794286105&quot; &quot;7794286104&quot; &quot;7794286103&quot; &quot;2588155720&quot; &quot;7794286102&quot;
-##  [11] &quot;7794286101&quot; &quot;2588155762&quot; &quot;7794286100&quot; &quot;7794286099&quot; &quot;7794286098&quot;
-##  [16] &quot;2588155770&quot; &quot;7794286097&quot; &quot;7794286096&quot; &quot;7794286095&quot; &quot;7794286094&quot;
-##  [21] &quot;2588155768&quot; &quot;7794286093&quot; &quot;7794286092&quot; &quot;7794286091&quot; &quot;7794286090&quot;
-##  [26] &quot;7794286089&quot; &quot;2588155749&quot; &quot;7794286088&quot; &quot;7794286087&quot; &quot;2588155761&quot;
-##  [31] &quot;7794286086&quot; &quot;7794286085&quot; &quot;2588155769&quot; &quot;7794251384&quot; &quot;7794251383&quot;
-##  [36] &quot;7794251382&quot; &quot;7794251381&quot; &quot;2588155722&quot; &quot;7794251380&quot; &quot;7794251379&quot;
-##  [41] &quot;2588155758&quot; &quot;7794251378&quot; &quot;7794251377&quot; &quot;7794251376&quot; &quot;2588155745&quot;
-##  [46] &quot;7794251375&quot; &quot;7794251374&quot; &quot;2588155759&quot; &quot;7794251373&quot; &quot;7794251372&quot;
-##  [51] &quot;2588155721&quot; &quot;2588155728&quot; &quot;2588155748&quot; &quot;7794251371&quot; &quot;7794251370&quot;
-##  [56] &quot;2588155708&quot; &quot;2588155743&quot; &quot;7794251369&quot; &quot;7794251368&quot; &quot;7794251367&quot;
-##  [61] &quot;2588155725&quot; &quot;2588155741&quot; &quot;7794251366&quot; &quot;7794251365&quot; &quot;2588155773&quot;
-##  [66] &quot;2588155737&quot; &quot;7794251364&quot; &quot;7794251363&quot; &quot;7794251362&quot; &quot;2588155717&quot;
-##  [71] &quot;7794251361&quot; &quot;7794251360&quot; &quot;7794251359&quot; &quot;7794251358&quot; &quot;2588155727&quot;
-##  [76] &quot;2588155731&quot; &quot;7794251357&quot; &quot;2588155730&quot; &quot;7794251356&quot; &quot;7794251355&quot;
-##  [81] &quot;7794251354&quot; &quot;2588155760&quot; &quot;7794251353&quot; &quot;7794251352&quot; &quot;2588155732&quot;
-##  [86] &quot;7794251351&quot; &quot;7794251350&quot; &quot;7794251349&quot; &quot;7794251348&quot; &quot;2588155734&quot;
-##  [91] &quot;7794251347&quot; &quot;2588155765&quot; &quot;7794251345&quot; &quot;7794251346&quot; &quot;7794251344&quot;
-##  [96] &quot;2588155767&quot; &quot;7794251343&quot; &quot;7794251342&quot; &quot;7794251341&quot; &quot;2588155751&quot;
-## [101] &quot;2588155724&quot; &quot;7794251340&quot; &quot;7794251339&quot; &quot;7794251338&quot; &quot;2588155756&quot;
-## [106] &quot;7794251337&quot; &quot;2588155772&quot; &quot;2588155763&quot; &quot;7794251336&quot; &quot;7794251335&quot;
-## [111] &quot;2588155747&quot; &quot;2588155707&quot; &quot;2588155729&quot; &quot;2588155746&quot; &quot;2588155713&quot;
-## [116] &quot;2588155719&quot; &quot;7794251333&quot; &quot;7794251334&quot; &quot;2588155704&quot; &quot;2588155723&quot;
-## [121] &quot;2588155711&quot; &quot;2588155757&quot; &quot;2588155716&quot; &quot;2588155777&quot; &quot;2588155750&quot;
-## [126] &quot;2588155754&quot; &quot;2588155755&quot; &quot;2588155712&quot; &quot;2588155779&quot; &quot;2588155771&quot;
-## [131] &quot;2588155718&quot; &quot;2588155703&quot; &quot;2588155714&quot; &quot;2588155776&quot; &quot;2588155740&quot;
-## [136] &quot;2588155778&quot; &quot;2588155726&quot; &quot;2588155706&quot; &quot;2588155705&quot; &quot;2398957796&quot;
-## [141] &quot;2398957797&quot; &quot;2398957798&quot; &quot;340148006&quot;  &quot;340148007&quot;  &quot;2398957809&quot;
-## [146] &quot;2398957814&quot; &quot;286632895&quot;  &quot;1390214618&quot; &quot;2398957831&quot; &quot;2398957835&quot;
-## [151] &quot;286632896&quot;  &quot;2398957838&quot; &quot;1604033309&quot; &quot;2398957841&quot; &quot;2398957842&quot;
-## [156] &quot;2627476980&quot; &quot;2627476985&quot; &quot;339574165&quot;  &quot;4474520806&quot; &quot;1604033316&quot;
-## [161] &quot;339574164&quot;  &quot;4474520807&quot; &quot;339574161&quot;  &quot;4474520808&quot; &quot;339574160&quot; 
-## [166] &quot;1715805190&quot; &quot;339574159&quot;  &quot;339574158&quot;  &quot;1715805191&quot; &quot;339574157&quot; 
-## [171] &quot;7794390726&quot; &quot;339574156&quot;  &quot;339574155&quot;  &quot;339574154&quot;  &quot;339574153&quot; 
-## [176] &quot;339574152&quot;  &quot;339574151&quot;  &quot;676875130&quot;  &quot;339574150&quot;  &quot;676875131&quot; 
-## [181] &quot;339574149&quot;</code></pre>
+<pre><code>##   [1] &quot;3921513380&quot; &quot;3697938719&quot; &quot;3697938718&quot; &quot;3697938720&quot; &quot;3697938717&quot;
+##   [6] &quot;3697938721&quot; &quot;2627476996&quot; &quot;2627476993&quot; &quot;2627476991&quot; &quot;2627476990&quot;
+##  [11] &quot;3921515978&quot; &quot;3697939526&quot; &quot;3697939525&quot; &quot;2627477003&quot; &quot;3697938722&quot;
+##  [16] &quot;980400568&quot;  &quot;980400409&quot;  &quot;980400950&quot;  &quot;3338186984&quot; &quot;3338186983&quot;
+##  [21] &quot;3921513247&quot; &quot;980400843&quot;  &quot;3921513248&quot; &quot;286632899&quot;  &quot;2398957864&quot;
+##  [26] &quot;980400336&quot;  &quot;286632900&quot;  &quot;1148814896&quot; &quot;8616917044&quot; &quot;8616917043&quot;
+##  [31] &quot;8616917042&quot; &quot;338908589&quot;  &quot;2398957843&quot; &quot;338904455&quot;  &quot;3697938024&quot;
+##  [36] &quot;8616917041&quot; &quot;3697938023&quot; &quot;8616917040&quot; &quot;8616917039&quot; &quot;3697938021&quot;
+##  [41] &quot;3697938022&quot; &quot;3697938335&quot; &quot;3697938334&quot; &quot;3697938333&quot; &quot;3697938338&quot;
+##  [46] &quot;3697938337&quot; &quot;3697938336&quot; &quot;3697938331&quot; &quot;3697938330&quot; &quot;3697938329&quot;
+##  [51] &quot;3697938332&quot; &quot;3697938328&quot; &quot;3697938327&quot; &quot;3697938326&quot; &quot;3697938325&quot;
+##  [56] &quot;3697937571&quot; &quot;3697937610&quot; &quot;3697937615&quot; &quot;3697937614&quot; &quot;3697937613&quot;
+##  [61] &quot;3697937611&quot; &quot;3697937612&quot; &quot;3697937616&quot; &quot;3697937609&quot; &quot;3697937608&quot;
+##  [66] &quot;3697937607&quot; &quot;1376769110&quot; &quot;1376768828&quot; &quot;1376768464&quot; &quot;1376768862&quot;
+##  [71] &quot;7794426716&quot; &quot;1376768398&quot; &quot;1376768975&quot; &quot;1376768614&quot; &quot;1376769209&quot;
+##  [76] &quot;1376768918&quot; &quot;1376768559&quot; &quot;6410121124&quot; &quot;2717241302&quot; &quot;2717241300&quot;
+##  [81] &quot;2717241331&quot; &quot;2717241317&quot; &quot;2717241339&quot; &quot;2717241332&quot; &quot;2717241309&quot;
+##  [86] &quot;2717241321&quot; &quot;2717241306&quot; &quot;2717241323&quot; &quot;2717241312&quot; &quot;1376768738&quot;
+##  [91] &quot;8615528123&quot; &quot;8615528122&quot; &quot;8615528121&quot; &quot;1376768369&quot; &quot;8615528124&quot;
+##  [96] &quot;1376768946&quot; &quot;1376768586&quot; &quot;8615528127&quot; &quot;8615528125&quot; &quot;8615528126&quot;
+## [101] &quot;1560930407&quot; &quot;8615528128&quot; &quot;1376768478&quot; &quot;8615528129&quot; &quot;8615528131&quot;
+## [106] &quot;8615528130&quot; &quot;1376769039&quot; &quot;8615528132&quot; &quot;1376768690&quot; &quot;1376768324&quot;
+## [111] &quot;8615528133&quot; &quot;1376768985&quot; &quot;8615528135&quot; &quot;1376768626&quot; &quot;8615528134&quot;
+## [116] &quot;339574829&quot;  &quot;339574830&quot;  &quot;1148814828&quot; &quot;8632960930&quot; &quot;6161853542&quot;
+## [121] &quot;8632923863&quot; &quot;8632923874&quot; &quot;8632923859&quot; &quot;8632923860&quot; &quot;8632923868&quot;
+## [126] &quot;8632923869&quot; &quot;8632923870&quot; &quot;8632923871&quot;</code></pre>
 <p>For spatial graphs, the coordinates of these paths can be obtained by
 extracting the vertices with <code>dodgr_vertices()</code> and matching
 the vertex IDs:</p>
@@ -2280,12 +2269,12 @@ the vertex IDs:</p>
 path1 &lt;- verts [match (dp [[1]] [[1]], verts$id), ]
 head (path1)</code></pre>
 <pre><code>##              id        x        y component    n
-## 3586 2588155744 76.43550 15.33031         1 1799
-## 3588 7794286107 76.43547 15.33028         1 1800
-## 3590 7794286106 76.43544 15.33024         1 1801
-## 3592 2588155766 76.43539 15.33016         1 1802
-## 3594 2588155775 76.43533 15.33003         1 1803
-## 3596 7794286105 76.43514 15.32972         1 1804</code></pre>
+## 4200 3921513380 76.45833 15.33521         1 2103
+## 4198 3697938719 76.45832 15.33513         1 2102
+## 4196 3697938718 76.45831 15.33493         1 2101
+## 4194 3697938720 76.45834 15.33485         1 2100
+## 4192 3697938717 76.45841 15.33477         1 2099
+## 4190 3697938721 76.45843 15.33465         1 2098</code></pre>
 <p>Paths calculated on contracted graphs will of course have fewer
 vertices than those calculated on full graphs.</p>
 </div>

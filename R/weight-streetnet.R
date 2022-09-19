@@ -51,7 +51,7 @@
 #' @note Realistic routing include factors such as access restrictions, turn
 #' penalties, and effects of incline, can only be implemented when the objects
 #' passed to `weight_streetnet` are of \pkg{sc} ("silicate") format, generated
-#' with \link{dodgr_streetnet_sc}. Restrictions applies to ways (in Open
+#' with \link{dodgr_streetnet_sc}. Restrictions applied to ways (in Open
 #' Streetmap Terminology) may be controlled by ensuring specific columns are
 #' retained in the `dodgr` network with the `keep_cols` argument. For example,
 #' restrictions on access are generally specified by specifying a value for the
@@ -64,25 +64,30 @@
 #' \link{dodgr_streetnet_sc}, and so may be added to the `keep_cols` argument,
 #' include:
 #' \itemize{
-#' \item "highway"
-#' \item "restriction"
 #' \item "access"
 #' \item "bicycle"
+#' \item "foot"
+#' \item "highway"
 #' \item "motorcar"
 #' \item "motor_vehicle"
-#' \item "vehicle"
+#' \item "restriction"
 #' \item "toll"
+#' \item "vehicle"
 #' }
 #'
 #' Restrictions and time-penalties on turns can be implemented from such
-#' objects by setting `turn_penalty = TRUE`. Resultant graphs are fundamentally
-#' different from the default for distance-based routing. The result of
-#' `weight_streetnet(..., turn_penalty = TRUE)` should thus \emph{only} be used
-#' to submit to the \link{dodgr_times} function, and not for any other `dodgr`
-#' functions nor forms of network analysis. Setting `turn_penalty = TRUE` will
+#' objects by setting `turn_penalty = TRUE`. Setting `turn_penalty = TRUE` will
 #' honour turn restrictions specified in Open Street Map (unless the "penalties"
 #' table of \link{weighting_profiles} has `restrictions = FALSE` for a specified
-#' `wt_profile`).
+#' `wt_profile`). Resultant graphs are fundamentally different from the default
+#' for distance-based routing. These graphs may be used directly in the
+#' \link{dodgr_dists} function. Use in any other functions requires additional
+#' information obtained in a file in the temporary directory of the current R
+#' session with a name starting with "dodgr_junctions_", and including the
+#' value of `attr(graph, "hash")`. If graphs with turn penalties are to be used
+#' in subsequent R sessions, this "dodgr_junctions_" file will need to be moved
+#' to a more permanent storage location, and then replaced in the temporary
+#' directory of any subsequent R sessions.
 #'
 #' @note The resultant graph includes only those edges for which the given
 #' weighting profile specifies finite edge weights. Any edges of types not
@@ -172,6 +177,8 @@ weight_streetnet.default <- function (x,
 # ********************************************************************
 
 way_types_to_keep <- c (
+    "bicycle",
+    "foot",
     "highway",
     "oneway",
     "oneway.bicycle",
@@ -592,6 +599,7 @@ weight_streetnet.sc <- weight_streetnet.SC <-
             ) %>% # modify time
             rm_duplicated_edges () %>%
             sc_duplicate_edges (wt_profile)
+
         cl <- class (graph)
         graph <- dodgr_components (graph) # strips tbl class
         class (graph) <- cl
@@ -604,19 +612,13 @@ weight_streetnet.sc <- weight_streetnet.SC <-
         if (turn_penalty) {
             attr (graph, "turn_penalty") <-
                 get_turn_penalties (wt_profile, wt_profile_file)$turn
-            if (attr (graph, "turn_penalty") > 0) {
-                res <- join_junctions_to_graph (
-                    graph, wt_profile, wt_profile_file,
-                    left_side
-                )
-                if (are_turns_restricted (wt_profile, wt_profile_file)) {
-                    res <- remove_turn_restrictions (x, graph, res)
-                }
-                # res has the expanded graph as well as an edge map from new
-                # cross-junction edges to old single edges. This is cached
-                # below:
-                graph <- res$graph
-            }
+            attr (graph, "wt_profile") <- wt_profile
+            attr (graph, "wt_profile_file") <- wt_profile_file
+            attr (graph, "left_side") <- left_side
+
+            restrictions <- extract_turn_restictions (x)
+            attr (graph, "rw_no") <- restrictions$rw_no
+            attr (graph, "rw_only") <- restrictions$rw_only
         }
 
         gr_cols <- dodgr_graph_cols (graph)
@@ -629,18 +631,9 @@ weight_streetnet.sc <- weight_streetnet.SC <-
             "dodgr_streetnet_sc"
         )
 
-        if (turn_penalty) {
-            hash <- digest::digest (graph [[gr_cols$edge_id]])
-            fname <- fs::path (fs::path_temp (), paste0 (
-                "dodgr_edge_contractions_",
-                hash, ".Rds"
-            ))
-            obj <- res$edge_map
-            saveRDS (obj, fname)
-        }
-
         hash <- digest::digest (graph [[gr_cols$edge_id]])
         attr (graph, "hash") <- hash
+
         if (is_dodgr_cache_on ()) {
             attr (graph, "px") <- cache_graph (graph, gr_cols$edge_id)
         }

@@ -9,6 +9,8 @@
 #' @param from Vector or matrix of points **from** which isodistances are to
 #' be calculated.
 #' @param dlim Vector of desired limits of isodistances in metres.
+#' @param contract If `TRUE`, calculate isodists only to vertices in the
+#' contract graph, in other words, only to junction vertices.
 #' @param heap Type of heap to use in priority queue. Options include
 #' Fibonacci Heap (default; `FHeap`), Binary Heap (`BHeap`),
 #' Trinomial Heap (`TriHeap`), Extended Trinomial Heap
@@ -34,6 +36,7 @@
 dodgr_isodists <- function (graph,
                             from = NULL,
                             dlim = NULL,
+                            contract = TRUE,
                             heap = "BHeap") {
 
     if (is.null (dlim)) {
@@ -43,7 +46,7 @@ dodgr_isodists <- function (graph,
         stop ("dlim must be numeric")
     }
 
-    dat <- iso_pre (graph, from, heap)
+    dat <- iso_pre (graph, from, heap, contract = contract)
 
     # expand dlim to an extra value to capture max boundary
     if (length (dlim) == 1) {
@@ -59,12 +62,15 @@ dodgr_isodists <- function (graph,
     )
     d [d > max (dlim)] <- NA
 
+    vert_names <- gsub ("\\_(start|end)$", "", dat$vert_map$vert)
+    from_id <- gsub ("\\_start$", "", dat$from_index$id)
+
     if (!is.null (dat$from_index$id)) {
-        rownames (d) <- dat$from_index$id
+        rownames (d) <- from_id
     } else {
-        rownames (d) <- dat$vert_map$vert
+        rownames (d) <- vert_names
     } # nocov
-    colnames (d) <- dat$vert_map$vert
+    colnames (d) <- vert_names
 
     # verts ON isohulls are flagged with negative values at isodistance;
     # terminal verts are also negative at their specified distance; all other
@@ -72,10 +78,10 @@ dodgr_isodists <- function (graph,
     d [d >= 0] <- NA
     d <- -d # convert negative-flagged iso-values to positive
 
-    return (dmat_to_pts (d, dat$from_index$id, dat$v, dlim))
+    return (dmat_to_pts (d, from_id, dat$v, dlim))
 }
 
-iso_pre <- function (graph, from = NULL, heap = "BHeap") {
+iso_pre <- function (graph, from = NULL, heap = "BHeap", contract = TRUE) {
 
     v <- dodgr_vertices (graph)
     graph <- tbl_to_df (graph)
@@ -83,6 +89,10 @@ iso_pre <- function (graph, from = NULL, heap = "BHeap") {
     hps <- get_heap (heap, graph)
     heap <- hps$heap
     graph <- hps$graph
+
+    if (!is.null (from)) {
+        from <- nodes_arg_to_pts (from, graph)
+    }
 
     gr_cols <- dodgr_graph_cols (graph)
     if (is.na (gr_cols$from) || is.na (gr_cols$to)) {
@@ -95,16 +105,40 @@ iso_pre <- function (graph, from = NULL, heap = "BHeap") {
     }
     vert_map <- make_vert_map (graph, gr_cols, FALSE)
 
-    tp <- attr (graph, "turn_penalty")
-    tp <- ifelse (is.null (tp), 0, tp)
-    if (is (graph, "dodgr_streetnet_sc") && tp > 0) {
-        if (!is.null (from)) {
-            from <- nodes_arg_to_pts (from, graph)
-            from <- remap_verts_with_turn_penalty (graph, from, from = TRUE)
+    from_index <- get_to_from_index (graph, vert_map, gr_cols, from)
+
+    if (get_turn_penalty (graph) > 0.0) {
+        if (methods::is (graph, "dodgr_contracted")) {
+            warning (
+                "graphs with turn penalties should be submitted in full, ",
+                "not contracted form;\nsubmitting contracted graphs may ",
+                "produce unexpected behaviour."
+            )
         }
+        graph <- create_compound_junctions (graph)$graph
+
+        # remap any 'from' and 'to' vertices to compound junction versions:
+        vert_map <- make_vert_map (graph, gr_cols, is_graph_spatial (graph))
+
+        from_index <- remap_tf_index_for_tp (from_index, vert_map, from = TRUE)
+        # return object contains modified 'vert_map', but original vertex table,
+        # not the modified version with these compound junctions
+        # v <- dodgr_vertices (graph)
     }
 
-    from_index <- get_to_from_index (graph, vert_map, gr_cols, from)
+    if (contract && !methods::is (graph, "dodgr_contracted")) {
+        graph_full <- graph
+        graph <- dodgr_contract_graph (graph, verts = from_index$id)
+        hashc <- get_hash (graph, hash = FALSE)
+        fname_c <- fs::path (
+            fs::path_temp (),
+            paste0 ("dodgr_edge_map_", hashc, ".Rds")
+        )
+        if (!fs::file_exists (fname_c)) {
+            stop ("something went wrong extracting the edge_map ... ")
+        } # nocov
+        edge_map <- readRDS (fname_c)
+    }
 
     graph <- convert_graph (graph, gr_cols)
 
@@ -255,11 +289,11 @@ dodgr_isoverts <- function (graph,
     d [index] [d [index] < 0] <- -d [index] [d [index] < 0]
 
     if (!is.null (dat$from_index$id)) {
-        rownames (d) <- dat$from_index$id
+        rownames (d) <- gsub ("\\_start$", "", dat$from_index$id)
     } else {
-        rownames (d) <- dat$vert_map$vert
+        rownames (d) <- gsub ("\\_start$", "", dat$vert_map$vert)
     }
-    colnames (d) <- dat$vert_map$vert
+    colnames (d) <- gsub ("\\_(start|end)$", "", dat$vert_map$vert)
 
     # convert d-values to the *next highest* specified dlim value. breaks need
     # to start < 0 to include 0 in lowest class

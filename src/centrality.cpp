@@ -4,6 +4,7 @@
 
 #include <algorithm> // std::fill
 #include <fstream> // file output for parallel jobs
+#include <unordered_set>
 
 /*************************************************************************
  * Direct implementation of
@@ -12,8 +13,17 @@
  * - same algorithm as used in igraph and networkx
  *************************************************************************/
 
-const double epsilon = 1.0e-10; // edge weight comparison == 0
-// see https://github.com/igraph/igraph/blob/master/src/igraph_math.h#L49
+const double epsilon = DBL_MIN; // edge weight comparison == 0
+// see
+// https://github.com/igraph/igraph/blob/96c2cc751063bf3ba7e920e99793956013cef6b5/include/igraph_nongraph.h#L41
+// which defines epsilon as 1e-10. That value is passed to `igraph_cmp_epsilon`,
+// which is defined at
+// https://github.com/igraph/igraph/blob/96c2cc751063bf3ba7e920e99793956013cef6b5/src/math/utils.c#L108
+// and uses a comparison of fabs (diff) < (eps * DBL_MIN),
+// where DBL_MIN is the standard lower, non-zero limit
+// https://en.cppreference.com/w/cpp/types/numeric_limits/min
+// of generally around 1e-308, so (eps * DBL_MIN) is then sub-normal. This code
+// just uses an epsilon equal to DBL_MIN.
 
 // # nocov start
 template <typename T>
@@ -24,11 +34,21 @@ void inst_graph (std::shared_ptr<DGraph> g, size_t nedges,
         const std::vector <T>& dist,
         const std::vector <T>& wt)
 {
+
+    std::unordered_set < std::pair <size_t, size_t>, centrality::edge_pair_hash > edge_set;
+
     for (size_t i = 0; i < nedges; ++i)
     {
         size_t fromi = vert_map.at(from [i]);
         size_t toi = vert_map.at(to [i]);
-        g->addNewEdge (fromi, toi, dist [i], wt [i], i);
+
+        std::pair <size_t, size_t> edge_pair {fromi, toi};
+        if (edge_set.find (edge_pair) == edge_set.end ())
+        {
+            edge_set.emplace (edge_pair);
+            g->addNewEdge (fromi, toi, dist [i], wt [i], i);
+        }
+
     }
 }
 // # nocov end
@@ -188,8 +208,9 @@ void PF::PathFinder::Centrality_vertex (
 
     m_heap->insert (s, -1.0);
 
-    std::vector <int> sigma (n, 0);
-    sigma [s] = 1;
+    // sigma as long int because graphs can be bigger than INT_MAX
+    std::vector <long int> sigma (n, 0);
+    sigma [s] = 1L;
 
     std::vector <std::vector <size_t> > prev_vert (n);
 
@@ -202,39 +223,53 @@ void PF::PathFinder::Centrality_vertex (
         v_stack.push_back (v);
 
         edge = vertices [v].outHead;
+
+        // NOTE: This 'target_set', and the one below in 'centrality_edge', are
+        // only needed for graphs which are submitted with (potentially)
+        // duplicate edges. The set is used to ensure centrality values are only
+        // aggregated once along any set of duplicated edges. The effect of not
+        // doing this is documented at
+        // https://github.com/ATFutures/dodgr/issues/186.
+        //
+        // Nevertheless, the other commits flagged in that issue add a function
+        // to the internal 'inst_graph' function at the top of this file ensures
+        // no duplicated edges are added, so this 'target_set' is not actually
+        // needed. The issue shows that it does not decrease computational
+        // efficiency here, so it's left for the moment, but can easily be
+        // removed later.
+        std::unordered_set <size_t> target_set;
+
         while (edge) {
 
             size_t et = edge->target;
             double wt = w [v] + edge->wt;
 
-            std::vector <size_t> vert_vec;
-
-            if (w [et] == 0.0) // first connection to et
+            if (target_set.find (et) == target_set.end ())
             {
-                vert_vec.resize (1);
-                vert_vec [0] = v;
-                prev_vert [et] = vert_vec;
+                target_set.emplace (et);
 
-                sigma [et] = sigma [v];
-                w [et] = wt;
-                m_heap->insert (et, wt);
-            }  else if (wt < w [et])
-            {
-                vert_vec.resize (1);
-                vert_vec [0] = v;
-                prev_vert [et] = vert_vec;
+                if (w [et] == 0.0) // first connection to et
+                {
+                    prev_vert [et] = std::vector <size_t> (1L, v);
 
-                sigma [et] = sigma [v];
-                w [et] = wt;
-                m_heap->decreaseKey (et, wt);
-            } else if (fabs (wt - w [et]) < epsilon)
-            {
-                vert_vec = prev_vert [et];
-                vert_vec.resize (vert_vec.size () + 1);
-                vert_vec [vert_vec.size () - 1] = v;
-                prev_vert [et] = vert_vec;
+                    sigma [et] = sigma [v];
+                    w [et] = wt;
+                    m_heap->insert (et, wt);
+                }  else if (wt < w [et])
+                {
+                    prev_vert [et] = std::vector <size_t> (1L, v);
 
-                sigma [et] += sigma [v];
+                    sigma [et] = sigma [v];
+                    w [et] = wt;
+                    m_heap->decreaseKey (et, wt);
+                } else if (fabs (wt - w [et]) < epsilon)
+                {
+                    std::vector <size_t> vert_vec = prev_vert [et];
+                    vert_vec.push_back (v);
+                    prev_vert [et] = vert_vec;
+
+                    sigma [et] += sigma [v];
+                }
             }
 
             edge = edge->nextOut;
@@ -248,10 +283,10 @@ void PF::PathFinder::Centrality_vertex (
         const size_t v = v_stack.back ();
         v_stack.pop_back ();
         std::vector <size_t> vert_vec = prev_vert [v];
-        double tempd = (1.0 + delta [v]) / sigma [v];
+        double tempd = (1.0 + delta [v]) / static_cast <double> (sigma [v]);
         for (auto ws: vert_vec)
         {
-            delta [ws] += sigma [ws] * tempd;
+            delta [ws] += static_cast <double> (sigma [ws]) * tempd;
         }
         if (v != s)
             cent [v] += vert_wt * delta [v];
@@ -278,13 +313,14 @@ void PF::PathFinder::Centrality_edge (
 
     m_heap->insert (s, -1.0);
 
-    std::vector <int> sigma (n, 0);
-    sigma [s] = 1;
-    std::vector <int> sigma_edge (nedges, 0);
+    std::vector <long int> sigma (n, 0);
+    sigma [s] = 1L;
+    std::vector <long int> sigma_edge (nedges, 0);
 
     std::vector <std::vector <size_t> > prev_vert (n), prev_edge (n);
 
     while (m_heap->nItems() > 0) {
+
         size_t v = m_heap->deleteMin();
 
         if (w [v] > dist_threshold)
@@ -293,49 +329,50 @@ void PF::PathFinder::Centrality_edge (
         v_stack.push_back (v);
 
         edge = vertices [v].outHead;
+
+        // See comment in 'centrality_vertex', above, about this 'target_set'.
+        std::unordered_set <size_t> target_set;
+
         while (edge) {
 
             size_t et = edge->target;
             double wt = w [v] + edge->wt;
 
-            // DGraph has no edge iterator, so edge_vec contains pairwise
-            // elements of [from vertex, edge_id]
-            std::vector <size_t> edge_vec;
-
-            if (w [et] == 0.0) // first connection to et
+            if (target_set.find (et) == target_set.end ())
             {
-                edge_vec.resize (2);
-                edge_vec [0] = v;
-                edge_vec [1] = edge->edge_id;
-                prev_edge [et] = edge_vec;
+                target_set.emplace (et);
 
-                sigma [et] = sigma [v];
-                sigma_edge [edge->edge_id] = sigma [v];
+                // DGraph has no edge iterator, so prev_edge elements contains
+                // pairwise elements of [from vertex, edge_id]
 
-                w [et] = wt;
-                m_heap->insert (et, wt);
-            }  else if (wt < w [et])
-            {
-                edge_vec.resize (2);
-                edge_vec [0] = v;
-                edge_vec [1] = edge->edge_id;
-                prev_edge [et] = edge_vec;
+                if (w [et] == 0.0) // first connection to et
+                {
+                    prev_edge [et] = std::vector <size_t> {v, edge->edge_id};
 
-                sigma [et] = sigma [v];
-                sigma_edge [edge->edge_id] = sigma [v];
+                    sigma [et] = sigma [v];
+                    sigma_edge [edge->edge_id] = sigma [v];
 
-                w [et] = wt;
-                m_heap->decreaseKey (et, wt);
-            } else if (fabs (wt - w [et]) < epsilon)
-            {
-                edge_vec = prev_edge [et];
-                edge_vec.resize (edge_vec.size () + 2);
-                edge_vec [edge_vec.size () - 2] = v;
-                edge_vec [edge_vec.size () - 1] = edge->edge_id;
-                prev_edge [et] = edge_vec;
+                    w [et] = wt;
+                    m_heap->insert (et, wt);
+                }  else if (wt < w [et])
+                {
+                    prev_edge [et] = std::vector <size_t> {v, edge->edge_id};
 
-                sigma [et] += sigma [v];
-                sigma_edge [edge->edge_id] += sigma [v];
+                    sigma [et] = sigma [v];
+                    sigma_edge [edge->edge_id] = sigma [v];
+
+                    w [et] = wt;
+                    m_heap->decreaseKey (et, wt);
+                } else if (fabs (wt - w [et]) < epsilon)
+                {
+                    std::vector <size_t> edge_vec = prev_edge [et];
+                    edge_vec.push_back (v);
+                    edge_vec.push_back (edge->edge_id);
+                    prev_edge [et] = edge_vec;
+
+                    sigma [et] += sigma [v];
+                    sigma_edge [edge->edge_id] += sigma [v];
+                }
             }
 
             edge = edge->nextOut;
@@ -349,22 +386,22 @@ void PF::PathFinder::Centrality_edge (
         const size_t v = v_stack.back ();
         v_stack.pop_back ();
         std::vector <size_t> edge_vec = prev_edge [v];
-        double tempd = (1.0 + delta [v]) / sigma [v];
+        double tempd = (1.0 + delta [v]) / static_cast <double> (sigma [v]);
 
         std::vector <size_t>::iterator it = edge_vec.begin ();
         // The dereferenced edge_vec iterator is simply a direct index
         while (it != edge_vec.end ())
         {
-            delta [*it] += sigma [*it] * tempd;
+            delta [*it] += static_cast <double> (sigma [*it]) * tempd;
             it = std::next (it);
-            cent [*it] += sigma_edge [*it] * tempd * vert_wt;
+            cent [*it] += static_cast <double> (sigma_edge [*it]) * tempd * vert_wt;
             it = std::next (it);
         }
     }
 }
 
 
-//' rcpp_centrality_vertex - parallel function
+//' rcpp_centrality - parallel function
 //'
 //' sample is used to estimate timing, by calculating centrality from just a few
 //' vertices.

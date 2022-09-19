@@ -9,17 +9,19 @@
 #' distances and for each edge category; if `TRUE`, return single vector of
 #' proportional distances, like the `summary` function applied to full
 #' results. See Note.
-#' @param dlimit If `TRUE`, and no value to `to` is given, distances are
-#' aggregated from each `from` point out to the specified distance limit (in
-#' the same units as the edge distances of the input graph). The
-#' `proportions_only` argument has no effect when `dlimit = TRUE`.
-#' @return If `dlimit = FALSE`, a list of distance matrices of equal dimensions
+#' @param dlimit If no value to `to` is given, distances are aggregated from
+#' each `from` point out to the specified distance limit (in the same units as
+#' the edge distances of the input graph). `dlimit` only has any effect if `to`
+#' is not specified, in which case the `proportions_only` argument has no
+#' effect.
+#' @return If `to` is specified, a list of distance matrices of equal dimensions
 #' (length(from), length(to)), the first of which ("distance") holds the final
 #' distances, while the rest are one matrix for each unique value of
 #' "edge_type", holding the distances traversed along those types of edges only.
-#' If `dlimit = TRUE`, a single matrix of total distances along all ways from
-#' each point, along with distances along each of the different kinds of ways
-#' specified in the "edge_type" column of the input graph.
+#' Otherwise, a single matrix of total distances along all ways from each point
+#' out to the specified value of `dlimit`, along with distances along each of
+#' the different kinds of ways specified in the "edge_type" column of the input
+#' graph.
 #'
 #' @note The "edge_type" column in the graph can contain any kind of discrete or
 #' categorical values, although integer values of 0 are not permissible. `NA`
@@ -79,9 +81,18 @@ dodgr_dists_categorical <- function (graph,
     if (is.integer (graph$edge_type) && any (graph$edge_type == 0L)) {
         stop ("graphs with integer edge_type columns may not contain 0s")
     }
+    if (is.null (to)) {
+        if (is.null (dlimit)) {
+            stop ("'dlimit' must be specified if no 'to' points are given.")
+        }
+        if (!(is.numeric (dlimit) && length (dlimit) == 1L)) {
+            stop ("'dlimit' must be a single number.")
+        }
+    }
+
+    graph <- tbl_to_df (graph)
 
     edge_type <- graph$edge_type
-    graph <- tbl_to_df (graph)
 
     hps <- get_heap (heap, graph)
     heap <- hps$heap
@@ -101,11 +112,25 @@ dodgr_dists_categorical <- function (graph,
 
     vert_map <- make_vert_map (graph, gr_cols, is_spatial)
 
-    from <- to_from_with_tp (graph, from, from = TRUE) # turn penalty
     from_index <- get_to_from_index (graph, vert_map, gr_cols, from)
-    if (!is.null (to)) {
-        to <- to_from_with_tp (graph, to, from = FALSE)
-        to_index <- get_to_from_index (graph, vert_map, gr_cols, to)
+    to_index <- get_to_from_index (graph, vert_map, gr_cols, to)
+
+    if (get_turn_penalty (graph) > 0.0) {
+        if (methods::is (graph, "dodgr_contracted")) {
+            warning (
+                "graphs with turn penalties should be submitted in full, ",
+                "not contracted form;\nsubmitting contracted graphs may ",
+                "produce unexpected behaviour."
+            )
+        }
+        graph <- create_compound_junctions (graph)$graph
+        edge_type <- graph$edge_type
+
+        # remap any 'from' and 'to' vertices to compound junction versions:
+        vert_map <- make_vert_map (graph, gr_cols, is_spatial)
+
+        from_index <- remap_tf_index_for_tp (from_index, vert_map, from = TRUE)
+        to_index <- remap_tf_index_for_tp (to_index, vert_map, from = FALSE)
     }
 
     graph <- convert_graph (graph, gr_cols)
@@ -117,7 +142,7 @@ dodgr_dists_categorical <- function (graph,
         message ("Calculating shortest paths ... ", appendLF = FALSE)
     }
 
-    if (is.null (dlimit) && !is.null (to)) {
+    if (!is.null (to)) {
 
         d <- rcpp_get_sp_dists_categorical (
             graph,
@@ -180,6 +205,9 @@ process_categorical_dmat <- function (d, from_index, to_index, vert_map,
         cnames <- to_index$id
     }
 
+    # compound turn-penalty junctions:
+    rnames <- gsub ("\\_start$", "", rnames)
+    cnames <- gsub ("\\_end$", "", cnames)
 
     d0 <- d [, seq (n)]
     rownames (d0) <- rnames
@@ -208,6 +236,7 @@ process_threshold_dmat <- function (d, from_index, vert_map, edge_type_table) {
     } else {
         rownames (d) <- from_index$id
     }
+    rownames (d) <- gsub ("\\_start$", "", rownames (d))
 
     res <- data.frame (d)
     names (res) <- c ("distance", names (edge_type_table))

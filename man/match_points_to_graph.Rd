@@ -22,9 +22,18 @@ be part of the same connected component may decrease the spatial accuracy of
 matching.}
 }
 \value{
-A vector index matching the \code{xy} coordinates to nearest edges. For
-bi-directional edges, only one match is returned, and it is up to the user to
-identify and suitably process matching edge pairs.
+For 'distances = FALSE' (default), a vector index matching the \code{xy}
+coordinates to nearest edges. For bi-directional edges, only one match is
+returned, and it is up to the user to identify and suitably process matching
+edge pairs. For 'distances = TRUE', a 'data.frame' of two columns:
+\itemize{
+\item "index" The index of closest edges in "graph", as described above.
+\item "d_signed" The perpendicular distance from ech point to the nearest
+edge, with negative distances denoting points to the left of edges, and
+positive distances denoting points to the right. Distances of zero denote
+points lying precisely on the line of an edge (potentially including cases
+where nearest point of bisection lies beyond the actual edge).
+}
 }
 \description{
 Alias for \link{match_pts_to_graph}

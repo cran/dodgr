@@ -4,7 +4,7 @@
 \alias{match_pts_to_graph}
 \title{match_pts_to_graph}
 \usage{
-match_pts_to_graph(graph, xy, connected = FALSE)
+match_pts_to_graph(graph, xy, connected = FALSE, distances = FALSE)
 }
 \arguments{
 \item{graph}{A \code{dodgr} graph with spatial coordinates, such as a
@@ -20,11 +20,25 @@ component of graph? If \code{FALSE} and these points are to be used for a
 not part of the same connected component. On the other hand, forcing them to
 be part of the same connected component may decrease the spatial accuracy of
 matching.}
+
+\item{distances}{If \code{TRUE}, return a 'data.frame' object with 'index' column
+as described in return value; and additional 'dist' column with perpendicular
+distance to nearest edge in graph. See description of return value for
+details.}
 }
 \value{
-A vector index matching the \code{xy} coordinates to nearest edges. For
-bi-directional edges, only one match is returned, and it is up to the user to
-identify and suitably process matching edge pairs.
+For 'distances = FALSE' (default), a vector index matching the \code{xy}
+coordinates to nearest edges. For bi-directional edges, only one match is
+returned, and it is up to the user to identify and suitably process matching
+edge pairs. For 'distances = TRUE', a 'data.frame' of two columns:
+\itemize{
+\item "index" The index of closest edges in "graph", as described above.
+\item "d_signed" The perpendicular distance from ech point to the nearest
+edge, with negative distances denoting points to the left of edges, and
+positive distances denoting points to the right. Distances of zero denote
+points lying precisely on the line of an edge (potentially including cases
+where nearest point of bisection lies beyond the actual edge).
+}
 }
 \description{
 Match spatial points to the edges of a spatial graph, through finding the

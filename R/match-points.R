@@ -1,6 +1,9 @@
 #' match_pts_to_verts
 #'
-#' Match spatial points to the vertices of a spatial graph
+#' Match spatial points to the vertices of a spatial graph. The
+#' \link{match_pts_to_graph} function matches points to the nearest edge based
+#' on geometric intersections; this function only matches to the nearest vertex
+#' based on point-to-point distances.
 #'
 #' @param verts A `data.frame` of vertices obtained from
 #' `dodgr_vertices(graph)`.
@@ -112,11 +115,24 @@ pre_process_xy <- function (xy) {
 #'
 #' @param graph A `dodgr` graph with spatial coordinates, such as a
 #' `dodgr_streetnet` object.
+#' @param distances If `TRUE`, return a 'data.frame' object with 'index' column
+#' as described in return value; and additional 'dist' column with perpendicular
+#' distance to nearest edge in graph. See description of return value for
+#' details.
 #' @inheritParams match_pts_to_verts
 #'
-#' @return A vector index matching the `xy` coordinates to nearest edges. For
-#' bi-directional edges, only one match is returned, and it is up to the user to
-#' identify and suitably process matching edge pairs.
+#' @return For 'distances = FALSE' (default), a vector index matching the `xy`
+#' coordinates to nearest edges. For bi-directional edges, only one match is
+#' returned, and it is up to the user to identify and suitably process matching
+#' edge pairs. For 'distances = TRUE', a 'data.frame' of two columns:
+#' \itemize{
+#' \item "index" The index of closest edges in "graph", as described above.
+#' \item "d_signed" The perpendicular distance from ech point to the nearest
+#' edge, with negative distances denoting points to the left of edges, and
+#' positive distances denoting points to the right. Distances of zero denote
+#' points lying precisely on the line of an edge (potentially including cases
+#' where nearest point of bisection lies beyond the actual edge).
+#' }
 #' @family match
 #' @export
 #' @examples
@@ -130,7 +146,8 @@ pre_process_xy <- function (xy) {
 #' )
 #' edges <- match_pts_to_graph (graph, xy)
 #' graph [edges, ] # The edges of the graph closest to `xy`
-match_pts_to_graph <- function (graph, xy, connected = FALSE) {
+match_pts_to_graph <- function (graph, xy,
+                                connected = FALSE, distances = FALSE) {
 
     if (!is_graph_spatial (graph)) {
         stop ("Points may only be matched to spatial graphs.")
@@ -147,8 +164,22 @@ match_pts_to_graph <- function (graph, xy, connected = FALSE) {
     graph <- graph [, gr_cols]
     names (graph) <- names (gr_cols)
 
+    res <- rcpp_points_to_edges_par (graph, xy)
+    index <- seq (nrow (xy))
+
     # rcpp_points_index is 0-indexed, so ...
-    rcpp_points_to_edges_par (graph, xy) + 1L
+    graph_index <- as.integer (res [index]) + 1L
+
+    if (distances) {
+        ret <- data.frame (
+            index = graph_index,
+            d_signed = signed_intersection_dists (graph, xy, res)
+        )
+    } else {
+        ret <- graph_index
+    }
+
+    return (ret)
 }
 
 #' match_points_to_graph
@@ -160,6 +191,43 @@ match_pts_to_graph <- function (graph, xy, connected = FALSE) {
 match_points_to_graph <- function (graph, xy, connected = FALSE) {
 
     match_pts_to_graph (graph, xy, connected = connected)
+}
+
+#' Get geodesic distances to intersection points for match_pts_to_graph.
+#'
+#' @param res Output of 'rcpp_points_index' function
+#' @noRd
+signed_intersection_dists <- function (graph, xy, res) {
+
+    n <- nrow (xy)
+    index <- seq (n)
+
+    # rcpp_points_index is 0-indexed, so ...
+    graph_index <- as.integer (res [index]) + 1L
+
+    # coordinates not yet used here; see #103
+    xy_intersect <- data.frame (
+        x = res [index + nrow (xy)],
+        y = res [index + 2L * nrow (xy)]
+    )
+
+    d <- geodist::geodist (
+        xy,
+        xy_intersect,
+        paired = TRUE,
+        measure = "geodesic"
+    )
+
+    # Then coordinates of graph edges for sign calculation
+    xy_cols <- c ("xfr", "yfr", "xto", "yto")
+    gxy <- graph [graph_index, xy_cols]
+
+    which_side <- (gxy$xto - gxy$xfr) * (xy_intersect$y - gxy$yfr) -
+        (gxy$yto - gxy$yfr) * (xy_intersect$x - gxy$xfr)
+    which_side [which_side < 0.0] <- -1
+    which_side [which_side > 0.0] <- 1
+
+    return (d * which_side)
 }
 
 #' Insert new nodes into a graph, breaking edges at point of nearest
