@@ -1,16 +1,19 @@
-get_hash <- function (graph, verts = NULL, hash = TRUE) {
+get_hash <- function (graph, verts = NULL, contracted = FALSE, force = FALSE) {
 
-    if (hash) {
-        hash <- attr (graph, "hash")
+    hash <- NULL
+    if (!force) {
+        hash <- attr (graph, ifelse (contracted, "hashc", "hash"))
+    }
+
+    if (!contracted) {
         if (is.null (hash)) {
             gr_cols <- dodgr_graph_cols (graph)
-            hash <- digest::digest (graph [[gr_cols$edge_id]])
+            hash <- digest::digest (list (graph [[gr_cols$edge_id]], names (graph)))
         }
     } else {
-        hash <- attr (graph, "hashc")
         if (is.null (hash)) {
             gr_cols <- dodgr_graph_cols (graph)
-            hash <- digest::digest (list (graph [[gr_cols$edge_id]], verts))
+            hash <- digest::digest (list (graph [[gr_cols$edge_id]], names (graph), verts))
         }
     }
     return (hash)
@@ -18,7 +21,7 @@ get_hash <- function (graph, verts = NULL, hash = TRUE) {
 
 get_edge_map <- function (graph) {
 
-    hashc <- get_hash (graph, hash = FALSE)
+    hashc <- get_hash (graph, contracted = TRUE)
     if (is.null (hashc)) {
         stop ("something went wrong extracting the edge map")
     } # nocov

@@ -94,50 +94,15 @@ iso_pre <- function (graph, from = NULL, heap = "BHeap", contract = TRUE) {
         from <- nodes_arg_to_pts (from, graph)
     }
 
+    graph <- preprocess_spatial_cols (graph)
     gr_cols <- dodgr_graph_cols (graph)
-    if (is.na (gr_cols$from) || is.na (gr_cols$to)) {
-        # nocov start - this is only tested on SC, so this never happens
-        scols <- find_spatial_cols (graph)
-        graph$from_id <- scols$xy_id$xy_fr_id
-        graph$to_id <- scols$xy_id$xy_to_id
-        gr_cols <- dodgr_graph_cols (graph)
-        # nocov end - TODO: Test this
-    }
-    vert_map <- make_vert_map (graph, gr_cols, FALSE)
-
-    from_index <- get_to_from_index (graph, vert_map, gr_cols, from)
-
-    if (get_turn_penalty (graph) > 0.0) {
-        if (methods::is (graph, "dodgr_contracted")) {
-            warning (
-                "graphs with turn penalties should be submitted in full, ",
-                "not contracted form;\nsubmitting contracted graphs may ",
-                "produce unexpected behaviour."
-            )
-        }
-        graph <- create_compound_junctions (graph)$graph
-
-        # remap any 'from' and 'to' vertices to compound junction versions:
-        vert_map <- make_vert_map (graph, gr_cols, is_graph_spatial (graph))
-
-        from_index <- remap_tf_index_for_tp (from_index, vert_map, from = TRUE)
-        # return object contains modified 'vert_map', but original vertex table,
-        # not the modified version with these compound junctions
-        # v <- dodgr_vertices (graph)
+    to_from_indices <- to_from_index_with_tp (graph, from, to = NULL)
+    if (to_from_indices$compound) {
+        graph <- to_from_indices$graph_compound
     }
 
     if (contract && !methods::is (graph, "dodgr_contracted")) {
-        graph_full <- graph
-        graph <- dodgr_contract_graph (graph, verts = from_index$id)
-        hashc <- get_hash (graph, hash = FALSE)
-        fname_c <- fs::path (
-            fs::path_temp (),
-            paste0 ("dodgr_edge_map_", hashc, ".Rds")
-        )
-        if (!fs::file_exists (fname_c)) {
-            stop ("something went wrong extracting the edge_map ... ")
-        } # nocov
-        edge_map <- readRDS (fname_c)
+        graph <- dodgr_contract_graph (graph, verts = to_from_indices$from$id)
     }
 
     graph <- convert_graph (graph, gr_cols)
@@ -145,8 +110,8 @@ iso_pre <- function (graph, from = NULL, heap = "BHeap", contract = TRUE) {
     list (
         v = v,
         graph = graph,
-        vert_map = vert_map,
-        from_index = from_index,
+        vert_map = to_from_indices$vert_map,
+        from_index = to_from_indices$from,
         heap = heap
     )
 }
@@ -316,7 +281,7 @@ dmat_to_pts <- function (d, from, v, dlim) {
 
     pt_names <- colnames (d)
     pts <- list ()
-    for (i in seq (nrow (d))) {
+    for (i in seq_len (nrow (d))) {
         o <- v [match (from [i], v$id), ]
         pts [[i]] <- lapply (dlim, function (j) {
             res <- pt_names [which (d [i, ] == j)]

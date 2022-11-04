@@ -9,6 +9,9 @@
 #' `from_x`) or `stop_lon`).
 #' @param verts Optional list of vertices to be retained as routing points.
 #' These must match the `from` and `to` columns of `graph`.
+#' @param nocache If `FALSE` (default), load cached version of contracted graph
+#' if previously calculated and cached. If `TRUE`, then re-contract graph even
+#' if previously calculated version has been stored in cache.
 #'
 #' @return A contracted version of the original `graph`, containing the same
 #' number of columns, but with each row representing an edge between two
@@ -21,7 +24,7 @@
 #' nrow (graph) # 5,973
 #' graph <- dodgr_contract_graph (graph)
 #' nrow (graph) # 662
-dodgr_contract_graph <- function (graph, verts = NULL) {
+dodgr_contract_graph <- function (graph, verts = NULL, nocache = FALSE) {
 
     if (nrow (graph) == 0) {
         stop ("graph is empty")
@@ -48,15 +51,14 @@ dodgr_contract_graph <- function (graph, verts = NULL) {
         verts <- verts [which (verts %in% v$id)]
     }
 
-    attr (graph, "hash") <- attr (graph, "hashc") <- NULL
-    hash <- get_hash (graph, hash = TRUE)
-    hashc <- get_hash (graph, verts = verts, hash = FALSE)
+    hash <- get_hash (graph, contracted = FALSE, force = TRUE)
+    hashc <- get_hash (graph, verts = verts, contracted = TRUE, force = TRUE)
     fname_c <- fs::path (
         fs::path_temp (),
         paste0 ("dodgr_graphc_", hashc, ".Rds")
     )
 
-    if (fs::file_exists (fname_c)) {
+    if (fs::file_exists (fname_c) && !nocache) {
         graph_contracted <- list (graph = readRDS (fname_c))
     } else {
         fname <- fs::path (
@@ -114,6 +116,9 @@ dodgr_contract_graph_internal <- function (graph, v, verts = NULL) {
     gr_cols <- dodgr_graph_cols (graph)
     graph2 <- convert_graph (graph, gr_cols)
     graph_contracted <- rcpp_contract_graph (graph2, verts)
+
+    graph_contracted <-
+        rm_edges_with_heterogenous_data (graph, graph_contracted, gr_cols)
 
     # graph_contracted$graph has only 5 cols of (edge_id, from, to, d, w). These
     # have to be matched onto original graph.  This is done by using edge_map to
@@ -195,6 +200,62 @@ dodgr_contract_graph_internal <- function (graph, v, verts = NULL) {
     ))
 }
 
+#' Graph contraction must ignore any compound edges along which any additional
+#' data columns change (see #194).
+#'
+#' @return A modified version of `graph_contracted`, removing any formerly
+#' contracted edges which should not be, and expanding them back out to their
+#' original edges. The "edge_map" component of `graph_contracted` is also
+#' modified to remove the corresponding items.
+#' @noRd
+rm_edges_with_heterogenous_data <- function (graph, graph_contracted, gr_cols) { # nolint
+
+    gr_cols_index <- unlist (gr_cols)
+    gr_cols_index <- gr_cols_index [-which (names (gr_cols_index) == "edge_id")]
+    rm_these <- c ("geom_num", "highway", "way_id")
+    rm_these <- rm_these [which (rm_these %in% names (graph))]
+    gr_cols_index <- sort (c (gr_cols_index, match (rm_these, names (graph))))
+    graph_extra <- graph [, -gr_cols_index, drop = FALSE]
+    data_index <- which (!names (graph_extra) %in%
+        c ("edge_id", "edge_new", "edge_", "object_"))
+    if (length (data_index) == 0L) {
+        return (graph_contracted)
+    }
+
+    graph_extra <- graph_extra [
+        which (graph_extra$edge_id %in% graph_contracted$edge_map$edge_old),
+    ]
+    index <- match (graph_extra$edge_id, graph_contracted$edge_map$edge_old)
+    graph_extra$edge_new <- graph_contracted$edge_map$edge_new [index]
+
+    graph_extra <- split (graph_extra, f = factor (graph_extra$edge_new))
+    graph_extra <- lapply (graph_extra, function (i) {
+        unique (i [, data_index, drop = FALSE])
+    })
+    lens <- vapply (graph_extra, nrow, integer (1L))
+    index_heterog <- names (lens) [which (lens > 1L)]
+    if (length (index_heterog) == 0L) {
+        return (graph_contracted)
+    }
+
+    edge_map_heterog <- graph_contracted$edge_map [
+        graph_contracted$edge_map$edge_new %in% index_heterog,
+    ]
+    index_out <- match (index_heterog, graph_contracted$graph$edge_id)
+    index_in <- match (edge_map_heterog$edge_old, graph [, gr_cols$edge_id])
+    graph2 <- convert_graph (graph, gr_cols)
+    names (graph2) <- names (graph_contracted$graph)
+    graph_contracted$graph <- rbind (
+        graph_contracted$graph [-index_out, , drop = FALSE],
+        graph2 [index_in, , drop = FALSE]
+    )
+    edge_map_index <-
+        match (edge_map_heterog$edge_old, graph_contracted$edge_map$edge_old)
+    graph_contracted$edge_map <- graph_contracted$edge_map [-edge_map_index, ]
+
+    return (graph_contracted)
+}
+
 #' dodgr_uncontract_graph
 #'
 #' Revert a contracted graph created with \link{dodgr_contract_graph} back to
@@ -210,11 +271,11 @@ dodgr_contract_graph_internal <- function (graph, v, verts = NULL) {
 #' @export
 #' @examples
 #' graph0 <- weight_streetnet (hampi)
-#' nrow (graph0) # 5,845
+#' nrow (graph0) # 6,813
 #' graph1 <- dodgr_contract_graph (graph0)
-#' nrow (graph1) # 686
+#' nrow (graph1) # 760
 #' graph2 <- dodgr_uncontract_graph (graph1)
-#' nrow (graph2) # 5,845
+#' nrow (graph2) # 6,813
 #'
 #' # Insert new data on to the contracted graph and uncontract it:
 #' graph1$new_col <- runif (nrow (graph1))
@@ -248,7 +309,8 @@ dodgr_uncontract_graph <- function (graph) {
         ))
     } # nocov
 
-    graph_edges <- graph [[gr_cols$edge_id]] # used below if rows have been removed
+    # used below if rows have been removed
+    graph_edges <- graph [[gr_cols$edge_id]]
 
     graph_full <- readRDS (fname)
     attr (graph_full, "px") <- px
@@ -259,10 +321,11 @@ dodgr_uncontract_graph <- function (graph) {
     # graph:
     if (!identical (hashe, hashe_ref)) {
         index <- which (edge_map$edge_new %in% graph_edges)
-        index_in <- which (graph [[gr_cols$edge_id]] %in% edge_map$edge_old [index])
+        index_in <-
+            which (graph [[gr_cols$edge_id]] %in% edge_map$edge_old [index])
         graph <- graph [index_in, ]
-        attr (graph, "hash") <- NULL
-        attr (graph, "hash") <- get_hash (graph, hash = TRUE)
+        attr (graph, "hash") <-
+            get_hash (graph, contracted = FALSE, force = TRUE)
     }
 
     return (graph)

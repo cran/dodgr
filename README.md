@@ -74,7 +74,7 @@ detail.
 You can install latest stable version of `dodgr` from CRAN with:
 
 ``` r
-install.packages("dodgr") # current CRAN version
+install.packages ("dodgr") # current CRAN version
 ```
 
 Alternatively, current development versions can be installed using any
@@ -82,10 +82,11 @@ of the following options:
 
 ``` r
 # install.packages("remotes")
-remotes::install_git("https://git.sr.ht/~mpadge/dodgr")
-remotes::install_bitbucket("atfutures/dodgr")
-remotes::install_gitlab("atfutures1/dodgr")
-remotes::install_github("ATFutures/dodgr")
+remotes::install_git ("https://git.sr.ht/~mpadge/dodgr")
+remotes::install_git ("https://codeberg.org/ATFutures/dodgr")
+remotes::install_bitbucket ("atfutures/dodgr")
+remotes::install_gitlab ("atfutures1/dodgr")
+remotes::install_github ("ATFutures/dodgr")
 ```
 
 Then load with
@@ -93,7 +94,7 @@ Then load with
 ``` r
 library (dodgr)
 packageVersion ("dodgr")
-#> [1] '0.2.14.46'
+#> [1] '0.2.16.6'
 ```
 
 ## Important Note
@@ -144,7 +145,7 @@ head (graph)
 ```
 
 | geom_num | edge_id | from_id    | from_lon | from_lat | to_id      |   to_lon |   to_lat |          d | d_weighted | highway | way_id   | component |      time | time_weighted |
-|----:|----:|:-----|----:|----:|:-----|----:|----:|-----:|-----:|:----|:----|----:|----:|------:|
+|---------:|--------:|:-----------|---------:|---------:|:-----------|---------:|---------:|-----------:|-----------:|:--------|:---------|----------:|----------:|--------------:|
 |        1 |       1 | 339318500  | 76.47491 | 15.34167 | 339318502  | 76.47612 | 15.34173 | 130.000241 | 130.000241 | path    | 28565950 |         1 | 93.600174 |     93.600174 |
 |        1 |       2 | 339318502  | 76.47612 | 15.34173 | 339318500  | 76.47491 | 15.34167 | 130.000241 | 130.000241 | path    | 28565950 |         1 | 93.600174 |     93.600174 |
 |        1 |       3 | 339318502  | 76.47612 | 15.34173 | 2398958028 | 76.47621 | 15.34174 |   8.890622 |   8.890622 | path    | 28565950 |         1 |  6.401248 |      6.401248 |
@@ -170,7 +171,7 @@ head (graph [graph$highway == "path", ])
 ```
 
 | geom_num | edge_id | from_id    | from_lon | from_lat | to_id      |   to_lon |   to_lat |          d | d_weighted | highway | way_id   | component |      time | time_weighted |
-|----:|----:|:-----|----:|----:|:-----|----:|----:|-----:|-----:|:----|:----|----:|----:|------:|
+|---------:|--------:|:-----------|---------:|---------:|:-----------|---------:|---------:|-----------:|-----------:|:--------|:---------|----------:|----------:|--------------:|
 |        1 |       1 | 339318500  | 76.47491 | 15.34167 | 339318502  | 76.47612 | 15.34173 | 130.000241 | 130.000241 | path    | 28565950 |         1 | 93.600174 |     93.600174 |
 |        1 |       2 | 339318502  | 76.47612 | 15.34173 | 339318500  | 76.47491 | 15.34167 | 130.000241 | 130.000241 | path    | 28565950 |         1 | 93.600174 |     93.600174 |
 |        1 |       3 | 339318502  | 76.47612 | 15.34173 | 2398958028 | 76.47621 | 15.34174 |   8.890622 |   8.890622 | path    | 28565950 |         1 |  6.401248 |      6.401248 |
@@ -285,9 +286,11 @@ matrix”:
 
 ``` r
 flows <- array (runif (length (from) * length (to)), dim = c (length (from), length (to)))
-length (from); length (to); dim (flows)
+length (from)
 #> [1] 20
+length (to)
 #> [1] 50
+dim (flows)
 #> [1] 20 50
 f <- dodgr_flows_aggregate (graph = graph, from = from, to = to, flows = flows)
 ```
@@ -300,13 +303,13 @@ head (f)
 ```
 
 | geom_num | edge_id | from_id    | from_lon | from_lat | to_id      |   to_lon |   to_lat |          d | d_weighted | highway | way_id   | component |      time | time_weighted |      flow |
-|----:|---:|:----|----:|----:|:----|----:|----:|----:|----:|:---|:----|----:|----:|-----:|----:|
-|        1 |       1 | 339318500  | 76.47491 | 15.34167 | 339318502  | 76.47612 | 15.34173 | 130.000241 | 130.000241 | path    | 28565950 |         1 | 93.600174 |     93.600174 | 2.1365350 |
-|        1 |       2 | 339318502  | 76.47612 | 15.34173 | 339318500  | 76.47491 | 15.34167 | 130.000241 | 130.000241 | path    | 28565950 |         1 | 93.600174 |     93.600174 | 0.8081778 |
-|        1 |       3 | 339318502  | 76.47612 | 15.34173 | 2398958028 | 76.47621 | 15.34174 |   8.890622 |   8.890622 | path    | 28565950 |         1 |  6.401248 |      6.401248 | 2.1365350 |
-|        1 |       4 | 2398958028 | 76.47621 | 15.34174 | 339318502  | 76.47612 | 15.34173 |   8.890622 |   8.890622 | path    | 28565950 |         1 |  6.401248 |      6.401248 | 0.8081778 |
-|        1 |       5 | 2398958028 | 76.47621 | 15.34174 | 1427116077 | 76.47628 | 15.34179 |   9.307736 |   9.307736 | path    | 28565950 |         1 |  6.701570 |      6.701570 | 2.1365350 |
-|        1 |       6 | 1427116077 | 76.47628 | 15.34179 | 2398958028 | 76.47621 | 15.34174 |   9.307736 |   9.307736 | path    | 28565950 |         1 |  6.701570 |      6.701570 | 0.8081778 |
+|---------:|--------:|:-----------|---------:|---------:|:-----------|---------:|---------:|-----------:|-----------:|:--------|:---------|----------:|----------:|--------------:|----------:|
+|        1 |       1 | 339318500  | 76.47491 | 15.34167 | 339318502  | 76.47612 | 15.34173 | 130.000241 | 130.000241 | path    | 28565950 |         1 | 93.600174 |     93.600174 | 0.9960589 |
+|        1 |       2 | 339318502  | 76.47612 | 15.34173 | 339318500  | 76.47491 | 15.34167 | 130.000241 | 130.000241 | path    | 28565950 |         1 | 93.600174 |     93.600174 | 0.0000000 |
+|        1 |       3 | 339318502  | 76.47612 | 15.34173 | 2398958028 | 76.47621 | 15.34174 |   8.890622 |   8.890622 | path    | 28565950 |         1 |  6.401248 |      6.401248 | 0.9960589 |
+|        1 |       4 | 2398958028 | 76.47621 | 15.34174 | 339318502  | 76.47612 | 15.34173 |   8.890622 |   8.890622 | path    | 28565950 |         1 |  6.401248 |      6.401248 | 0.0000000 |
+|        1 |       5 | 2398958028 | 76.47621 | 15.34174 | 1427116077 | 76.47628 | 15.34179 |   9.307736 |   9.307736 | path    | 28565950 |         1 |  6.701570 |      6.701570 | 0.9960589 |
+|        1 |       6 | 1427116077 | 76.47628 | 15.34179 | 2398958028 | 76.47621 | 15.34174 |   9.307736 |   9.307736 | path    | 28565950 |         1 |  6.701570 |      6.701570 | 0.0000000 |
 
 An additional flow aggregation function can be applied in cases where
 only densities at origin points are known, and movement throughout a
@@ -325,19 +328,17 @@ routing](https://atfutures.github.io/dodgr/articles/times.html)
 
 ## Contributors
 
+
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
 
-All contributions to this project are gratefully acknowledged using the
-[`allcontributors`
-package](https://github.com/ropenscilabs/allcontributors) following the
-[all-contributors](https://allcontributors.org) specification.
-Contributions of any kind are welcome!
+All contributions to this project are gratefully acknowledged using the [`allcontributors` package](https://github.com/ropenscilabs/allcontributors) following the [all-contributors](https://allcontributors.org) specification. Contributions of any kind are welcome!
 
 ### Code
 
 <table>
+
 <tr>
 <td align="center">
 <a href="https://github.com/mpadge">
@@ -382,11 +383,14 @@ Contributions of any kind are welcome!
 <a href="https://github.com/ATFutures/dodgr/commits?author=virgesmith">virgesmith</a>
 </td>
 </tr>
+
 </table>
+
 
 ### Issue Authors
 
 <table>
+
 <tr>
 <td align="center">
 <a href="https://github.com/chrjangit">
@@ -431,6 +435,8 @@ Contributions of any kind are welcome!
 <a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3Amdsumner">mdsumner</a>
 </td>
 </tr>
+
+
 <tr>
 <td align="center">
 <a href="https://github.com/nacnudus">
@@ -443,12 +449,6 @@ Contributions of any kind are welcome!
 <img src="https://avatars.githubusercontent.com/u/8019045?u=16ba8f6406bcb20ade64481fbc177998bd1549fb&v=4" width="100px;" alt=""/>
 </a><br>
 <a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3Amkvasnicka">mkvasnicka</a>
-</td>
-<td align="center">
-<a href="https://github.com/Maschette">
-<img src="https://avatars.githubusercontent.com/u/14663215?u=93694159d02e924e6413bd067d7746f1d16d64c1&v=4" width="100px;" alt=""/>
-</a><br>
-<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3AMaschette">Maschette</a>
 </td>
 <td align="center">
 <a href="https://github.com/orlando-sabogal">
@@ -474,14 +474,16 @@ Contributions of any kind are welcome!
 </a><br>
 <a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3Adarinchristensen">darinchristensen</a>
 </td>
-</tr>
-<tr>
 <td align="center">
 <a href="https://github.com/romainFr">
 <img src="https://avatars.githubusercontent.com/u/1626262?v=4" width="100px;" alt=""/>
 </a><br>
 <a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3AromainFr">romainFr</a>
 </td>
+</tr>
+
+
+<tr>
 <td align="center">
 <a href="https://github.com/dcooley">
 <img src="https://avatars.githubusercontent.com/u/8093396?u=2c8d9162f246d90d433034d212b29a19e0f245c1&v=4" width="100px;" alt=""/>
@@ -518,14 +520,16 @@ Contributions of any kind are welcome!
 </a><br>
 <a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3AFlxPo">FlxPo</a>
 </td>
-</tr>
-<tr>
 <td align="center">
 <a href="https://github.com/LeshunXu">
 <img src="https://avatars.githubusercontent.com/u/48538622?v=4" width="100px;" alt=""/>
 </a><br>
 <a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3ALeshunXu">LeshunXu</a>
 </td>
+</tr>
+
+
+<tr>
 <td align="center">
 <a href="https://github.com/deanmarchiori">
 <img src="https://avatars.githubusercontent.com/u/9559770?u=5abd6534fd7f1cf94a54f894cdb12e017db1a9af&v=4" width="100px;" alt=""/>
@@ -544,12 +548,21 @@ Contributions of any kind are welcome!
 </a><br>
 <a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3AUrban-JonathanCohen">Urban-JonathanCohen</a>
 </td>
+<td align="center">
+<a href="https://github.com/sriramab">
+<img src="https://avatars.githubusercontent.com/u/12668606?u=491fa9e3858bf66cae79d0cfa19a7e78145be4ae&v=4" width="100px;" alt=""/>
+</a><br>
+<a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+author%3Asriramab">sriramab</a>
+</td>
 </tr>
+
 </table>
+
 
 ### Issue Contributors
 
 <table>
+
 <tr>
 <td align="center">
 <a href="https://github.com/richardellison">
@@ -559,7 +572,7 @@ Contributions of any kind are welcome!
 </td>
 <td align="center">
 <a href="https://github.com/coatless">
-<img src="https://avatars.githubusercontent.com/u/833642?u=4f003526aa302417ef486034c4a7f95267d49637&v=4" width="100px;" alt=""/>
+<img src="https://avatars.githubusercontent.com/u/833642?u=d7a2ccb381bd1517d2d51778670ef227cbd8d3aa&v=4" width="100px;" alt=""/>
 </a><br>
 <a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3Acoatless">coatless</a>
 </td>
@@ -582,7 +595,9 @@ Contributions of any kind are welcome!
 <a href="https://github.com/ATFutures/dodgr/issues?q=is%3Aissue+commenter%3AMartinLHazelton">MartinLHazelton</a>
 </td>
 </tr>
+
 </table>
+
 <!-- markdownlint-enable -->
 <!-- prettier-ignore-end -->
 <!-- ALL-CONTRIBUTORS-LIST:END -->

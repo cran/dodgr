@@ -49,9 +49,9 @@
 #' `from` and `to` values can be either two-column matrices or
 #' equivalent of longitude and latitude coordinates, or else single columns
 #' precisely matching node numbers or names given in `graph$from` or
-#' `graph$to`. If `to` is `NULL`, pairwise distances are calculated
-#' between all points specified in `from`. If both `from` and `to` are `NULL`,
-#' pairwise distances are calculated between all nodes in `graph`.
+#' `graph$to`. If `to` is `NULL`, pairwise distances are calculated from all
+#' `from` points to all other nodes in `graph`. If both `from` and `to` are
+#' `NULL`, pairwise distances are calculated between all nodes in `graph`.
 #'
 #' Calculations in parallel (`parallel = TRUE`) ought very generally be
 #' advantageous. For small graphs, calculating distances in parallel is likely
@@ -126,34 +126,12 @@ dodgr_dists <- function (graph,
     heap <- hps$heap
     graph <- hps$graph
 
+    graph <- preprocess_spatial_cols (graph)
     gr_cols <- dodgr_graph_cols (graph)
-    if (is.na (gr_cols$from) || is.na (gr_cols$to)) {
-        scols <- find_spatial_cols (graph)
-        graph$from_id <- scols$xy_id$xy_fr_id
-        graph$to_id <- scols$xy_id$xy_to_id
-        gr_cols <- dodgr_graph_cols (graph)
-    }
     is_spatial <- is_graph_spatial (graph)
-    vert_map <- make_vert_map (graph, gr_cols, is_spatial)
-
-    from_index <- get_to_from_index (graph, vert_map, gr_cols, from)
-    to_index <- get_to_from_index (graph, vert_map, gr_cols, to)
-
-    if (get_turn_penalty (graph) > 0.0) {
-        if (methods::is (graph, "dodgr_contracted")) {
-            warning (
-                "graphs with turn penalties should be submitted in full, ",
-                "not contracted form;\nsubmitting contracted graphs may ",
-                "produce unexpected behaviour."
-            )
-        }
-        graph <- create_compound_junctions (graph)$graph
-
-        # remap any 'from' and 'to' vertices to compound junction versions:
-        vert_map <- make_vert_map (graph, gr_cols, is_spatial)
-
-        from_index <- remap_tf_index_for_tp (from_index, vert_map, from = TRUE)
-        to_index <- remap_tf_index_for_tp (to_index, vert_map, from = FALSE)
+    to_from_indices <- to_from_index_with_tp (graph, from, to)
+    if (to_from_indices$compound) {
+        graph <- to_from_indices$graph_compound
     }
 
     if (!shortest) {
@@ -184,9 +162,9 @@ dodgr_dists <- function (graph,
 
     d <- calculate_distmat (
         graph,
-        vert_map,
-        from_index,
-        to_index,
+        to_from_indices$vert_map,
+        to_from_indices$from,
+        to_from_indices$to,
         heap,
         is_spatial,
         parallel,
@@ -269,31 +247,6 @@ get_index_id_cols <- function (graph,
         if (is.null (id)) {
             id <- vert_map$vert [index]
         } # index is 1-based
-    }
-    list (index = index, id = id)
-}
-
-#' get_to_from_index
-#'
-#' @noRd
-get_to_from_index <- function (graph,
-                               vert_map,
-                               gr_cols,
-                               pts) {
-
-    id <- NULL
-    if (is.null (pts)) {
-        index <- seq (nrow (vert_map)) - 1L
-        if (!is.null (vert_map$vert)) {
-            id <- vert_map$vert
-        }
-    } else {
-        index_id <- get_index_id_cols (graph, gr_cols, vert_map, pts)
-        if (any (is.na (index_id$id))) {
-            stop ("Unable to match all routing points to graph vertices")
-        }
-        index <- index_id$index - 1L # 0-based
-        id <- index_id$id
     }
     list (index = index, id = id)
 }
@@ -390,58 +343,80 @@ get_pts_index <- function (graph,
     }
 
     if (ncol (pts) == 1) {
-        pts <- pts [, 1]
-        if (!is.numeric (pts)) {
-            indx <- match (pts, vert_map$vert)
-            if (any (is.na (indx))) {
-                stop (paste0 (
-                    "from/to are not numeric yet can not be",
-                    " matched onto graph vertices"
-                ))
-            }
-            pts <- indx
-        }
-        if (any (pts < 1 | pts > nrow (vert_map))) {
-            stop (paste0 ("points exceed numbers of vertices"))
-        }
+
+        pts <- get_pts_index_vec (pts, vert_map)
+
     } else {
-        nms <- names (pts)
-        if (is.null (nms)) {
-            nms <- colnames (pts)
-        }
-        ix <- which (grepl ("x", nms, ignore.case = TRUE) |
-            grepl ("lon", nms, ignore.case = TRUE))
-        iy <- which (grepl ("y", nms, ignore.case = TRUE) |
-            grepl ("lat", nms, ignore.case = TRUE))
-        if (length (ix) != 1 || length (iy) != 1) {
-            stop (paste0 (
-                "Unable to determine geographical ",
-                "coordinates in from/to"
-            ))
-        }
 
-        index <- match (c ("xfr", "yfr", "xto", "yto"), names (gr_cols))
-        if (any (is.na (gr_cols [index]))) {
-            stop (paste0 (
-                "Cannot determine geographical coordinates ",
-                "against which to match pts"
-            ))
-        }
-
-        if (is.data.frame (pts)) {
-            names (pts) [ix] <- "x"
-            names (pts) [iy] <- "y"
-        } else {
-            colnames (pts) [ix] <- "x"
-            colnames (pts) [iy] <- "y"
-        }
-
-        # Result of rcpp_points_index is 0-indexed for C++
-        pts <- rcpp_points_index_par (dodgr_vertices (graph), pts) + 1
-        # xy has same order as vert_map
+        pts <- get_pts_index_rect (pts, graph, gr_cols)
     }
 
     pts
+}
+
+get_pts_index_vec <- function (pts, vert_map) {
+
+    pts <- pts [, 1]
+
+    if (!is.numeric (pts)) {
+
+        indx <- match (pts, vert_map$vert)
+
+        if (any (is.na (indx))) {
+            stop (paste0 (
+                "from/to are not numeric yet can not be",
+                " matched onto graph vertices"
+            ))
+        }
+        pts <- indx
+    }
+
+    if (any (pts < 1 | pts > nrow (vert_map))) {
+        stop (paste0 ("points exceed numbers of vertices"))
+    }
+
+    return (pts)
+}
+
+get_pts_index_rect <- function (pts, graph, gr_cols) {
+
+    nms <- names (pts)
+    if (is.null (nms)) {
+        nms <- colnames (pts)
+    }
+
+    ix <- which (grepl ("x", nms, ignore.case = TRUE) |
+        grepl ("lon", nms, ignore.case = TRUE))
+    iy <- which (grepl ("y", nms, ignore.case = TRUE) |
+        grepl ("lat", nms, ignore.case = TRUE))
+
+    if (length (ix) != 1 || length (iy) != 1) {
+        stop (paste0 (
+            "Unable to determine geographical ",
+            "coordinates in from/to"
+        ))
+    }
+
+    index <- match (c ("xfr", "yfr", "xto", "yto"), names (gr_cols))
+    if (any (is.na (gr_cols [index]))) {
+        stop (paste0 (
+            "Cannot determine geographical coordinates ",
+            "against which to match pts"
+        ))
+    }
+
+    if (is.data.frame (pts)) {
+        names (pts) [ix] <- "x"
+        names (pts) [iy] <- "y"
+    } else {
+        colnames (pts) [ix] <- "x"
+        colnames (pts) [iy] <- "y"
+    }
+
+    # Result of rcpp_points_index is 0-indexed for C++
+    pts <- rcpp_points_index_par (dodgr_vertices (graph), pts) + 1
+
+    return (pts)
 }
 
 # nocov start
@@ -581,30 +556,4 @@ calculate_distmat <- function (graph,
     }
 
     return (d)
-}
-
-#' Remap 'from_index' and 'to_index' values on to the compound junctions present
-#' in 'vert_map'.
-#'
-#' @param index Either 'from_index' or 'to_index' calculated
-remap_tf_index_for_tp <- function (index, vert_map, from = TRUE) {
-
-    vert_index <- match (index$id, vert_map$vert)
-    if (from) {
-        no_start <- which (!grepl ("\\_start$", index$id))
-        vert_index_id <- index$id
-        vert_index_id [no_start] <- paste0 (index$id [no_start], "_start")
-    } else {
-        no_end <- which (!grepl ("\\_end$", index$id))
-        vert_index_id <- index$id
-        vert_index_id [no_end] <- paste0 (index$id [no_end], "_end")
-    }
-    vert_index_comp <- match (vert_index_id, vert_map$vert)
-    na_index <- which (!is.na (vert_index_comp))
-    vert_index [na_index] <- vert_index_comp [na_index]
-
-    index$index <- vert_index - 1L # zero-based
-    index$id [na_index] <- vert_index_id [na_index]
-
-    return (index)
 }
