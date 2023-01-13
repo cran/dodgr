@@ -1,4 +1,13 @@
-# v 0.2.17.00x (dev)
+# v 0.2.18.00x (dev)
+
+## Minor changes:
+
+- Changes to align with new dplyr version (#198; thanks to @DavisVaughan)
+- Update broken URL in times vignette.
+
+---
+
+# v 0.2.18
 
 ## Minor changes:
 

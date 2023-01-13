@@ -1,6 +1,6 @@
 Package: dodgr
 Title: Distances on Directed Graphs
-Version: 0.2.18
+Version: 0.2.19
 Authors@R: c(
     person("Mark", "Padgham", , "mark.padgham@email.com", role = c("aut", "cre")),
     person("Andreas", "Petutschnig", role = "aut"),
@@ -26,7 +26,8 @@ Depends: R (>= 3.5.0)
 Imports: callr, digest, fs, magrittr, methods, osmdata, Rcpp (>=
         0.12.6), RcppParallel
 Suggests: bench, dplyr, geodist, ggplot2, igraph, igraphdata, jsonlite,
-        knitr, markdown, rmarkdown, roxygen2, sf, testthat, tidygraph
+        knitr, markdown, rmarkdown, roxygen2, sf, testthat (>= 3.1.6),
+        tidygraph
 LinkingTo: Rcpp, RcppParallel, RcppThread
 VignetteBuilder: knitr
 Encoding: UTF-8
@@ -34,7 +35,7 @@ LazyData: true
 NeedsCompilation: yes
 RoxygenNote: 7.2.1
 SystemRequirements: C++11, GNU make
-Packaged: 2022-12-07 10:20:55 UTC; smexus
+Packaged: 2023-01-13 11:09:11 UTC; smexus
 Author: Mark Padgham [aut, cre],
   Andreas Petutschnig [aut],
   David Cooley [aut],
@@ -45,4 +46,4 @@ Author: Mark Padgham [aut, cre],
     heaps)
 Maintainer: Mark Padgham <mark.padgham@email.com>
 Repository: CRAN
-Date/Publication: 2022-12-07 16:00:07 UTC
+Date/Publication: 2023-01-13 11:50:05 UTC
