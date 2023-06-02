@@ -2,7 +2,7 @@
 % Please edit documentation in R/match-points.R
 \name{match_pts_to_verts}
 \alias{match_pts_to_verts}
-\title{match_pts_to_verts}
+\title{Match spatial points to the vertices of a spatial graph.}
 \usage{
 match_pts_to_verts(verts, xy, connected = FALSE)
 }
@@ -25,10 +25,9 @@ matching.}
 A vector index into verts
 }
 \description{
-Match spatial points to the vertices of a spatial graph. The
-\link{match_pts_to_graph} function matches points to the nearest edge based
-on geometric intersections; this function only matches to the nearest vertex
-based on point-to-point distances.
+The \link{match_pts_to_graph} function matches points to the nearest edge
+based on geometric intersections; this function only matches to the nearest
+vertex based on point-to-point distances.
 }
 \examples{
 net <- weight_streetnet (hampi, wt_profile = "foot")

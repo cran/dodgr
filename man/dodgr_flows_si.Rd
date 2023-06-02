@@ -2,7 +2,7 @@
 % Please edit documentation in R/flows.R
 \name{dodgr_flows_si}
 \alias{dodgr_flows_si}
-\title{dodgr_flows_si}
+\title{Aggregate flows throughout a network using a spatial interaction model.}
 \usage{
 dodgr_flows_si(
   graph,
@@ -14,7 +14,7 @@ dodgr_flows_si(
   contract = TRUE,
   norm_sums = TRUE,
   heap = "BHeap",
-  tol = 0.000000000001,
+  tol = 1e-12,
   quiet = TRUE
 )
 }
@@ -64,9 +64,9 @@ flows are aggregated. To remove any such effect, set \code{tol = 0}.}
 Modified version of graph with additional \code{flow} column added.
 }
 \description{
-Aggregate flows throughout a network based using an exponential Spatial
-Interaction (SI) model between a specified set of origin and destination
-points, and associated vectors of densities.
+Aggregate flows throughout a network using an exponential Spatial Interaction
+(SI) model between a specified set of origin and destination points, and
+associated vectors of densities.
 }
 \note{
 Spatial Interaction models are often fitted through trialling a range
@@ -119,6 +119,7 @@ nrow (graph_undir) # the latter is much smaller
 Other distances: 
 \code{\link{dodgr_distances}()},
 \code{\link{dodgr_dists_categorical}()},
+\code{\link{dodgr_dists_nearest}()},
 \code{\link{dodgr_dists}()},
 \code{\link{dodgr_flows_aggregate}()},
 \code{\link{dodgr_flows_disperse}()},

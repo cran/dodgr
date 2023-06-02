@@ -37,7 +37,7 @@ struct DijkstraEdge
 
 struct by_wt
 {
-    bool operator () (const DijkstraEdge& lhs, const DijkstraEdge& rhs)
+    bool operator () (const DijkstraEdge& lhs, const DijkstraEdge& rhs) const
     {
         if (fabs (lhs._wt - rhs._wt) < 1.0e-12)
             return lhs._i < rhs._i;
@@ -107,6 +107,12 @@ class PathFinder {
                 const size_t &v0);
 
         void Dijkstra (
+                std::vector<double>& d,
+                std::vector<double>& w,
+                std::vector<long int>& prev,
+                const size_t v0,
+                const std::vector <size_t> &to_index);
+        void DijkstraNearest (
                 std::vector<double>& d,
                 std::vector<double>& w,
                 std::vector<long int>& prev,

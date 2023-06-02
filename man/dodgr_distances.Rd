@@ -2,7 +2,7 @@
 % Please edit documentation in R/dists.R
 \name{dodgr_distances}
 \alias{dodgr_distances}
-\title{dodgr_distances}
+\title{Calculate matrix of pair-wise distances between points.}
 \usage{
 dodgr_distances(
   graph,
@@ -139,6 +139,7 @@ d <- dodgr_dists (graph, from = xy, to = xy)
 \seealso{
 Other distances: 
 \code{\link{dodgr_dists_categorical}()},
+\code{\link{dodgr_dists_nearest}()},
 \code{\link{dodgr_dists}()},
 \code{\link{dodgr_flows_aggregate}()},
 \code{\link{dodgr_flows_disperse}()},

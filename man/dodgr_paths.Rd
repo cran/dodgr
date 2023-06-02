@@ -2,7 +2,7 @@
 % Please edit documentation in R/paths.R
 \name{dodgr_paths}
 \alias{dodgr_paths}
-\title{dodgr_paths}
+\title{Calculate lists of pair-wise shortest paths between points.}
 \usage{
 dodgr_paths(
   graph,
@@ -93,6 +93,7 @@ dp <- dodgr_paths (graph, from = from, to = to, pairwise = TRUE)
 Other distances: 
 \code{\link{dodgr_distances}()},
 \code{\link{dodgr_dists_categorical}()},
+\code{\link{dodgr_dists_nearest}()},
 \code{\link{dodgr_dists}()},
 \code{\link{dodgr_flows_aggregate}()},
 \code{\link{dodgr_flows_disperse}()},

@@ -1,10 +1,9 @@
-#' dodgr_to_sf
+#' Convert a `dodgr` graph into an equivalent \pkg{sf} object.
 #'
-#' Convert a `dodgr` graph into an equivalent \pkg{sf} object.  Works by
-#' aggregating edges into `LINESTRING` objects representing longest sequences
-#' between all junction nodes. The resultant objects will generally contain more
-#' `LINESTRING` objects than the original \pkg{sf} object, because the former
-#' will be bisected at every junction point.
+#' Works by aggregating edges into `LINESTRING` objects representing longest
+#' sequences between all junction nodes. The resultant objects will generally
+#' contain more `LINESTRING` objects than the original \pkg{sf} object, because
+#' the former will be bisected at every junction point.
 #'
 #' @param graph A `dodgr` graph
 #' @return Equivalent object of class \pkg{sf}.
@@ -36,7 +35,7 @@ dodgr_to_sf <- function (graph) {
     sf::st_sf (res$dat, geometry = res$geometry, crs = 4326)
 }
 
-#' dodgr_to_sfc
+#' Convert a `dodgr` graph into an equivalent `sf::sfc` object.
 #'
 #' Convert a `dodgr` graph into a `list` composed of
 #' two objects: `dat`, a `data.frame`; and
@@ -76,7 +75,7 @@ dodgr_to_sfc <- function (graph) {
     # force sequential IDs. TODO: Allow non-sequential by replacing indices in
     # src/dodgr_to_sf::get_edge_to_vert_maps with maps to sequential indices.
     gr_cols <- dodgr_graph_cols (graph)
-    graph [[gr_cols$edge_id]] <- seq (nrow (graph))
+    graph [[gr_cols$edge_id]] <- seq_len (nrow (graph))
 
     # hard-code column names for Rcpp routine:
     names (graph) [gr_cols$edge_id] <- "edge_id"
@@ -116,8 +115,6 @@ dodgr_to_sfc <- function (graph) {
     return (list (dat = gc, geometry = geometry))
 }
 
-#' dodgr_to_igraph
-#'
 #' Convert a `dodgr` graph to an \pkg{igraph}.
 #'
 #' @param graph A `dodgr` graph
@@ -164,8 +161,6 @@ dodgr_to_igraph <- function (graph, weight_column = "d") {
     igraph::graph_from_data_frame (graph, directed = TRUE, vertices = v)
 }
 
-#' igraph_to_dodgr
-#'
 #' Convert a \pkg{igraph} network to an equivalent `dodgr` representation.
 #'
 #' @param graph An \pkg{igraph} network
@@ -196,11 +191,12 @@ igraph_to_dodgr <- function (graph) {
     }
     vi <- data.frame (do.call (cbind, vi), stringsAsFactors = FALSE)
 
-    res <- data.frame (cbind (
-        igraph::get.edgelist (graph),
-        do.call (cbind, ei)
-    ),
-    stringsAsFactors = FALSE
+    res <- data.frame (
+        cbind (
+            igraph::get.edgelist (graph),
+            do.call (cbind, ei)
+        ),
+        stringsAsFactors = FALSE
     )
     names (res) [1:2] <- c ("from_id", "to_id")
 
@@ -214,7 +210,7 @@ igraph_to_dodgr <- function (graph) {
         res [, i] <- convert_col (res, i)
     }
 
-    res <- cbind ("edge_id" = seq (nrow (res)), res)
+    res <- cbind ("edge_id" = seq_len (nrow (res)), res)
 
     return (res)
 }
@@ -236,8 +232,6 @@ convert_col <- function (x, n = 3) {
 }
 
 
-#' dodgr_to_tidygraph
-#'
 #' Convert a `dodgr` graph to an \pkg{tidygraph}.
 #'
 #' @param graph A `dodgr` graph

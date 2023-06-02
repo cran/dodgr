@@ -1,4 +1,38 @@
-# v 0.2.18.00x (dev)
+# v 0.2.21
+
+## Major changes:
+
+- New `pairwise` parameter added to `dodgr_dists_categorical` (#201)
+- New function: `dodgr_dists_nearest()` (#203)
+- Updated `weight_streenet()` function for `wt_profile="bicycle"` to return
+  many more bicycle-relevant columns (#207).
+- Fix major bug in categorical dists routines that gave wrong values (#201; thanks to @xiaofanliang)
+- Fix bug in `add_nodes_to_graph`, #103
+- Add 2 new parameters to `add_nodes_to_graph`, "dist_tol" and "intersections_only" (#103)
+
+## Minor changes:
+
+- Fix bugs that issued warnings in weight_streetnet.sc if no "lanes" or
+  "junction" columns present.
+
+---
+
+# v 0.2.20
+
+## Major changes:
+
+- Fixed GitHub updates of package website (does not affect CRAN release).
+
+## Minor changes:
+
+- General documentation updates.
+- Minor change to weight_streetnet.sc to suppress dplyr left_join warnings
+- Minor fixes to tests.
+- Update citation file to match new CRAN requirements (#204).
+
+---
+
+# v 0.2.19
 
 ## Minor changes:
 

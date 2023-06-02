@@ -26,9 +26,17 @@ extract_sc_edges_xy <- function (x) {
         rename1 <- rename1 [1:2]
     }
 
-    dplyr::left_join (x$edge, x$vertex, by = c (".vx0" = "vertex_")) %>%
+    dplyr::left_join (
+        x$edge, x$vertex,
+        by = c (".vx0" = "vertex_"),
+        multiple = "all"
+    ) %>%
         dplyr::rename (!!rename0) %>%
-        dplyr::left_join (x$vertex, by = c (".vx1" = "vertex_")) %>%
+        dplyr::left_join (
+            x$vertex,
+            by = c (".vx1" = "vertex_"),
+            multiple = "all"
+        ) %>%
         dplyr::rename (!!rename1)
 }
 
@@ -58,9 +66,15 @@ extract_sc_edges_highways <- function (graph, x, wt_profile, wt_profile_file,
         keep_cols <- c (keep_cols, unique (surface$key))
     }
 
+    if (length (keep_cols) > 0L) {
+
+        keys <- unique (x$object$key)
+        keep_names <- unique (keep_cols [which (keep_cols %in% keys)])
+    }
+
     graph <- dplyr::left_join (graph, x$object_link_edge, by = "edge_") %>%
         dplyr::select (-native_)
-    for (k in keep_cols) {
+    for (k in keep_names) {
         objs <- dplyr::filter (x$object, key == k)
         graph <- dplyr::left_join (graph, objs, by = "object_") %>%
             dplyr::rename (!!dplyr::quo_name (k) := value) %>%
@@ -279,7 +293,7 @@ weight_by_num_lanes <- function (graph, wt_profile) {
 
     # only weight these profiles:
     profile_names <- c ("foot", "bicycle", "wheelchair", "horse")
-    if (!(wt_profile %in% profile_names || "lanes" %in% names (graph))) {
+    if (!(wt_profile %in% profile_names && "lanes" %in% names (graph))) {
         return (graph)
     } # nocov
 
@@ -428,7 +442,9 @@ sc_duplicate_edges <- function (x, wt_profile) {
 
     index <- seq_len (nrow (x))
     if (wt_profile %in% oneway_modes) {
-        x$oneway [x$junction == "roundabout"] <- TRUE # #175
+        if ("junction" %in% names (x)) {
+            x$oneway [x$junction == "roundabout"] <- TRUE # #175
+        }
         index <- which (!x$oneway)
     }
 

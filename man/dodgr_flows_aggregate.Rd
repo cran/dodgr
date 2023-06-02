@@ -2,7 +2,7 @@
 % Please edit documentation in R/flows.R
 \name{dodgr_flows_aggregate}
 \alias{dodgr_flows_aggregate}
-\title{dodgr_flows_aggregate}
+\title{Aggregate flows throughout a network.}
 \usage{
 dodgr_flows_aggregate(
   graph,
@@ -11,7 +11,7 @@ dodgr_flows_aggregate(
   flows,
   contract = TRUE,
   heap = "BHeap",
-  tol = 0.000000000001,
+  tol = 1e-12,
   norm_sums = TRUE,
   quiet = TRUE
 )
@@ -169,6 +169,7 @@ plot (gsf ["flow"])
 Other distances: 
 \code{\link{dodgr_distances}()},
 \code{\link{dodgr_dists_categorical}()},
+\code{\link{dodgr_dists_nearest}()},
 \code{\link{dodgr_dists}()},
 \code{\link{dodgr_flows_disperse}()},
 \code{\link{dodgr_flows_si}()},

@@ -11,7 +11,7 @@
 
 <meta name="author" content="Mark Padgham" />
 
-<meta name="date" content="2023-01-13" />
+<meta name="date" content="2023-06-02" />
 
 <title>dodgr</title>
 
@@ -1527,7 +1527,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">dodgr</h1>
 <h4 class="author">Mark Padgham</h4>
-<h4 class="date">2023-01-13</h4>
+<h4 class="date">2023-06-02</h4>
 
 </div>
 
@@ -1899,7 +1899,7 @@ analyses of large graphs which may otherwise take too long to
 compute.</p>
 <pre class="r"><code>graph_sub &lt;- dodgr_sample (graph, nverts = 100)
 nrow (graph_sub)</code></pre>
-<pre><code>## [1] 199</code></pre>
+<pre><code>## [1] 197</code></pre>
 <p>The random sample has around twice as many edges as vertices, in
 accordance with the statistics calculated above.</p>
 <pre class="r"><code>nrow (dodgr_vertices (graph_sub))</code></pre>
@@ -2060,17 +2060,17 @@ vertices).</p>
 <pre><code>## # A tibble: 11 × 6
 ##    expression                 min   median `itr/sec` mem_alloc `gc/sec`
 ##    &lt;bch:expr&gt;            &lt;bch:tm&gt; &lt;bch:tm&gt;     &lt;dbl&gt; &lt;bch:byt&gt;    &lt;dbl&gt;
-##  1 BHeap                   1.95ms   2.21ms      448.    39.7KB     8.37
-##  2 FHeap                   1.95ms   2.09ms      472.    39.7KB     6.19
-##  3 TriHeap                 1.93ms   2.08ms      471.    39.7KB     6.20
-##  4 TriHeapExt              1.77ms   1.81ms      537.    42.8KB     8.45
-##  5 Heap23                  1.96ms   2.08ms      471.    39.7KB     6.20
-##  6 BHeap_contracted        1.78ms   1.89ms      520.       9KB     8.32
-##  7 FHeap_contracted         1.8ms   1.89ms      520.       9KB     8.35
-##  8 TriHeap_contracted      1.82ms   1.89ms      519.       9KB     6.20
-##  9 TriHeapExt_contracted   1.56ms    1.6ms      613.       9KB    10.5 
-## 10 Heap23_contracted       1.77ms   1.92ms      505.       9KB     6.19
-## 11 igraph                605.31µs 635.62µs     1546.   418.8KB    10.5</code></pre>
+##  1 BHeap                   2.16ms   2.44ms      405.    47.5KB     10.6
+##  2 FHeap                   2.15ms   2.41ms      409.    47.5KB     10.6
+##  3 TriHeap                 2.16ms   2.61ms      378.    47.5KB     10.6
+##  4 TriHeapExt              1.86ms    1.9ms      516.    50.5KB     12.9
+##  5 Heap23                  2.16ms   2.56ms      392.    47.5KB     10.6
+##  6 BHeap_contracted        2.02ms    2.4ms      418.    20.4KB     10.6
+##  7 FHeap_contracted        1.99ms   2.26ms      440.    20.4KB     10.5
+##  8 TriHeap_contracted      2.02ms   2.28ms      426.    20.4KB     10.6
+##  9 TriHeapExt_contracted   1.64ms   1.69ms      575.    20.4KB     15.0
+## 10 Heap23_contracted       2.01ms   2.22ms      445.    20.4KB     10.6
+## 11 igraph                605.78µs 643.02µs     1506.   373.5KB     17.1</code></pre>
 <p>The key column of that <code>data.frame</code> is
 <code>relative</code>, which quantifies the relative performance of each
 test in relation to the best which is given a score of 1.
@@ -2141,8 +2141,8 @@ bench::mark (
 <pre><code>## # A tibble: 2 × 6
 ##   expression      min   median `itr/sec` mem_alloc `gc/sec`
 ##   &lt;bch:expr&gt; &lt;bch:tm&gt; &lt;bch:tm&gt;     &lt;dbl&gt; &lt;bch:byt&gt;    &lt;dbl&gt;
-## 1 full        11.08ms  11.57ms      84.0    1.24MB     0   
-## 2 contracted   2.18ms   2.29ms     431.   285.47KB     4.10</code></pre>
+## 1 full         9.76ms  11.68ms      86.5    1.24MB     2.06
+## 2 contracted   2.15ms   2.25ms     432.   285.47KB     8.35</code></pre>
 <p>And contracting the graph has a similar effect of speeding up
 pairwise routing between these 100 points. All routing algorithms scale
 non-linearly with size, and relative improvements in efficiency will be
@@ -2161,11 +2161,11 @@ nrow (grc)</code></pre>
 <pre><code>## [1] 772</code></pre>
 <pre class="r"><code>verts &lt;- sample (dodgr_vertices (graph)$id, size = 100)
 head (verts) # a character vector</code></pre>
-<pre><code>## [1] &quot;5351820886&quot; &quot;1204772779&quot; &quot;2195424943&quot; &quot;8632923853&quot; &quot;1148815081&quot;
-## [6] &quot;8615528132&quot;</code></pre>
+<pre><code>## [1] &quot;3697938329&quot; &quot;2631614989&quot; &quot;1143452145&quot; &quot;1376768461&quot; &quot;7793361775&quot;
+## [6] &quot;1143452116&quot;</code></pre>
 <pre class="r"><code>grc &lt;- dodgr_contract_graph (graph, verts)
 nrow (grc)</code></pre>
-<pre><code>## [1] 952</code></pre>
+<pre><code>## [1] 946</code></pre>
 <p>Retaining the nominated vertices yields a graph with considerably
 more edges than the fully contracted graph excluding these vertices. The
 <a href="https://atfutures.github.io/dodgr/reference/dodgr_distances.html"><code>dodgr_distances()</code></a>
@@ -2211,12 +2211,45 @@ length (dp)</code></pre>
 <p>The result (<code>dp</code>) is a list of 10 items, each of which
 contains 5 vectors. An example is,</p>
 <pre class="r"><code>dp [[1]] [[1]]</code></pre>
-<pre><code>##  [1] &quot;2608076422&quot; &quot;2608076425&quot; &quot;2608076427&quot; &quot;2608076428&quot; &quot;2608076437&quot;
-##  [6] &quot;2608076439&quot; &quot;2608076447&quot; &quot;2608076449&quot; &quot;3921512086&quot; &quot;2608076451&quot;
-## [11] &quot;2608076453&quot; &quot;2608076455&quot; &quot;2608076457&quot; &quot;3921512081&quot; &quot;3921512082&quot;
-## [16] &quot;3921512083&quot; &quot;3921512084&quot; &quot;3921512080&quot; &quot;3921512085&quot; &quot;2608163893&quot;
-## [21] &quot;2608163894&quot; &quot;2608163895&quot; &quot;2608163896&quot; &quot;2608163897&quot; &quot;2608163898&quot;
-## [26] &quot;2608163899&quot; &quot;2608163900&quot; &quot;2608163902&quot; &quot;2608163903&quot;</code></pre>
+<pre><code>##   [1] &quot;7794251357&quot; &quot;2588155730&quot; &quot;7794251356&quot; &quot;7794251355&quot; &quot;7794251354&quot;
+##   [6] &quot;2588155760&quot; &quot;7794251353&quot; &quot;7794251352&quot; &quot;2588155732&quot; &quot;7794251351&quot;
+##  [11] &quot;7794251350&quot; &quot;7794251349&quot; &quot;7794251348&quot; &quot;2588155734&quot; &quot;7794251347&quot;
+##  [16] &quot;2588155765&quot; &quot;7794251345&quot; &quot;7794251346&quot; &quot;7794251344&quot; &quot;2588155767&quot;
+##  [21] &quot;7794251343&quot; &quot;7794251342&quot; &quot;7794251341&quot; &quot;2588155751&quot; &quot;2588155724&quot;
+##  [26] &quot;7794251340&quot; &quot;7794251339&quot; &quot;7794251338&quot; &quot;2588155756&quot; &quot;7794251337&quot;
+##  [31] &quot;2588155772&quot; &quot;2588155763&quot; &quot;7794251336&quot; &quot;7794251335&quot; &quot;2588155747&quot;
+##  [36] &quot;2588155707&quot; &quot;2588155729&quot; &quot;2588155746&quot; &quot;2588155713&quot; &quot;2588155719&quot;
+##  [41] &quot;7794251333&quot; &quot;7794251334&quot; &quot;2588155704&quot; &quot;2588155723&quot; &quot;2588155711&quot;
+##  [46] &quot;2588155757&quot; &quot;2588155716&quot; &quot;2588155777&quot; &quot;2588155750&quot; &quot;2588155754&quot;
+##  [51] &quot;2588155755&quot; &quot;2588155712&quot; &quot;2588155779&quot; &quot;2588155771&quot; &quot;2588155718&quot;
+##  [56] &quot;2588155703&quot; &quot;2588155714&quot; &quot;2588155776&quot; &quot;2588155740&quot; &quot;2588155778&quot;
+##  [61] &quot;2588155726&quot; &quot;2588155706&quot; &quot;2588155705&quot; &quot;2398957796&quot; &quot;2398957795&quot;
+##  [66] &quot;2398957794&quot; &quot;286632890&quot;  &quot;2398957793&quot; &quot;2398957792&quot; &quot;1390214848&quot;
+##  [71] &quot;286632889&quot;  &quot;2398957783&quot; &quot;2398957782&quot; &quot;1390214918&quot; &quot;2398957775&quot;
+##  [76] &quot;2398957774&quot; &quot;2398957768&quot; &quot;2398957765&quot; &quot;2398957764&quot; &quot;2398957762&quot;
+##  [81] &quot;2398957761&quot; &quot;2398957760&quot; &quot;2398957758&quot; &quot;286632888&quot;  &quot;2398957754&quot;
+##  [86] &quot;2398957751&quot; &quot;1390214349&quot; &quot;2398957748&quot; &quot;2398957747&quot; &quot;2588146032&quot;
+##  [91] &quot;2588146091&quot; &quot;2588146120&quot; &quot;2588146042&quot; &quot;2588146050&quot; &quot;2588146081&quot;
+##  [96] &quot;2588146089&quot; &quot;2588146101&quot; &quot;2588146103&quot; &quot;2588146098&quot; &quot;7793361765&quot;
+## [101] &quot;7793361766&quot; &quot;2588146125&quot; &quot;2588146020&quot; &quot;2588146127&quot; &quot;7793361767&quot;
+## [106] &quot;7793361769&quot; &quot;7793361768&quot; &quot;7793361770&quot; &quot;2588146068&quot; &quot;5351820916&quot;
+## [111] &quot;5351820915&quot; &quot;5351820914&quot; &quot;5351820913&quot; &quot;5974426258&quot; &quot;5351820911&quot;
+## [116] &quot;5974426265&quot; &quot;5974426272&quot; &quot;5351820910&quot; &quot;5351820909&quot; &quot;5974426280&quot;
+## [121] &quot;5351820908&quot; &quot;5351820907&quot; &quot;5351820906&quot; &quot;5351820905&quot; &quot;5351820904&quot;
+## [126] &quot;5351820903&quot; &quot;5351820902&quot; &quot;5351820901&quot; &quot;5974426271&quot; &quot;5351820900&quot;
+## [131] &quot;5974426279&quot; &quot;5351820899&quot; &quot;5351820897&quot; &quot;5974426287&quot; &quot;5974426293&quot;
+## [136] &quot;5351820895&quot; &quot;5351820893&quot; &quot;5351820919&quot; &quot;5351820892&quot; &quot;5974426256&quot;
+## [141] &quot;5351820891&quot; &quot;5351820890&quot; &quot;5351820889&quot; &quot;5351820888&quot; &quot;5974426278&quot;
+## [146] &quot;5351820887&quot; &quot;5351820886&quot; &quot;5974426286&quot; &quot;5974426292&quot; &quot;5351820885&quot;
+## [151] &quot;5974426298&quot; &quot;5351820884&quot; &quot;5351820883&quot; &quot;5351820882&quot; &quot;5974426291&quot;
+## [156] &quot;5351820881&quot; &quot;5974426297&quot; &quot;5351820880&quot; &quot;5974426302&quot; &quot;5974426306&quot;
+## [161] &quot;5351820879&quot; &quot;5351820878&quot; &quot;5974426262&quot; &quot;5351820867&quot; &quot;5974426270&quot;
+## [166] &quot;5351820869&quot; &quot;5974426277&quot; &quot;5351820870&quot; &quot;5351820871&quot; &quot;5351820872&quot;
+## [171] &quot;5351820873&quot; &quot;5974426285&quot; &quot;5351820875&quot; &quot;5351820876&quot; &quot;5974426276&quot;
+## [176] &quot;5974426284&quot; &quot;5974426290&quot; &quot;5974426296&quot; &quot;5974426311&quot; &quot;5974426255&quot;
+## [181] &quot;5974426261&quot; &quot;5974426269&quot; &quot;5974426260&quot; &quot;5974426268&quot; &quot;5974426275&quot;
+## [186] &quot;5974426283&quot; &quot;5974426301&quot; &quot;5974426305&quot; &quot;5974426310&quot; &quot;5974426254&quot;
+## [191] &quot;5974426295&quot; &quot;5974426300&quot; &quot;5974426304&quot;</code></pre>
 <p>For spatial graphs, the coordinates of these paths can be obtained by
 extracting the vertices with <code>dodgr_vertices()</code> and matching
 the vertex IDs:</p>
@@ -2224,12 +2257,12 @@ the vertex IDs:</p>
 path1 &lt;- verts [match (dp [[1]] [[1]], verts$id), ]
 head (path1)</code></pre>
 <pre><code>##              id        x        y component    n
-## 3874 2608076422 76.45508 15.34205         2 1942
-## 3876 2608076425 76.45517 15.34208         2 1943
-## 3878 2608076427 76.45523 15.34213         2 1944
-## 3880 2608076428 76.45529 15.34215         2 1945
-## 3882 2608076437 76.45550 15.34219         2 1946
-## 3884 2608076439 76.45567 15.34217         2 1947</code></pre>
+## 3738 7794251357 76.44159 15.32309         1 1875
+## 3740 2588155730 76.44194 15.32309         1 1876
+## 3742 7794251356 76.44217 15.32303         1 1877
+## 3744 7794251355 76.44239 15.32296         1 1878
+## 3746 7794251354 76.44257 15.32293         1 1879
+## 3748 2588155760 76.44273 15.32294         1 1880</code></pre>
 <p>Paths calculated on contracted graphs will of course have fewer
 vertices than those calculated on full graphs.</p>
 </div>
@@ -2252,7 +2285,7 @@ in Sparse Networks.”</span> <em>J. ACM</em> 24 (1): 1–13. <a href="https://d
 </div>
 <div id="ref-Miller1960" class="csl-entry">
 Miller, Rupert G. 1960. <span>“Priority Queues.”</span> <em>The Annals
-of Mathematical Statistics</em> 31 (1): 86–103. <a href="https://www.jstor.org/stable/2237496">https://www.jstor.org/stable/2237496</a>.
+of Mathematical Statistics</em> 31 (1): 86–103. <a href="https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-31/issue-1/Priority-Queues/10.1214/aoms/1177705990.full">https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-31/issue-1/Priority-Queues/10.1214/aoms/1177705990.full</a>.
 </div>
 <div id="ref-Saunders2004" class="csl-entry">
 Saunders, Shane. 2004. <span>“Improved Shortest Path Algorithms for

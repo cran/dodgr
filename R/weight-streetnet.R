@@ -1,4 +1,4 @@
-#' weight_streetnet
+#' Weight a street network according to a specified weighting profile.
 #'
 #' Weight (or re-weight) an \pkg{sf} or `SC` (`silicate`)-formatted OSM street
 #' network according to a named profile, selected from (foot, horse, wheelchair,
@@ -20,8 +20,8 @@
 #' `data.frame` object which provides unique identifiers for each highway
 #' (default works with `osmdata` objects).
 #' @param keep_cols Vectors of columns from `x` to be kept in the resultant
-#' `dodgr` network; vector can be either names or indices of desired columns
-#' (see notes).
+#' `dodgr` network; vector can be either names, regex-patterns,  or indices of
+#' desired columns (see notes).
 #' @param turn_penalty Including time penalty on edges for turning across
 #' oncoming traffic at intersections (see Note).
 #' @param left_side Does traffic travel on the left side of the road (`TRUE`) or
@@ -239,7 +239,7 @@ weight_streetnet.sf <- function (x,
     dat <- rcpp_sf_as_network (x, pr = wt_profile)
     graph <- data.frame (
         geom_num = dat$numeric_values [, 1] + 1, # 1-indexed!
-        edge_id = seq (nrow (dat$character_values)),
+        edge_id = seq_len (nrow (dat$character_values)),
         from_id = as.character (dat$character_values [, 1]),
         from_lon = dat$numeric_values [, 2],
         from_lat = dat$numeric_values [, 3],
@@ -276,6 +276,20 @@ weight_streetnet.sf <- function (x,
 
     graph <- dodgr_components (graph)
 
+    if (!is.null (wt_profile_name)) {
+        if (wt_profile_name == "bicycle") {
+            if (is.integer (keep_cols)) {
+                keep_cols <- names (x) [keep_cols]
+            }
+            keep_cols <- unique (c (keep_cols, c (
+                "bicycle",
+                "cycleway",
+                "cycleway:left",
+                "cycleway:right"
+            )))
+
+        }
+    }
     if (length (keep_cols) > 0) {
         graph <- reinsert_keep_cols (x, graph, keep_cols)
     }
@@ -339,7 +353,7 @@ check_highway_osmid <- function (x, wt_profile) {
                 "x appears to have no ID column; ",
                 "sequential edge numbers will be used."
             )
-            x$osm_id <- seq (nrow (x))
+            x$osm_id <- seq_len (nrow (x))
         }
     }
 
@@ -476,28 +490,29 @@ reinsert_keep_cols <- function (sf_lines, graph, keep_cols) {
 
     keep_names <- NULL
     if (is.character (keep_cols)) {
-        keep_names <- keep_cols
-        keep_cols <- match (keep_cols, names (sf_lines))
+        keep_cols <- lapply (keep_cols, function (i) match (i, names (sf_lines)))
+        keep_cols <- sort (unique (unlist (keep_cols)))
+        keep_names <- names (sf_lines) [keep_cols]
         # NA is no keep_cols match
     } else if (is.numeric (keep_cols)) {
-        keep_names <- names (sf_lines) [keep_cols]
+        if (min (keep_cols) < 1 || max (keep_cols) > nrow (sf_lines)) {
+            stop (
+                "Numeric keep_cols must index into columns of 'sf' input",
+                call. = FALSE
+            )
+            keep_names <- names (sf_lines) [keep_cols]
+        }
     } else {
-        stop ("keep_cols must be either character or numeric")
+        stop ("keep_cols must be either character or numeric", .call = FALSE)
     }
-    indx <- which (is.na (keep_cols))
-    if (length (indx) > 0) {
-        message (
-            "Data has no columns named ",
-            paste0 (keep_names, collapse = ", ")
-        )
-    }
-    keep_cols <- keep_cols [!is.na (keep_cols)]
+    index <- which (!is.na (keep_cols))
+    keep_cols <- keep_cols [index]
+    keep_names <- keep_names [index]
     if (length (keep_cols) > 0) {
         indx <- match (graph$geom_num, seq (sf_lines$geometry))
-        for (k in seq (keep_names)) {
-            graph [[keep_names [k]]] <- sf_lines [indx, keep_cols [k], # nolint
-                drop = TRUE
-            ]
+        for (k in seq_along (keep_cols)) {
+            graph [[keep_names [k]]] <-
+                sf_lines [indx, keep_cols [k], drop = TRUE]
         }
     }
 
@@ -541,7 +556,7 @@ add_extra_sf_columns <- function (graph, x) {
     x [[attr (x, "sf_column")]] <- NULL
     x <- data.frame (x, stringsAsFactors = FALSE)
     # that still sometimes produces factors, so:
-    for (i in seq (ncol (x))) {
+    for (i in seq_len (ncol (x))) {
         x [, i] <- paste0 (x [, i])
     }
     graph [, col_index_graph] <- x [row_index, col_index_x]
@@ -558,94 +573,133 @@ add_extra_sf_columns <- function (graph, x) {
 #' @name weight_streetnet
 #' @family extraction
 #' @export
-weight_streetnet.sc <- weight_streetnet.SC <-
-    function (x, wt_profile = "bicycle",
-              wt_profile_file = NULL,
-              turn_penalty = FALSE,
-              type_col = "highway",
-              id_col = "osm_id",
-              keep_cols = NULL,
-              left_side = FALSE) {
+weight_streetnet.sc <- function (x,
+                                 wt_profile = "bicycle",
+                                 wt_profile_file = NULL,
+                                 turn_penalty = FALSE,
+                                 type_col = "highway",
+                                 id_col = "osm_id",
+                                 keep_cols = NULL,
+                                 left_side = FALSE) {
 
-        requireNamespace ("geodist")
-        requireNamespace ("dplyr")
-        check_sc (x)
+    requireNamespace ("geodist")
+    requireNamespace ("dplyr")
+    check_sc (x)
 
-        graph <- extract_sc_edges_xy (x) %>% # vert, edge IDs + coordinates
-            sc_edge_dist () %>% # append dist
-            extract_sc_edges_highways (
-                x,
-                wt_profile,
-                wt_profile_file,
-                c (
-                    way_types_to_keep,
-                    keep_cols
-                )
-            ) %>% # hw key-val pairs
-            weight_sc_edges (
-                wt_profile,
-                wt_profile_file
-            ) %>% # add d_weighted col
-            set_maxspeed (
-                wt_profile,
-                wt_profile_file
-            ) %>% # modify d_weighted
-            weight_by_num_lanes (wt_profile) %>%
-            calc_edge_time (wt_profile) %>% # add time
-            sc_traffic_lights (
-                x,
-                wt_profile,
-                wt_profile_file
-            ) %>% # modify time
-            rm_duplicated_edges () %>%
-            sc_duplicate_edges (wt_profile)
+    x$vertex <- x$vertex [which (!duplicated (x$vertex)), ]
 
-        cl <- class (graph)
-        graph <- dodgr_components (graph) # strips tbl class
-        class (graph) <- cl
-
-        gr_cols <- dodgr_graph_cols (graph)
-        graph <- graph [which (!is.na (graph [[gr_cols$d_weighted]])), ]
-
-        attr (graph, "turn_penalty") <- 0
-
-        if (turn_penalty) {
-            attr (graph, "turn_penalty") <-
-                get_turn_penalties (wt_profile, wt_profile_file)$turn
-            attr (graph, "wt_profile") <- wt_profile
-            attr (graph, "wt_profile_file") <- wt_profile_file
-            attr (graph, "left_side") <- left_side
-
-            restrictions <- extract_turn_restictions (x)
-            attr (graph, "turn_restrictions_no") <- restrictions$rw_no
-            attr (graph, "turn_restrictions_only") <- restrictions$rw_only
+    if (wt_profile == "bicycle") {
+        if (is.integer (keep_cols)) {
+            stop (
+                "keep_cols for 'sc' networks must be names of columns, not indices",
+                call. = FALSE
+            )
         }
-
-        gr_cols <- dodgr_graph_cols (graph)
-        graph <- graph [which (!is.na (graph [[gr_cols$d_weighted]]) |
-            !is.na (graph [[gr_cols$time]])), ]
-
-        class (graph) <- c (
-            class (graph),
-            "dodgr_streetnet",
-            "dodgr_streetnet_sc"
-        )
-
-        attr (graph, "hash") <-
-            get_hash (graph, contracted = FALSE, force = TRUE)
-
-        if (is_dodgr_cache_on ()) {
-            attr (graph, "px") <- cache_graph (graph, gr_cols$edge_id)
-        }
-
-        return (graph)
+        keep_cols <- unique (c (keep_cols, c (
+            "bicycle",
+            "cycleway",
+            "cycleway:left",
+            "cycleway:right"
+        )))
     }
+    keep_cols <- unique (c (way_types_to_keep, keep_cols))
+
+    graph <- extract_sc_edges_xy (x) %>% # vert, edge IDs + coordinates
+        sc_edge_dist () %>% # append dist
+        extract_sc_edges_highways (
+            x,
+            wt_profile,
+            wt_profile_file,
+            keep_cols
+        ) %>% # hw key-val pairs
+        weight_sc_edges (
+            wt_profile,
+            wt_profile_file
+        ) %>% # add d_weighted col
+        set_maxspeed (
+            wt_profile,
+            wt_profile_file
+        ) %>% # modify d_weighted
+        weight_by_num_lanes (wt_profile) %>%
+        calc_edge_time (wt_profile) %>% # add time
+        sc_traffic_lights (
+            x,
+            wt_profile,
+            wt_profile_file
+        ) %>% # modify time
+        rm_duplicated_edges () %>%
+        sc_duplicate_edges (wt_profile)
+
+    cl <- class (graph)
+    graph <- dodgr_components (graph) # strips tbl class
+    class (graph) <- cl
+
+    gr_cols <- dodgr_graph_cols (graph)
+    graph <- graph [which (!is.na (graph [[gr_cols$d_weighted]])), ]
+
+    attr (graph, "turn_penalty") <- 0
+
+    if (turn_penalty) {
+        attr (graph, "turn_penalty") <-
+            get_turn_penalties (wt_profile, wt_profile_file)$turn
+        attr (graph, "wt_profile") <- wt_profile
+        attr (graph, "wt_profile_file") <- wt_profile_file
+        attr (graph, "left_side") <- left_side
+
+        restrictions <- extract_turn_restictions (x)
+        attr (graph, "turn_restrictions_no") <- restrictions$rw_no
+        attr (graph, "turn_restrictions_only") <- restrictions$rw_only
+    }
+
+    gr_cols <- dodgr_graph_cols (graph)
+    graph <- graph [which (!is.na (graph [[gr_cols$d_weighted]]) |
+        !is.na (graph [[gr_cols$time]])), ]
+
+    class (graph) <- c (
+        class (graph),
+        "dodgr_streetnet",
+        "dodgr_streetnet_sc"
+    )
+
+    attr (graph, "hash") <-
+        get_hash (graph, contracted = FALSE, force = TRUE)
+
+    if (is_dodgr_cache_on ()) {
+        attr (graph, "px") <- cache_graph (graph, gr_cols$edge_id)
+    }
+
+    return (graph)
+}
+
+#' @name weight_streetnet
+#' @family extraction
+#' @export
+weight_streetnet.SC <- function (x,
+                                 wt_profile = "bicycle",
+                                 wt_profile_file = NULL,
+                                 turn_penalty = FALSE,
+                                 type_col = "highway",
+                                 id_col = "osm_id",
+                                 keep_cols = NULL,
+                                 left_side = FALSE) {
+
+    weight_streetnet.sc (
+        x,
+        wt_profile = wt_profile,
+        wt_profile_file = wt_profile_file,
+        turn_penalty = turn_penalty,
+        type_col = type_col,
+        id_col = id_col,
+        keep_cols = keep_cols,
+        left_side = left_side
+    )
+}
 
 # ********************************************************************
 # **********************     weight railway     **********************
 # ********************************************************************
 
-#' weight_railway
+#' Weight a network for routing along railways.
 #'
 #' Weight (or re-weight) an `sf`-formatted OSM street network for routing
 #' along railways.
@@ -735,7 +789,7 @@ weight_railway <- function (x,
     dat <- rcpp_sf_as_network (x, pr = wt_profile)
     graph <- data.frame (
         geom_num = dat$numeric_values [, 1] + 1, # 1-indexed!
-        edge_id = seq (nrow (dat$character_values)),
+        edge_id = seq_len (nrow (dat$character_values)),
         from_id = as.character (dat$character_values [, 1]),
         from_lon = dat$numeric_values [, 2],
         from_lat = dat$numeric_values [, 3],

@@ -1,7 +1,7 @@
-#' compare_heaps
+#' Compare timings of different sort heaps for a given input graph.
 #'
 #' Perform timing comparison between different kinds of heaps as well as with
-#' equivalent `igraph` routine `distances`. To do this, a random
+#' equivalent routines from the \pkg{igraph} package. To do this, a random
 #' sub-graph containing a defined number of vertices is first selected.
 #' Alternatively, this random sub-graph can be pre-generated with the
 #' `dodgr_sample` function and passed directly.
@@ -63,7 +63,7 @@ compare_heaps <- function (graph,
             heap = "TriHeap"
         ),
         TriHeapExt = dodgr_dists (
-                graph,
+            graph,
             from = from_id,
             to = to_id,
             heap = "TriHeapExt"
@@ -87,7 +87,7 @@ compare_heaps <- function (graph,
             heap = "FHeap"
         ),
         TriHeap_contracted = dodgr_dists (
-                graph_contracted,
+            graph_contracted,
             from = from_id,
             to = to_id,
             heap = "TriHeap"

@@ -5,7 +5,8 @@
 \alias{weight_streetnet.default}
 \alias{weight_streetnet.sf}
 \alias{weight_streetnet.sc}
-\title{weight_streetnet}
+\alias{weight_streetnet.SC}
+\title{Weight a street network according to a specified weighting profile.}
 \usage{
 weight_streetnet(
   x,
@@ -50,6 +51,17 @@ weight_streetnet(
   keep_cols = NULL,
   left_side = FALSE
 )
+
+\method{weight_streetnet}{SC}(
+  x,
+  wt_profile = "bicycle",
+  wt_profile_file = NULL,
+  turn_penalty = FALSE,
+  type_col = "highway",
+  id_col = "osm_id",
+  keep_cols = NULL,
+  left_side = FALSE
+)
 }
 \arguments{
 \item{x}{A street network represented either as \code{sf} \code{LINESTRING}
@@ -75,8 +87,8 @@ which designates different types of highways to be used for weighting
 (default works with \code{osmdata} objects).}
 
 \item{keep_cols}{Vectors of columns from \code{x} to be kept in the resultant
-\code{dodgr} network; vector can be either names or indices of desired columns
-(see notes).}
+\code{dodgr} network; vector can be either names, regex-patterns,  or indices of
+desired columns (see notes).}
 
 \item{left_side}{Does traffic travel on the left side of the road (\code{TRUE}) or
 the right side (\code{FALSE})? - only has effect on turn angle calculations for
@@ -206,6 +218,11 @@ graph <- weight_streetnet (
 }
 \seealso{
 \link{write_dodgr_wt_profile}, \link{dodgr_times}
+
+Other extraction: 
+\code{\link{dodgr_streetnet_sc}()},
+\code{\link{dodgr_streetnet}()},
+\code{\link{weight_railway}()}
 
 Other extraction: 
 \code{\link{dodgr_streetnet_sc}()},

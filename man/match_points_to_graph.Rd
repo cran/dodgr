@@ -2,7 +2,7 @@
 % Please edit documentation in R/match-points.R
 \name{match_points_to_graph}
 \alias{match_points_to_graph}
-\title{match_points_to_graph}
+\title{Alias for \link{match_pts_to_graph}}
 \usage{
 match_points_to_graph(graph, xy, connected = FALSE)
 }
@@ -22,10 +22,10 @@ be part of the same connected component may decrease the spatial accuracy of
 matching.}
 }
 \value{
-For 'distances = FALSE' (default), a vector index matching the \code{xy}
+For \code{distances = FALSE} (default), a vector index matching the \code{xy}
 coordinates to nearest edges. For bi-directional edges, only one match is
 returned, and it is up to the user to identify and suitably process matching
-edge pairs. For 'distances = TRUE', a 'data.frame' of two columns:
+edge pairs. For 'distances = TRUE', a 'data.frame' of four columns:
 \itemize{
 \item "index" The index of closest edges in "graph", as described above.
 \item "d_signed" The perpendicular distance from ech point to the nearest
@@ -33,10 +33,18 @@ edge, with negative distances denoting points to the left of edges, and
 positive distances denoting points to the right. Distances of zero denote
 points lying precisely on the line of an edge (potentially including cases
 where nearest point of bisection lies beyond the actual edge).
+\item "x" The x-coordinate of the point of intersection.
+\item "y" The y-coordinate of the point of intersection.
 }
 }
 \description{
-Alias for \link{match_pts_to_graph}
+Match spatial points to the edges of a spatial graph, through finding the
+edge with the closest perpendicular intersection. NOTE: Intersections are
+calculated geometrically, and presume planar geometry. It is up to users of
+projected geometrical data, such as those within a \code{dodgr_streetnet} object,
+to ensure that either: (i) Data span an sufficiently small area that errors
+from presuming planar geometry may be ignored; or (ii) Data are re-projected
+to an equivalent planar geometry prior to calling this routine.
 }
 \examples{
 graph <- weight_streetnet (hampi, wt_profile = "foot")

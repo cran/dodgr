@@ -1,9 +1,8 @@
-#' match_pts_to_verts
+#' Match spatial points to the vertices of a spatial graph.
 #'
-#' Match spatial points to the vertices of a spatial graph. The
-#' \link{match_pts_to_graph} function matches points to the nearest edge based
-#' on geometric intersections; this function only matches to the nearest vertex
-#' based on point-to-point distances.
+#' The \link{match_pts_to_graph} function matches points to the nearest edge
+#' based on geometric intersections; this function only matches to the nearest
+#' vertex based on point-to-point distances.
 #'
 #' @param verts A `data.frame` of vertices obtained from
 #' `dodgr_vertices(graph)`.
@@ -44,7 +43,7 @@ match_pts_to_verts <- function (verts, xy, connected = FALSE) {
         verts <- dodgr_vertices (verts)
     }
 
-    indx <- seq (nrow (verts))
+    indx <- seq_len (nrow (verts))
     if (connected) {
         vertsi <- verts [which (verts$component == 1), ]
         indx <- match (vertsi$id, verts$id)
@@ -59,9 +58,8 @@ match_pts_to_verts <- function (verts, xy, connected = FALSE) {
     indx [rcpp_points_index_par (verts, xy) + 1L]
 }
 
-#' match_points_to_verts
-#'
 #' Alias for \link{match_pts_to_verts}
+#'
 #' @inherit match_pts_to_verts
 #' @family match
 #' @export
@@ -103,7 +101,7 @@ pre_process_xy <- function (xy) {
     return (xy)
 }
 
-#' match_pts_to_graph
+#' Match spatial points to the edges of a spatial graph.
 #'
 #' Match spatial points to the edges of a spatial graph, through finding the
 #' edge with the closest perpendicular intersection. NOTE: Intersections are
@@ -116,15 +114,15 @@ pre_process_xy <- function (xy) {
 #' @param graph A `dodgr` graph with spatial coordinates, such as a
 #' `dodgr_streetnet` object.
 #' @param distances If `TRUE`, return a 'data.frame' object with 'index' column
-#' as described in return value; and additional 'dist' column with perpendicular
-#' distance to nearest edge in graph. See description of return value for
-#' details.
+#' as described in return value; and additional columns with perpendicular
+#' distance to nearest edge in graph, and coordinates of points of intersection.
+#' See description of return value for details.
 #' @inheritParams match_pts_to_verts
 #'
-#' @return For 'distances = FALSE' (default), a vector index matching the `xy`
+#' @return For `distances = FALSE` (default), a vector index matching the `xy`
 #' coordinates to nearest edges. For bi-directional edges, only one match is
 #' returned, and it is up to the user to identify and suitably process matching
-#' edge pairs. For 'distances = TRUE', a 'data.frame' of two columns:
+#' edge pairs. For 'distances = TRUE', a 'data.frame' of four columns:
 #' \itemize{
 #' \item "index" The index of closest edges in "graph", as described above.
 #' \item "d_signed" The perpendicular distance from ech point to the nearest
@@ -132,6 +130,8 @@ pre_process_xy <- function (xy) {
 #' positive distances denoting points to the right. Distances of zero denote
 #' points lying precisely on the line of an edge (potentially including cases
 #' where nearest point of bisection lies beyond the actual edge).
+#' \item "x" The x-coordinate of the point of intersection.
+#' \item "y" The y-coordinate of the point of intersection.
 #' }
 #' @family match
 #' @export
@@ -165,7 +165,7 @@ match_pts_to_graph <- function (graph, xy,
     names (graph) <- names (gr_cols)
 
     res <- rcpp_points_to_edges_par (graph, xy)
-    index <- seq (nrow (xy))
+    index <- seq_len (nrow (xy))
 
     # rcpp_points_index is 0-indexed, so ...
     graph_index <- as.integer (res [index]) + 1L
@@ -173,7 +173,7 @@ match_pts_to_graph <- function (graph, xy,
     if (distances) {
         ret <- data.frame (
             index = graph_index,
-            d_signed = signed_intersection_dists (graph, xy, res)
+            signed_intersection_dists (graph, xy, res)
         )
     } else {
         ret <- graph_index
@@ -182,9 +182,8 @@ match_pts_to_graph <- function (graph, xy,
     return (ret)
 }
 
-#' match_points_to_graph
-#'
 #' Alias for \link{match_pts_to_graph}
+#'
 #' @inherit match_pts_to_graph
 #' @family match
 #' @export
@@ -205,7 +204,6 @@ signed_intersection_dists <- function (graph, xy, res) {
     # rcpp_points_index is 0-indexed, so ...
     graph_index <- as.integer (res [index]) + 1L
 
-    # coordinates not yet used here; see #103
     xy_intersect <- data.frame (
         x = res [index + nrow (xy)],
         y = res [index + 2L * nrow (xy)]
@@ -227,20 +225,34 @@ signed_intersection_dists <- function (graph, xy, res) {
     which_side [which_side < 0.0] <- -1
     which_side [which_side > 0.0] <- 1
 
-    return (d * which_side)
+    return (cbind (d_signed = d * which_side, xy_intersect))
 }
 
 #' Insert new nodes into a graph, breaking edges at point of nearest
 #' intersection.
 #'
-#' The "id" value of each edge to be divided through insertion of new points is
-#' modified to produce two new "id" values with suffixes "_A" and "_B". This
-#' routine presumes graphs to be `dodgr_streetnet` object, with geographical
-#' coordinates.
+#' Note that this routine presumes graphs to be `dodgr_streetnet` object, with
+#' geographical coordinates.
+#'
+#' This inserts new nodes by extending lines from each input point to the edge
+#' with the closest point of perpendicular intersection. That edge is then split
+#' at that point of intersection, creating two new edges (or four for directed
+#' edges). If `intersections_only = FALSE` (default), then additional edges are
+#' inserted from those intersection points to the input points. If
+#' `intersections_only = TRUE`, then nodes are added by splitting graph edges at
+#' points of nearest perpendicular intersection, without adding additional edges
+#' out to the actual input points.
+#'
+#' In the former case, the properties of those new edges, such as distance and
+#' time weightings, are inherited from the edges which are intersected, and may
+#' need to be manually modified after calling this function.
 #'
 #' @inheritParams match_pts_to_graph
+#' @param dist_tol Only insert new nodes if they are further from existing nodes
+#' than this distance, expressed in units of the distance column of `graph`.
+#' @param intersections_only If `FALSE`
 #' @return A modified version of `graph`, with additional edges formed by
-#' breaking previous edges at nearest penpendicular intersections with the
+#' breaking previous edges at nearest perpendicular intersections with the
 #' points, `xy`.
 #' @family match
 #' @examples
@@ -258,22 +270,28 @@ signed_intersection_dists <- function (graph, xy, res) {
 #' graph <- add_nodes_to_graph (graph, xy)
 #' dim (graph) # more edges than original
 #' @export
-add_nodes_to_graph <- function (graph, xy) {
+add_nodes_to_graph <- function (graph,
+                                xy,
+                                dist_tol = 1e-6,
+                                intersections_only = FALSE) {
 
-    index <- match_pts_to_graph (graph, xy)
+    pts <- match_pts_to_graph (graph, xy, distances = TRUE)
+    xy <- pre_process_xy (xy)
+    pts$x0 <- xy [, 1]
+    pts$y0 <- xy [, 2]
 
     gr_cols <- dodgr_graph_cols (graph)
     gr_cols <- unlist (gr_cols [which (!is.na (gr_cols))])
     graph_std <- graph [, gr_cols] # standardise column names
     names (graph_std) <- names (gr_cols)
 
-    # Expand index to include all potentially duplicated edges:
-    index <- lapply (seq_along (index), function (i) {
+    # Expand index to include all potentially bi-directional edges:
+    index <- lapply (seq_along (pts$index), function (i) {
         out <- which (
-            (graph_std$from == graph_std$from [index [i]] &
-                graph_std$to == graph_std$to [index [i]]) |
-                (graph_std$from == graph_std$to [index [i]] &
-                    graph_std$to == graph_std$from [index [i]])
+            (graph_std$from == graph_std$from [pts$index [i]] &
+                graph_std$to == graph_std$to [pts$index [i]]) |
+                (graph_std$from == graph_std$to [pts$index [i]] &
+                    graph_std$to == graph_std$from [pts$index [i]])
         )
         cbind (rep (i, length (out)), out)
     })
@@ -300,28 +318,85 @@ add_nodes_to_graph <- function (graph, xy) {
         t_wt <- edges_to_split_i$time_weighted / edges_to_split_i$time
         t_scale <- edges_to_split_i$time / edges_to_split_i$d
 
-        new_edges_i <- lapply (seq (nrow (edges_to_split_i)), function (e) {
+        new_edges_i <- lapply (seq_len (nrow (edges_to_split_i)), function (e) {
 
-            edge_i <- rbind (edges_to_split_i [e, ], edges_to_split_i [e, ])
+            # Split edges either side of perpendicular points of intersection:
+            edge_i <- edges_to_split_i [c (e, e), ]
             edge_i$to [1] <- edge_i$from [2] <- genhash ()
-            edge_i$xto [1] <- xy$x [i]
-            edge_i$yto [1] <- xy$y [i]
-            edge_i$xfr [2] <- xy$x [i]
-            edge_i$yfr [2] <- xy$y [i]
+            edge_i$xto [1] <- pts$x [i]
+            edge_i$yto [1] <- pts$y [i]
+            edge_i$xfr [2] <- pts$x [i]
+            edge_i$yfr [2] <- pts$y [i]
 
             xy_i <- data.frame (
                 x = c (edge_i [1, "xfr"], edge_i [1, "xto"], edge_i [2, "xto"]),
                 y = c (edge_i [1, "yfr"], edge_i [1, "yto"], edge_i [2, "yto"])
             )
             dmat <- geodist::geodist (xy_i)
-            edge_i$d [1] <- dmat [1, 2]
-            edge_i$d [2] <- dmat [2, 3]
 
-            edge_i$d_weighted <- edge_i$d * d_wt
-            edge_i$time <- edge_i$d * t_scale
-            edge_i$time_weighted <- edge_i$time * t_wt
+            d_i <- geodist::geodist (
+                pts [i, c ("x", "y")],
+                pts [i, c ("x0", "y0")]
+            )
+            d_i <- as.numeric (d_i [1, 1])
 
-            edge_i$edge_id <- paste0 (edge_i$edge_id, "_", LETTERS [e])
+            if (any (dmat [upper.tri (dmat)] < dist_tol)) {
+
+                edge_i <- edges_to_split_i [e, ]
+                edge_i_new <- rbind (edge_i, edge_i) # for edges to new point
+                # Reverse 2nd edge:
+                edge_i_new$from [2] <- edge_i_new$to [1]
+                edge_i_new$to [2] <- edge_i_new$from [1]
+                edge_i_new$xfr [2] <- edge_i_new$xto [1]
+                edge_i_new$xto [2] <- edge_i_new$xfr [1]
+                edge_i_new$yfr [2] <- edge_i_new$yto [1]
+                edge_i_new$yto [2] <- edge_i_new$yfr [1]
+
+                d_i_min <- c (1, 1, 2) [which.min (dmat [upper.tri (dmat)])]
+                if (d_i_min == 1) {
+                    edge_i_new <- edge_i_new [2:1, ]
+                }
+
+            } else {
+
+                edge_i$d [1] <- dmat [1, 2]
+                edge_i$d [2] <- dmat [2, 3]
+
+                edge_i$d_weighted <- edge_i$d * d_wt
+                edge_i$time <- edge_i$d * t_scale
+                edge_i$time_weighted <- edge_i$time * t_wt
+
+                edge_i$edge_id <- paste0 (
+                    edge_i$edge_id,
+                    "_",
+                    LETTERS [seq_len (nrow (edge_i))]
+                )
+
+                edge_i_new <- edge_i # already 2 rows
+            }
+
+            if (!intersections_only) {
+
+                # Then add edges out to new point:
+                edge_i_new$from [1] <- edge_i_new$to [2] <- genhash (10L)
+                edge_i_new$xfr [1] <- pts$x0 [i]
+                edge_i_new$yfr [1] <- pts$y0 [i]
+                edge_i_new$xto [2] <- pts$x0 [i]
+                edge_i_new$yto [2] <- pts$y0 [i]
+
+                edge_i_new$d <- d_i
+                edge_i_new$d_weighted <- d_i * d_wt
+                edge_i_new$time <- d_i * t_scale
+                edge_i_new$time_weighted <- edge_i_new$time * t_wt
+
+                edge_i_new$edge_id <- vapply (
+                    seq_len (nrow (edge_i_new)),
+                    function (i) genhash (10),
+                    character (1L)
+                )
+
+                edge_i <- rbind (edge_i, edge_i_new)
+            }
 
             return (edge_i)
         })
