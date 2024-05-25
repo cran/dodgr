@@ -82,7 +82,7 @@ oncoming traffic at intersections (see Note).}
 which designates different types of highways to be used for weighting
 (default works with \code{osmdata} objects).}
 
-\item{id_col}{For \code{sf}-formatted data only: Specify column of the code{sf}
+\item{id_col}{For \code{sf}-formatted data only: Specify column of the \pkg{sf}
 \code{data.frame} object which provides unique identifiers for each highway
 (default works with \code{osmdata} objects).}
 
@@ -220,28 +220,28 @@ graph <- weight_streetnet (
 \link{write_dodgr_wt_profile}, \link{dodgr_times}
 
 Other extraction: 
-\code{\link{dodgr_streetnet_sc}()},
 \code{\link{dodgr_streetnet}()},
+\code{\link{dodgr_streetnet_sc}()},
 \code{\link{weight_railway}()}
 
 Other extraction: 
-\code{\link{dodgr_streetnet_sc}()},
 \code{\link{dodgr_streetnet}()},
+\code{\link{dodgr_streetnet_sc}()},
 \code{\link{weight_railway}()}
 
 Other extraction: 
-\code{\link{dodgr_streetnet_sc}()},
 \code{\link{dodgr_streetnet}()},
+\code{\link{dodgr_streetnet_sc}()},
 \code{\link{weight_railway}()}
 
 Other extraction: 
-\code{\link{dodgr_streetnet_sc}()},
 \code{\link{dodgr_streetnet}()},
+\code{\link{dodgr_streetnet_sc}()},
 \code{\link{weight_railway}()}
 
 Other extraction: 
-\code{\link{dodgr_streetnet_sc}()},
 \code{\link{dodgr_streetnet}()},
+\code{\link{dodgr_streetnet_sc}()},
 \code{\link{weight_railway}()}
 }
 \concept{extraction}

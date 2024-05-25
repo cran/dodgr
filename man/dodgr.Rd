@@ -2,6 +2,7 @@
 % Please edit documentation in R/dodgr-package.R
 \docType{package}
 \name{dodgr}
+\alias{dodgr-package}
 \alias{dodgr}
 \title{Distances On Directed GRaphs ("dodgr")}
 \description{
@@ -53,4 +54,31 @@ priority queue heap structures for a given type of graph.
 }
 }
 
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/UrbanAnalyst/dodgr}
+  \item \url{https://urbananalyst.github.io/dodgr/}
+  \item Report bugs at \url{https://github.com/UrbanAnalyst/dodgr/issues}
+}
+
+}
+\author{
+\strong{Maintainer}: Mark Padgham \email{mark.padgham@email.com}
+
+Authors:
+\itemize{
+  \item Andreas Petutschnig
+  \item David Cooley
+}
+
+Other contributors:
+\itemize{
+  \item Robin Lovelace [contributor]
+  \item Andrew Smith [contributor]
+  \item Malcolm Morgan [contributor]
+  \item Shane Saunders (Original author of included code for priority heaps) [copyright holder]
+}
+
+}
 \concept{package}

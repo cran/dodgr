@@ -4,10 +4,19 @@
 #' and vectors defining multiple isodistances.
 #'
 #' @param graph `data.frame` or equivalent object representing the network
-#' graph (see Notes)
+#' graph. For `dodgr` street networks, this may be a network derived from either
+#' \pkg{sf} or \pkg{silicate} ("sc") data, generated with
+#' \link{weight_streetnet}.
 #' @param from Vector or matrix of points **from** which isodistances are to
 #' be calculated.
 #' @param dlim Vector of desired limits of isodistances in metres.
+#' @param concavity A value between 0 and 1, with 0 giving (generally smoother
+#' but less detailed) convex iso-contours and 1 giving highly concave (and
+#' generally more detailed) contours.
+#' @param length_threshold The minimal length of a segment of the iso-contour
+#' to be made more convex according to the 'concavity` parameter.. Low values
+#' will produce highly detailed hulls which may cause problems; if in doubt, or
+#' if odd results appear, increase this value.
 #' @param contract If `TRUE`, calculate isodists only to vertices in the
 #' contract graph, in other words, only to junction vertices.
 #' @param heap Type of heap to use in priority queue. Options include
@@ -35,6 +44,8 @@
 dodgr_isodists <- function (graph,
                             from = NULL,
                             dlim = NULL,
+                            concavity = 0,
+                            length_threshold = 0,
                             contract = TRUE,
                             heap = "BHeap") {
 
@@ -45,39 +56,18 @@ dodgr_isodists <- function (graph,
         stop ("dlim must be numeric")
     }
 
+    requireNamespace ("geodist")
+
+    concavity <- check_concavity (concavity)
+    # Then adjust to inverse value:
+    concavity <- 1 / max (concavity, 1e-6)
+
     dat <- iso_pre (graph, from, heap, contract = contract)
 
-    # expand dlim to an extra value to capture max boundary
-    if (length (dlim) == 1) {
-        dlim_exp <- c (dlim, dlim + dlim / 4) # nocov
-    } else {
-        dlim_exp <- c (dlim, dlim [length (dlim)] + dlim [length (dlim)] -
-            dlim [length (dlim) - 1])
-    }
-
-    d <- rcpp_get_iso (
-        dat$graph, dat$vert_map, dat$from_index$index,
-        sort (dlim_exp), dat$heap
-    )
-    d [d > max (dlim)] <- NA
-
-    vert_names <- gsub ("\\_(start|end)$", "", dat$vert_map$vert)
+    d <- m_iso_calculate (dat, dlim)
     from_id <- gsub ("\\_start$", "", dat$from_index$id)
 
-    if (!is.null (dat$from_index$id)) {
-        rownames (d) <- from_id
-    } else {
-        rownames (d) <- vert_names
-    } # nocov
-    colnames (d) <- vert_names
-
-    # verts ON isohulls are flagged with negative values at isodistance;
-    # terminal verts are also negative at their specified distance; all other
-    # points inside any hulls are positive. The latter are removed here:
-    d [d >= 0] <- NA
-    d <- -d # convert negative-flagged iso-values to positive
-
-    return (dmat_to_pts (d, from_id, dat$v, dlim))
+    return (dmat_to_hulls (d, from_id, dat$v, dlim, concavity, length_threshold))
 }
 
 iso_pre <- function (graph, from = NULL, heap = "BHeap", contract = TRUE) {
@@ -115,6 +105,29 @@ iso_pre <- function (graph, from = NULL, heap = "BHeap", contract = TRUE) {
     )
 }
 
+iso_calculate <- function (dat, dlim) {
+
+    d <- rcpp_get_iso (
+        dat$graph, dat$vert_map, dat$from_index$index,
+        dlim, dat$heap
+    )
+    d [d > max (dlim)] <- NA
+
+    vert_names <- gsub ("\\_(start|end)$", "", dat$vert_map$vert)
+    from_id <- gsub ("\\_start$", "", dat$from_index$id)
+
+    if (!is.null (dat$from_index$id)) {
+        rownames (d) <- from_id
+    } else {
+        rownames (d) <- vert_names
+    } # nocov
+    colnames (d) <- vert_names
+
+    return (d)
+}
+
+m_iso_calculate <- memoise::memoise (iso_calculate)
+
 #' Calculate isochrone contours from specified points.
 #'
 #' Function is fully vectorized to calculate accept vectors of central points
@@ -122,6 +135,10 @@ iso_pre <- function (graph, from = NULL, heap = "BHeap", contract = TRUE) {
 #'
 #' @inherit dodgr_isodists
 #'
+#' @param graph `data.frame` or equivalent object representing the network
+#' graph. For `dodgr` street networks, this must be a network derived from
+#' \pkg{silicate} ("sc") data, generated with \link{weight_streetnet}. This
+#' function does not work with networks derived from \pkg{sf} data.
 #' @param from Vector or matrix of points **from** which isochrones are to
 #' be calculated.
 #' @param tlim Vector of desired limits of isochrones in seconds
@@ -153,6 +170,8 @@ iso_pre <- function (graph, from = NULL, heap = "BHeap", contract = TRUE) {
 dodgr_isochrones <- function (graph,
                               from = NULL,
                               tlim = NULL,
+                              concavity = 0,
+                              length_threshold = 0,
                               heap = "BHeap") {
 
     if (!methods::is (graph, "dodgr_streetnet_sc")) {
@@ -164,7 +183,11 @@ dodgr_isochrones <- function (graph,
     graph$d_weighted <- graph$time_weighted
     graph$d <- graph$time
 
-    res <- dodgr_isodists (graph, from = from, dlim = tlim, heap = heap)
+    res <- dodgr_isodists (
+        graph,
+        from = from, dlim = tlim,
+        concavity = concavity, length_threshold = length_threshold, heap = heap
+    )
     names (res) [names (res) == "dlim"] <- "tlim"
     return (res)
 }
@@ -178,6 +201,10 @@ dodgr_isochrones <- function (graph,
 #'
 #' @inheritParams dodgr_isodists
 #'
+#' @param graph `data.frame` or equivalent object representing the network
+#' graph. For `dodgr` street networks, this must be a network derived from
+#' \pkg{silicate} ("sc") data, generated with \link{weight_streetnet}. This
+#' function does not work with networks derived from \pkg{sf} data.
 #' @param from Vector or matrix of points **from** which isodistances or
 #' isochrones are to be calculated.
 #' @param tlim Vector of desired limits of isochrones in seconds
@@ -231,65 +258,37 @@ dodgr_isoverts <- function (graph,
 
     dat <- iso_pre (graph, from, heap)
 
-    # expand dlim to an extra value to capture max boundary
-    if (length (dlim) == 1) {
-        dlim_exp <- c (dlim, dlim + dlim / 4)
-    } else {
-        dlim_exp <- c (dlim, dlim [length (dlim)] + dlim [length (dlim)] -
-            dlim [length (dlim) - 1])
-    }
+    d <- m_iso_calculate (dat, dlim)
+    from_id <- gsub ("\\_start$", "", dat$from_index$id)
 
-    d <- rcpp_get_iso (
-        dat$graph,
-        dat$vert_map,
-        dat$from_index$index,
-        sort (dlim_exp),
-        dat$heap
-    )
-    d [d > max (dlim)] <- NA
-    index <- which (!is.na (d))
-    d [index] [d [index] < 0] <- -d [index] [d [index] < 0]
-
-    if (!is.null (dat$from_index$id)) {
-        rownames (d) <- gsub ("\\_start$", "", dat$from_index$id)
-    } else {
-        rownames (d) <- gsub ("\\_start$", "", dat$vert_map$vert)
-    }
-    colnames (d) <- gsub ("\\_(start|end)$", "", dat$vert_map$vert)
-
-    # convert d-values to the *next highest* specified dlim value. breaks need
-    # to start < 0 to include 0 in lowest class
-    breaks <- c (-0.001, dlim)
-    na_index <- which (!is.na (d))
-    f <- cut (d [na_index], breaks = breaks)
-    index <- match (f, attr (f, "levels"))
-    d [na_index] <- breaks [-1] [index]
-
-    res <- dmat_to_pts (d, dat$from_index$id, dat$v, dlim)
+    res <- dmat_to_pts (d, from_id, dat$v, dlim)
     if (has_tlim) {
-        names (res) [names (res) == "dlim"] <- "tlim"
+        names (res) [which (names (res) == "dlim")] <- "tlim"
     }
     return (res)
 }
 
 # convert distance matrix with values equal to various isodistances into list of
-# lists of points ordered around the central points
-dmat_to_pts <- function (d, from, v, dlim) {
+# lists of points defining the iso-contour hulls ordered around the central points
+dmat_to_hulls <- function (d, from, v, dlim, concavity, length_threshold) {
 
     pt_names <- colnames (d)
+
     pts <- list ()
-    for (i in seq_len (nrow (d))) {
+    for (i in seq_len (nrow (d))) { # The "from" vertices
         o <- v [match (from [i], v$id), ]
         pts [[i]] <- lapply (dlim, function (j) {
-            res <- pt_names [which (d [i, ] == j)]
-            # Then any additional terminal vertices
-            index <- which (!d [i, ] %in% dlim &
-                d [i, ] < j)
-            res <- c (res, pt_names [index])
-            res <- v [match (res, v$id), ]
-            if (nrow (res) > 0) {
+            pts_j <- pt_names [which (d [i, ] <= j)]
+            pts_xy <- v [match (pts_j, v$id), c ("x", "y")]
+            h0 <- grDevices::chull (pts_xy) - 1L # 0-indexed
+            hull <- rcpp_concaveman (pts_xy, h0, concavity, length_threshold)
+            res <- NULL
+            if (length (hull) > 0) {
+                # Then match back to `pts_j`:
+                index <- geodist::geodist_min (hull, v [, c ("x", "y")])
+                res <- v [c (index, index [1]), ]
+
                 res$from <- o$id
-                res <- order_points (res, o)
                 res$dlim <- j
                 res <- res [, c (
                     "from",
@@ -305,31 +304,56 @@ dmat_to_pts <- function (d, from, v, dlim) {
     }
     names (pts) <- rownames (d)
 
-    # flatten lists
+    # flatten lists:
     pts <- do.call (rbind, lapply (pts, function (i) do.call (rbind, i)))
+
     rownames (pts) <- NULL
 
     return (pts)
 }
 
-# order points around circle
-order_points <- function (pts, origin) {
+# convert distance matrix with values equal to various isodistances into list of
+# lists of points
+dmat_to_pts <- function (d, from, v, dlim) {
 
-    dx <- pts$x - origin$x
-    dy <- pts$y - origin$y
-    theta <- rep (NA, nrow (pts))
+    pt_names <- colnames (d)
 
-    index <- which (dx > 0 & dy >= 0)
-    theta [index] <- atan (dy [index] / dx [index])
-    index <- which (dx > 0 & dy < 0)
-    theta [index] <- 2 * pi + atan (dy [index] / dx [index])
-    index <- which (dx < 0)
-    theta [index] <- pi + atan (dy [index] / dx [index])
-    index <- which (dx == 0 & dy >= 0)
-    theta [index] <- 0
-    index <- which (dx == 0 & dy < 0)
-    theta [index] <- 3 * pi / 2
+    pts <- list ()
+    for (i in seq_len (nrow (d))) { # The "from" vertices
+        o <- v [match (from [i], v$id), ]
+        pts [[i]] <- lapply (dlim, function (j) {
+            pts_j <- pt_names [which (d [i, ] <= j)]
+            res <- v [match (pts_j, v$id), ]
+            res$from <- o$id
+            res$dlim <- j
+            res <- res [, c (
+                "from",
+                "dlim",
+                "id",
+                "x",
+                "y"
+            )]
+            return (res)
+        })
+        names (pts [[i]]) <- paste (dlim)
+    }
+    names (pts) <- rownames (d)
 
-    pts <- pts [order (theta), c ("from", "id", "x", "y")]
-    rbind (pts, pts [1, ])
+    # flatten lists:
+    pts <- do.call (rbind, lapply (pts, function (i) do.call (rbind, i)))
+
+    rownames (pts) <- NULL
+
+    return (pts)
+}
+
+check_concavity <- function (concavity) {
+    if (!(is.numeric (concavity) || length (concavity) > 1)) {
+        stop ("concavity must be numeric")
+    }
+    if (concavity < 0 || concavity > 1) {
+        message ("concavity must be between 0 and 1; setting to default of 0")
+        concavity <- 0
+    }
+    return (concavity)
 }

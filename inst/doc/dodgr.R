@@ -221,7 +221,7 @@ head (verts) # a character vector
 grc <- dodgr_contract_graph (graph, verts)
 nrow (grc)
 
-## ---- eval = FALSE------------------------------------------------------------
+## ----eval = FALSE-------------------------------------------------------------
 #  dp <- dodgr_paths (graph, from = from, to = to)
 
 ## -----------------------------------------------------------------------------
@@ -234,10 +234,10 @@ to <- sample (graph$to_id, size = 5)
 dp <- dodgr_paths (graph, from = from, to = to)
 length (dp)
 
-## ---- eval = FALSE------------------------------------------------------------
+## ----eval = FALSE-------------------------------------------------------------
 #  dp [[1]] [[1]]
 
-## ---- echo = FALSE------------------------------------------------------------
+## ----echo = FALSE-------------------------------------------------------------
 # make sure there are some paths:
 maxlen <- max (unlist (lapply (dp, function (i)
                                max (unlist (lapply (i, length))))))
@@ -253,12 +253,12 @@ if (maxlen > 0) {
     dp [[i]] [[j]]
 }
 
-## ---- eval = FALSE------------------------------------------------------------
+## ----eval = FALSE-------------------------------------------------------------
 #  verts <- dodgr_vertices (graph)
 #  path1 <- verts [match (dp [[1]] [[1]], verts$id), ]
 #  head (path1)
 
-## ---- echo = FALSE------------------------------------------------------------
+## ----echo = FALSE-------------------------------------------------------------
 verts <- dodgr_vertices (graph)
 path1 <- verts [match (dp [[i]] [[j]], verts$id), ]
 head (path1)

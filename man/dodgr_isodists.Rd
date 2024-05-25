@@ -8,18 +8,31 @@ dodgr_isodists(
   graph,
   from = NULL,
   dlim = NULL,
+  concavity = 0,
+  length_threshold = 0,
   contract = TRUE,
   heap = "BHeap"
 )
 }
 \arguments{
 \item{graph}{\code{data.frame} or equivalent object representing the network
-graph (see Notes)}
+graph. For \code{dodgr} street networks, this may be a network derived from either
+\pkg{sf} or \pkg{silicate} ("sc") data, generated with
+\link{weight_streetnet}.}
 
 \item{from}{Vector or matrix of points \strong{from} which isodistances are to
 be calculated.}
 
 \item{dlim}{Vector of desired limits of isodistances in metres.}
+
+\item{concavity}{A value between 0 and 1, with 0 giving (generally smoother
+but less detailed) convex iso-contours and 1 giving highly concave (and
+generally more detailed) contours.}
+
+\item{length_threshold}{The minimal length of a segment of the iso-contour
+to be made more convex according to the 'concavity` parameter.. Low values
+will produce highly detailed hulls which may cause problems; if in doubt, or
+if odd results appear, increase this value.}
 
 \item{contract}{If \code{TRUE}, calculate isodists only to vertices in the
 contract graph, in other words, only to junction vertices.}
@@ -55,9 +68,9 @@ d <- dodgr_isodists (graph, from = from, dlim)
 \seealso{
 Other distances: 
 \code{\link{dodgr_distances}()},
+\code{\link{dodgr_dists}()},
 \code{\link{dodgr_dists_categorical}()},
 \code{\link{dodgr_dists_nearest}()},
-\code{\link{dodgr_dists}()},
 \code{\link{dodgr_flows_aggregate}()},
 \code{\link{dodgr_flows_disperse}()},
 \code{\link{dodgr_flows_si}()},

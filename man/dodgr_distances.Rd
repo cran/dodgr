@@ -17,7 +17,9 @@ dodgr_distances(
 }
 \arguments{
 \item{graph}{\code{data.frame} or equivalent object representing the network
-graph (see Notes)}
+graph (see Notes). For \code{dodgr} street networks, this may be a network derived
+from either \pkg{sf} or \pkg{silicate} ("sc") data, generated with
+\link{weight_streetnet}.}
 
 \item{from}{Vector or matrix of points \strong{from} which route distances are to
 be calculated (see Notes)}
@@ -107,7 +109,7 @@ d <- dodgr_dists (graph, from = from, to = to)
 
 \dontrun{
 # a more complex street network example, thanks to @chrijo; see
-# https://github.com/ATFutures/dodgr/issues/47
+# https://github.com/UrbanAnalyst/dodgr/issues/47
 
 xy <- rbind (
     c (7.005994, 51.45774), # limbeckerplatz 1 essen germany
@@ -138,9 +140,9 @@ d <- dodgr_dists (graph, from = xy, to = xy)
 }
 \seealso{
 Other distances: 
+\code{\link{dodgr_dists}()},
 \code{\link{dodgr_dists_categorical}()},
 \code{\link{dodgr_dists_nearest}()},
-\code{\link{dodgr_dists}()},
 \code{\link{dodgr_flows_aggregate}()},
 \code{\link{dodgr_flows_disperse}()},
 \code{\link{dodgr_flows_si}()},

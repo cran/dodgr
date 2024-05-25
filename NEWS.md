@@ -1,3 +1,18 @@
+# v 0.2.21.00X (dev)
+
+## Major changes:
+
+- Transfer repository from 'atfutures/dodgr' -> 'urbananalyst/dodgr'
+- Added new vignette on isodists and isochrone functions (#255)
+- Implemented new 'concavity' parameter for isodistance, isochrone fns (#223, thanks to @pasipasi123).
+
+## Minor changes:
+
+- Fix bug in `add_nodes_to_graph` with "sc" networks (#217, thanks to @diegoteca)
+- Fix bug in Tobler cost function for effect of slopes on walking times (#219, thanks to @xtimbeau).
+
+---
+
 # v 0.2.21
 
 ## Major changes:
