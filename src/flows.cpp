@@ -193,6 +193,150 @@ struct OneAggregate : public RcppParallel::Worker
 };
 
 
+struct OneAggregatePaired : public RcppParallel::Worker
+{
+    RcppParallel::RVector <int> dp_fromtoi;
+    const RcppParallel::RVector <double> flows;
+    const std::vector <std::string> vert_name;
+    const std::unordered_map <std::string, size_t> verts_to_edge_map;
+    size_t nfrom;
+    size_t nverts; // can't be const because of reinterpret cast
+    size_t nedges;
+    const bool norm_sums;
+    const double tol;
+    const std::string heap_type;
+    std::shared_ptr <DGraph> g;
+
+    std::vector <double> output;
+
+    // Constructor 1: The main constructor
+    OneAggregatePaired (
+            const RcppParallel::RVector <int> fromtoi,
+            const RcppParallel::RVector <double> flows_in,
+            const std::vector <std::string>  vert_name_in,
+            const std::unordered_map <std::string, size_t> verts_to_edge_map_in,
+            const size_t nfrom_in,
+            const size_t nverts_in,
+            const size_t nedges_in,
+            const bool norm_sums_in,
+            const double tol_in,
+            const std::string &heap_type_in,
+            const std::shared_ptr <DGraph> g_in
+    ) :
+        dp_fromtoi (fromtoi), flows (flows_in),
+        vert_name (vert_name_in),
+        verts_to_edge_map (verts_to_edge_map_in),
+        nfrom (nfrom_in), nverts (nverts_in), nedges (nedges_in),
+        norm_sums (norm_sums_in), tol (tol_in), heap_type (heap_type_in),
+        g (g_in), output ()
+    {
+        output.resize (nedges, 0.0);
+    }
+
+    // Constructor 2: The Split constructor
+    OneAggregatePaired (
+            const OneAggregatePaired& oneAggregatePaired,
+            RcppParallel::Split) :
+        dp_fromtoi (oneAggregatePaired.dp_fromtoi),
+        flows (oneAggregatePaired.flows),
+        vert_name (oneAggregatePaired.vert_name),
+        verts_to_edge_map (oneAggregatePaired.verts_to_edge_map),
+        nfrom (oneAggregatePaired.nfrom),
+        nverts (oneAggregatePaired.nverts),
+        nedges (oneAggregatePaired.nedges),
+        norm_sums (oneAggregatePaired.norm_sums),
+        tol (oneAggregatePaired.tol),
+        heap_type (oneAggregatePaired.heap_type),
+        g (oneAggregatePaired.g), output ()
+    {
+        output.resize (nedges, 0.0);
+    }
+
+    // Parallel function operator
+    void operator() (size_t begin, size_t end)
+    {
+        std::shared_ptr<PF::PathFinder> pathfinder =
+            std::make_shared <PF::PathFinder> (nverts,
+                    *run_sp::getHeapImpl (heap_type), g);
+        std::vector <double> w (nverts);
+        std::vector <double> d (nverts);
+        std::vector <long int> prev (nverts);
+
+        for (size_t i = begin; i < end; i++)
+        {
+            //if (RcppThread::isInterrupted (i % static_cast<int>(100) == 0))
+            //if (RcppThread::isInterrupted ())
+            //    return;
+
+            const size_t from_i = static_cast <size_t> (dp_fromtoi [i]);
+            // to_i has to be a vector for Dijkstra algo, but has only 1
+            // element.
+            const std::vector <size_t> to_i = {static_cast <size_t> (dp_fromtoi [nfrom + i])};
+
+            // These have to be reserved within the parallel operator function!
+            std::fill (w.begin (), w.end (), INFINITE_DOUBLE);
+            std::fill (d.begin (), d.end (), INFINITE_DOUBLE);
+            std::fill (prev.begin (), prev.end (), INFINITE_INT);
+
+            d [from_i] = w [from_i] = 0.0;
+
+            pathfinder->Dijkstra (d, w, prev, from_i, to_i);
+            // loop has always only one element here:
+            for (size_t j = 0; j < to_i.size (); j++)
+            {
+                if (w [to_i [j]] < INFINITE_DOUBLE && flows [i] > 0.0)
+                {
+                    // count how long the path is, so flows on
+                    // each edge can be divided by this length
+                    int path_len = 1;
+                    if (norm_sums)
+                    {
+                        path_len = 0;
+                        long int target_t = static_cast <long int> (to_i [j]);
+                        while (target_t < INFINITE_INT)
+                        {
+                            path_len++;
+                            size_t target_size_t = static_cast <size_t> (target_t);
+                            target_t = prev [target_size_t];
+                            if (target_t < 0 || target_size_t == from_i)
+                                break;
+                        }
+                    }
+
+                    long int target = static_cast <int> (to_i [j]); // can equal -1
+                    while (target < INFINITE_INT)
+                    {
+                        size_t stt = static_cast <size_t> (target);
+                        if (prev [stt] >= 0 && prev [stt] < INFINITE_INT)
+                        {
+                            std::string v2 = "f" +
+                                vert_name [static_cast <size_t> (prev [stt])] +
+                                "t" + vert_name [stt];
+                            output [verts_to_edge_map.at (v2)] +=
+                                flows [i] / static_cast <double> (path_len);
+                        }
+
+                        target = prev [stt];
+                        // Only allocate that flow from origin vertex v to all
+                        // previous vertices up until the target vi
+                        if (target < 0L || target == from_i)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+        } // end for i
+    } // end parallel function operator
+
+    void join (const OneAggregatePaired &rhs)
+    {
+        for (size_t i = 0; i < output.size (); i++)
+            output [i] += rhs.output [i];
+    }
+};
+
+
 struct OneDisperse : public RcppParallel::Worker
 {
     RcppParallel::RVector <int> dp_fromi;
@@ -598,6 +742,82 @@ Rcpp::NumericVector rcpp_flows_aggregate_par (const Rcpp::DataFrame graph,
     RcppParallel::parallelReduce (0, nfrom, oneAggregate, chunk_size);
 
     return Rcpp::wrap (oneAggregate.output);
+}
+
+
+//' rcpp_flows_aggregate_pairwise
+//'
+//' Pairwise version of flows_aggregate_par
+//'
+//' @param graph The data.frame holding the graph edges
+//' @param vert_map_in map from <std::string> vertex ID to (0-indexed) integer
+//' index of vertices
+//' @param fromi Index into vert_map_in of vertex numbers
+//' @param toi Index into vert_map_in of vertex numbers
+//' @param tol Relative tolerance in terms of flows below which targets
+//' (to-vertices) are not considered.
+//'
+//' @note The parallelisation is achieved by dumping the results of each thread
+//' to a file, with aggregation performed at the end by simply reading back and
+//' aggregating all files. There is no way to aggregate into a single vector
+//' because threads have to be independent. The only danger with this approach
+//' is that multiple threads may generate the same file names, but with names 10
+//' characters long, that chance should be 1 / 62 ^ 10.
+//'
+//' @noRd
+// [[Rcpp::export]]
+Rcpp::NumericVector rcpp_flows_aggregate_pairwise (const Rcpp::DataFrame graph,
+        const Rcpp::DataFrame vert_map_in,
+        Rcpp::IntegerVector fromi,
+        Rcpp::IntegerVector toi,
+        Rcpp::NumericVector flows,
+        const bool norm_sums,
+        const double tol,
+        const std::string heap_type)
+{
+    if (fromi.size () != toi.size ())
+        Rcpp::stop ("pairwise dists must have from.size == to.size");
+    long int n = fromi.size ();
+    size_t n_st = static_cast <size_t> (n);
+
+    const std::vector <std::string> from = graph ["from"];
+    const std::vector <std::string> to = graph ["to"];
+    const std::vector <double> dist = graph ["d"];
+    const std::vector <double> wt = graph ["d_weighted"];
+
+    const size_t nedges = static_cast <size_t> (graph.nrow ());
+    const std::vector <std::string> vert_name = vert_map_in ["vert"];
+    const std::vector <size_t> vert_indx = vert_map_in ["id"];
+    // Make map from vertex name to integer index
+    std::map <std::string, size_t> vert_map_i;
+    const size_t nverts = run_sp::make_vert_map (vert_map_in, vert_name,
+            vert_indx, vert_map_i);
+
+    std::unordered_map <std::string, size_t> verts_to_edge_map;
+    std::unordered_map <std::string, double> verts_to_dist_map;
+    run_sp::make_vert_to_edge_maps (from, to, wt, verts_to_edge_map, verts_to_dist_map);
+
+    std::shared_ptr <DGraph> g = std::make_shared <DGraph> (nverts);
+    inst_graph (g, nedges, vert_map_i, from, to, dist, wt);
+
+    // Paired (fromi, toi) in a single vector
+    Rcpp::IntegerVector fromto (2 * n_st);
+    for (int i = 0; i < n; i++)
+    {
+        size_t i_t = static_cast <size_t> (i);
+        fromto [i] = fromi (i_t);
+        fromto [i + n] = toi (i_t);
+    }
+
+    // Create parallel worker
+    OneAggregatePaired oneAggregatePaired (RcppParallel::RVector <int> (fromto),
+            RcppParallel::RVector <double> (flows), vert_name, verts_to_edge_map,
+            n_st, nverts, nedges, norm_sums, tol, heap_type, g);
+
+    size_t chunk_size = run_sp::get_chunk_size (n_st);
+    RcppParallel::parallelReduce (0, n_st, oneAggregatePaired, chunk_size);
+
+    return Rcpp::wrap (oneAggregatePaired.output);
 }
 
 

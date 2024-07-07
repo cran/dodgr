@@ -1,6 +1,6 @@
 Package: dodgr
 Title: Distances on Directed Graphs
-Version: 0.4.0
+Version: 0.4.1
 Authors@R: c(
     person("Mark", "Padgham", , "mark.padgham@email.com", role = c("aut", "cre")),
     person("Andreas", "Petutschnig", role = "aut"),
@@ -9,7 +9,9 @@ Authors@R: c(
     person("Andrew", "Smith", role = "ctb"),
     person("Malcolm", "Morgan", role = "ctb"),
     person("Shane", "Saunders", role = "cph",
-           comment = "Original author of included code for priority heaps")
+           comment = "Original author of included code for priority heaps"),
+    person("Stanislaw", "Adaszewski", role = "cph",
+           comment = "author of include concaveman-cpp code")
   )
 Description: Distances on dual-weighted directed graphs using
     priority-queue shortest paths (Padgham (2019) <doi:10.32866/6945>).
@@ -36,7 +38,7 @@ LazyData: true
 NeedsCompilation: yes
 RoxygenNote: 7.3.1
 SystemRequirements: GNU make
-Packaged: 2024-05-24 10:54:32 UTC; smexus
+Packaged: 2024-07-04 12:00:03 UTC; smexus
 Author: Mark Padgham [aut, cre],
   Andreas Petutschnig [aut],
   David Cooley [aut],
@@ -44,7 +46,8 @@ Author: Mark Padgham [aut, cre],
   Andrew Smith [ctb],
   Malcolm Morgan [ctb],
   Shane Saunders [cph] (Original author of included code for priority
-    heaps)
+    heaps),
+  Stanislaw Adaszewski [cph] (author of include concaveman-cpp code)
 Maintainer: Mark Padgham <mark.padgham@email.com>
 Repository: CRAN
-Date/Publication: 2024-05-25 22:20:02 UTC
+Date/Publication: 2024-07-07 20:10:02 UTC

@@ -1,4 +1,17 @@
-# v 0.2.21.00X (dev)
+# v 0.4.0.00x (dev version)
+
+## Minor changes
+
+- `dodgr_flows_aggregate()` now has a `pairwise` parameter, to enable flows to
+  be aggregated only along paths connecting each pair of `from` and `to`
+  points. Thanks to @chinhqho via #229
+- Update `igraph::get.edgelist` -> `as_edgelist` (#229) to suppress warnings
+  from igraph conversion functions.
+- Minor tweak to bundled src/concaveman to remove CRAN warning from new gcc 14.x (#235)
+
+---
+
+# v 0.4.0
 
 ## Major changes:
 

@@ -11,6 +11,11 @@
 #' calculated (see Details)
 #' @param flows Matrix of flows with `nrow(flows)==length(from)` and
 #' `ncol(flows)==length(to)`.
+#' @param pairwise If `TRUE`, aggregate flows only only paths connecting the
+#' ordered pairs of `from` and `to`. In this case, both `from` and `to` must be
+#' of the same length, and `flows` must be either a vector of the same length,
+#' or a matrix with only one column and same number of rows. `flows` then
+#' quantifies the flows between each pair of `from` and `to` points.
 #' @param contract If `TRUE` (default), calculate flows on contracted graph
 #' before mapping them back on to the original full graph (recommended as this
 #' will generally be much faster). `FALSE` should only be used if the `graph`
@@ -139,6 +144,7 @@ dodgr_flows_aggregate <- function (graph,
                                    from,
                                    to,
                                    flows,
+                                   pairwise = FALSE,
                                    contract = TRUE,
                                    heap = "BHeap",
                                    tol = 1e-12,
@@ -195,16 +201,27 @@ dodgr_flows_aggregate <- function (graph,
         ncol (flows) == length (to_from_indices$to$index))) {
         stop ("flows matrix is not compatible with 'from'/'to' arguments")
     }
+    if (pairwise) {
+        check_pairwise_from_to (from, to, flows)
+    }
 
     if (!quiet) {
         message ("\nAggregating flows ... ", appendLF = FALSE)
     }
 
-    graph$flow <- rcpp_flows_aggregate_par (
-        graph2, to_from_indices$vert_map,
-        to_from_indices$from$index, to_from_indices$to$index,
-        flows, norm_sums, tol, heap
-    )
+    if (pairwise) {
+        graph$flow <- rcpp_flows_aggregate_pairwise (
+            graph2, to_from_indices$vert_map,
+            to_from_indices$from$index, to_from_indices$to$index,
+            flows, norm_sums, tol, heap
+        )
+    } else {
+        graph$flow <- rcpp_flows_aggregate_par (
+            graph2, to_from_indices$vert_map,
+            to_from_indices$from$index, to_from_indices$to$index,
+            flows, norm_sums, tol, heap
+        )
+    }
 
     if (contract) { # map contracted flows back onto full graph
         graph <- uncontract_graph (graph, edge_map, graph_full)
@@ -566,6 +583,26 @@ check_k <- function (k, from) {
     }
 
     list (k = k, nk = nk)
+}
+
+check_pairwise_from_to <- function (from, to, flows) {
+
+    nf <- ifelse (is.vector (from), length (from), nrow (from))
+    nt <- ifelse (is.vector (to), length (to), nrow (to))
+
+    if (nf != nt) {
+        stop (
+            "'from' and 'to' must be the same length or dimensions",
+            "when using 'pairwise = TRUE'.",
+            call. = FALSE
+        )
+    }
+    if (nrow (flows) != nf) {
+        stop (
+            "'flows' must be the same length or dimensions as 'from' and 'to'",
+            call. = FALSE
+        )
+    }
 }
 
 get_random_prefix <- function (prefix = "flow",
