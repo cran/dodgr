@@ -11,7 +11,7 @@
 
 <meta name="author" content="Mark Padgham" />
 
-<meta name="date" content="2024-07-04" />
+<meta name="date" content="2025-03-06" />
 
 <title>dodgr flows</title>
 
@@ -1499,7 +1499,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">dodgr flows</h1>
 <h4 class="author">Mark Padgham</h4>
-<h4 class="date">2024-07-04</h4>
+<h4 class="date">2025-03-06</h4>
 
 </div>
 
@@ -1570,7 +1570,7 @@ code, using the same graph as the previous example.</p>
 graph_f &lt;- dodgr_flows_disperse (graph, from = from, dens = dens)
 summary (graph_f$flow)</code></pre>
 <pre><code>##      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-## 0.000e+00 0.000e+00 6.806e-05 8.559e-03 9.782e-03 1.570e-01</code></pre>
+## 0.000e+00 0.000e+00 7.548e-05 8.656e-03 1.013e-02 1.581e-01</code></pre>
 </div>
 <div id="merging-directed-flows" class="section level2">
 <h2>3 Merging directed flows</h2>
@@ -1588,7 +1588,7 @@ only include those edges having non-zero flows, and so:</p>
 <pre class="r"><code>nrow (graph_f)</code></pre>
 <pre><code>## [1] 6813</code></pre>
 <pre class="r"><code>nrow (graph_undir) # the latter is much smaller</code></pre>
-<pre><code>## [1] 3024</code></pre>
+<pre><code>## [1] 3069</code></pre>
 <p>The resultant graph can readily be merged with the original graph to
 regain the original data on vertex coordinates through</p>
 <pre class="r"><code>graph &lt;- graph [graph_undir$edge_id, ]

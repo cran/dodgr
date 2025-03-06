@@ -2,26 +2,26 @@
 library (dodgr)
 
 ## ----streetnet_times, eval = FALSE--------------------------------------------
-#  dat_sc <- dodgr_streetnet_sc ("ogbomosho nigeria")
-#  graph <- weight_streetnet (dat_sc, wt_profile = "bicycle")
-#  graph_t <- weight_streetnet (dat_sc, wt_profile = "bicycle", turn_penalty = TRUE)
-#  nrow (graph)
-#  nrow (graph_t)
+# dat_sc <- dodgr_streetnet_sc ("ogbomosho nigeria")
+# graph <- weight_streetnet (dat_sc, wt_profile = "bicycle")
+# graph_t <- weight_streetnet (dat_sc, wt_profile = "bicycle", turn_penalty = TRUE)
+# nrow (graph)
+# nrow (graph_t)
 
 ## ----streetnet_times-out1, echo = FALSE---------------------------------------
 c (164168, 173160)
 
 ## ----streetnet-vertices, eval = FALSE-----------------------------------------
-#  graphc <- dodgr_contract_graph (graph) # not graph_t!
-#  v <- dodgr_vertices (graphc)
-#  n <- 100 # number of desired vertices
-#  from <- sample (v$id, size = n)
-#  to <- sample (v$id, size = n)
+# graphc <- dodgr_contract_graph (graph) # not graph_t!
+# v <- dodgr_vertices (graphc)
+# n <- 100 # number of desired vertices
+# from <- sample (v$id, size = n)
+# to <- sample (v$id, size = n)
 
 ## ----routing, eval = FALSE----------------------------------------------------
-#  graph_tc <- dodgr_contract_graph (graph_t)
-#  nrow (graph_tc)
-#  nrow (graph_t)
+# graph_tc <- dodgr_contract_graph (graph_t)
+# nrow (graph_tc)
+# nrow (graph_t)
 
 ## ----routing-out, echo = FALSE------------------------------------------------
 c (35808, 176160)
@@ -67,5 +67,5 @@ index <- which (!is.na (t_time) & !is.na (t_dist))
 length (which (t_dist [index] < t_time [index])) / length (index)
 
 ## ----colswap, eval = FALSE----------------------------------------------------
-#  graph$d_weighted <- graph$time_weighted
+# graph$d_weighted <- graph$time_weighted
 

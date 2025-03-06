@@ -16,7 +16,7 @@ length (d)
 sapply (d, dim)
 
 ## ----summary-full-dists, eval = FALSE-----------------------------------------
-#  summary (d)
+# summary (d)
 
 ## ----summary-out, echo = FALSE, collapse = TRUE-------------------------------
 s <- summary (d)

@@ -1,7 +1,5 @@
-context ("dodgr graph functions")
-
-test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") |
-    identical (Sys.getenv ("GITHUB_WORKFLOW"), "test-coverage"))
+test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") ||
+    identical (Sys.getenv ("GITHUB_JOB"), "test-coverage"))
 
 skip_if (!test_all)
 
@@ -104,7 +102,10 @@ test_that ("contract graph", {
     )
 
     verts <- as.numeric (verts [, 1])
-    expect_silent (graph_c4 <- dodgr_contract_graph (graph, verts = verts))
+    expect_message (
+        graph_c4 <- dodgr_contract_graph (graph, verts = verts),
+        "'verts' will be presumed to be character labels matching"
+    )
     expect_identical (graph_c2, graph_c4)
 })
 
@@ -260,6 +261,22 @@ test_that ("graph columns", {
     expect_error (
         d <- dodgr_dists (graph, from = from, to = to),
         "graph appears to have non-numeric longitudes and latitudes"
+    )
+
+    graph <- data.frame (weight_streetnet (hampi))
+    names (graph) [names (graph) == "edge_id"] <- "firstedge"
+    graph$secondedge <- graph$firstedge
+    expect_error (
+        d <- dodgr_dists (graph, from = from, to = to),
+        "Unable to determine unique column for edge IDs"
+    )
+
+    graph <- data.frame (weight_streetnet (hampi))
+    names (graph) [names (graph) == "component"] <- "comp1"
+    graph$comp2 <- graph$comp1
+    expect_error (
+        d <- dodgr_dists (graph, from = from, to = to),
+        "Unable to determine unique column for components"
     )
 
     graph <- data.frame (weight_streetnet (hampi)) # rm dodgr_streetnet class

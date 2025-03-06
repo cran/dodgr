@@ -20,10 +20,10 @@ graph
 dodgr_dists (graph)
 
 ## ----get-york-data, eval = FALSE----------------------------------------------
-#  bb <- osmdata::getbb ("york uk")
-#  npts <- 1000
-#  xy <- apply (bb, 1, function (i) min (i) + runif (npts) * diff (i))
-#  bb; head (xy)
+# bb <- osmdata::getbb ("york uk")
+# npts <- 1000
+# xy <- apply (bb, 1, function (i) min (i) + runif (npts) * diff (i))
+# bb; head (xy)
 
 ## ----york-bb, echo = FALSE----------------------------------------------------
 bb <- rbind (c (-1.241536, -0.9215361), c (53.799056, 54.1190555))
@@ -35,24 +35,24 @@ y <- c (53.89409, 54.01065, 53.83613, 53.93545, 53.89436, 54.01262)
 cbind (x, y)
 
 ## ----dodgr-dists-in-york, eval = FALSE----------------------------------------
-#  net <- dodgr_streetnet (bb)
-#  net <- weight_streetnet (net, wt_profile = "foot")
-#  system.time (
-#              d <- dodgr_dists (net, from = xy, to = xy)
-#              )
+# net <- dodgr_streetnet (bb)
+# net <- weight_streetnet (net, wt_profile = "foot")
+# system.time (
+#             d <- dodgr_dists (net, from = xy, to = xy)
+#             )
 
 ## ----dists-york-time, echo = FALSE--------------------------------------------
 c (user = 38.828, system = 0.036, elapsed = 5.424)
 
 ## ----dists-york-structure, eval = FALSE---------------------------------------
-#  dim (d); range (d, na.rm = TRUE)
+# dim (d); range (d, na.rm = TRUE)
 
 ## ----dists-york-output, echo = FALSE------------------------------------------
 c (1000, 1000)
 c (0.00000, 57021.18)
 
 ## ----get-hampi-code, eval = FALSE---------------------------------------------
-#  hampi <- dodgr_streetnet ("hampi india")
+# hampi <- dodgr_streetnet ("hampi india")
 
 ## ----hampi-call---------------------------------------------------------------
 class (hampi)
@@ -64,21 +64,21 @@ class (hampi$geometry)
 dim (hampi)
 
 ## ----hampi-osmplotr, eval = FALSE---------------------------------------------
-#  library (osmplotr)
-#  library (magrittr)
-#  map <- osm_basemap (hampi, bg = "gray95") %>%
-#      add_osm_objects (hampi, col = "gray5") %>%
-#      add_axes () %>%
-#      print_osm_map ()
+# library (osmplotr)
+# library (magrittr)
+# map <- osm_basemap (hampi, bg = "gray95") %>%
+#     add_osm_objects (hampi, col = "gray5") %>%
+#     add_axes () %>%
+#     print_osm_map ()
 
 ## ----load-magritr, echo = FALSE, message = FALSE------------------------------
 library (magrittr)
 
 ## ----hampi-osmplotr-to-file, echo = FALSE, eval = FALSE-----------------------
-#  map <- osm_basemap (hampi, bg = "gray95") %>%
-#      add_osm_objects (hampi, col = "gray5") %>%
-#      add_axes () %>%
-#      print_osm_map (filename = "hampi.png", width = 2000, units = "px")
+# map <- osm_basemap (hampi, bg = "gray95") %>%
+#     add_osm_objects (hampi, col = "gray5") %>%
+#     add_axes () %>%
+#     print_osm_map (filename = "hampi.png", width = 2000, units = "px")
 
 ## ----hampi-weight_streetnet---------------------------------------------------
 graph <- weight_streetnet (hampi, wt_profile = "foot")
@@ -160,21 +160,21 @@ dim (d)
 graph_connected <- graph [graph$component == 1, ]
 
 ## ----york-streetnet, eval = FALSE---------------------------------------------
-#  bb <- osmdata::getbb ("york uk")
-#  npts <- 100
-#  xy <- apply (bb, 1, function (i) min (i) + runif (npts) * diff (i))
-#  
-#  routed_points <- function (expand = 0, pts) {
-#  
-#      gr0 <- dodgr_streetnet (pts = pts, expand = expand) %>%
-#          weight_streetnet ()
-#      d0 <- dodgr_dists (gr0, from = pts)
-#      length (which (is.na (d0))) / length (d0)
-#  }
+# bb <- osmdata::getbb ("york uk")
+# npts <- 100
+# xy <- apply (bb, 1, function (i) min (i) + runif (npts) * diff (i))
+# 
+# routed_points <- function (expand = 0, pts) {
+# 
+#     gr0 <- dodgr_streetnet (pts = pts, expand = expand) %>%
+#         weight_streetnet ()
+#     d0 <- dodgr_dists (gr0, from = pts)
+#     length (which (is.na (d0))) / length (d0)
+# }
 
 ## ----york-streetnet-output, eval = FALSE--------------------------------------
-#  vapply (c (0, 0.05, 0.1, 0.2), function (i) routed_points (i, pts = xy),
-#          numeric (1))
+# vapply (c (0, 0.05, 0.1, 0.2), function (i) routed_points (i, pts = xy),
+#         numeric (1))
 
 ## ----york-streetntet-values, echo = FALSE-------------------------------------
 c (0.04007477, 0.02326452, 0.02131992, 0)
@@ -193,10 +193,10 @@ dim (d)
 compare_heaps (graph, nverts = 100)
 
 ## ----graph-code, eval = FALSE-------------------------------------------------
-#  v <- dodgr_vertices (graph)
-#  pts <- sample (v$id, 1000)
-#  igr <- dodgr_to_igraph (graph)
-#  d <- igraph::distances (igr, v = pts, to = pts, mode = "out")
+# v <- dodgr_vertices (graph)
+# pts <- sample (v$id, 1000)
+# igr <- dodgr_to_igraph (graph)
+# d <- igraph::distances (igr, v = pts, to = pts, mode = "out")
 
 ## ----contract-graph-----------------------------------------------------------
 grc <- dodgr_contract_graph (graph)
@@ -222,7 +222,7 @@ grc <- dodgr_contract_graph (graph, verts)
 nrow (grc)
 
 ## ----eval = FALSE-------------------------------------------------------------
-#  dp <- dodgr_paths (graph, from = from, to = to)
+# dp <- dodgr_paths (graph, from = from, to = to)
 
 ## -----------------------------------------------------------------------------
 graph <- weight_streetnet (hampi, wt_profile = "foot")
@@ -235,7 +235,7 @@ dp <- dodgr_paths (graph, from = from, to = to)
 length (dp)
 
 ## ----eval = FALSE-------------------------------------------------------------
-#  dp [[1]] [[1]]
+# dp [[1]] [[1]]
 
 ## ----echo = FALSE-------------------------------------------------------------
 # make sure there are some paths:
@@ -254,9 +254,9 @@ if (maxlen > 0) {
 }
 
 ## ----eval = FALSE-------------------------------------------------------------
-#  verts <- dodgr_vertices (graph)
-#  path1 <- verts [match (dp [[1]] [[1]], verts$id), ]
-#  head (path1)
+# verts <- dodgr_vertices (graph)
+# path1 <- verts [match (dp [[1]] [[1]], verts$id), ]
+# head (path1)
 
 ## ----echo = FALSE-------------------------------------------------------------
 verts <- dodgr_vertices (graph)

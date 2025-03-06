@@ -1,4 +1,20 @@
-# v 0.4.0.00x (dev version)
+# v 0.4.1.00x (dev version)
+
+## Minor changes
+
+- Added Andrea Gilardi (@agila5) as contributor
+- `weight_streetnet` now raises a warning (instead of an error) in case the input `sf` object has mixed geometry types instead of only `LINESTRING`. The function filters only the geometries having `LINESTRING` type (#246, thanks to @agila5).
+- Pre-pend class structure of `dodgr_streetnet` objects to `data.frame`, rather than append; thanks to @agila5 (#244).
+- Fix bug in graph contraction that left duplicated edges (#236, thanks to @Robinlovelace).
+- Fix minor bug in de-duplication discovered via #236.
+- Update documentation for `weight_streetnet`; #245 thanks to @agila5
+- Update documentation for "from" and "to" parameters of dists and other fns; #254 thanks to @luukvdmeer
+- Fix bug in 'change_col_names'; #262 thanks to @leoniedu
+- Fix bug in 'match_pts_to_graph'; #266 thanks to @leoniedu
+
+---
+
+# v 0.4.1
 
 ## Minor changes
 

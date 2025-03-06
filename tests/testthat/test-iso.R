@@ -1,7 +1,5 @@
-context ("iso")
-
-test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") |
-    identical (Sys.getenv ("GITHUB_WORKFLOW"), "test-coverage"))
+test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") ||
+    identical (Sys.getenv ("GITHUB_JOB"), "test-coverage"))
 
 if (!test_all) {
     RcppParallel::setThreadOptions (numThreads = 2)
@@ -14,9 +12,9 @@ test_that ("isodists", {
     # This all exists just to test the next line:
     requireNamespace ("geodist")
     requireNamespace ("dplyr")
-    expect_no_message (net <- weight_streetnet (hsc,
+    net <- weight_streetnet (hsc,
         wt_profile = "bicycle"
-    ))
+    )
     npts <- 100
     set.seed (1)
     from <- sample (net$.vx0, size = npts)

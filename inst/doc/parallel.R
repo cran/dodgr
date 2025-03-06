@@ -6,5 +6,5 @@ parallel::detectCores ()
 RcppParallel::defaultNumThreads ()
 
 ## ----single-core, eval = FALSE------------------------------------------------
-#  RcppParallel::setThreadOptions (numThreads = 1L)
+# RcppParallel::setThreadOptions (numThreads = 1L)
 

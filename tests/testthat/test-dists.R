@@ -1,14 +1,12 @@
-context ("dodgr_dists")
-
-test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") |
-    identical (Sys.getenv ("GITHUB_WORKFLOW"), "test-coverage"))
+test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") ||
+    identical (Sys.getenv ("GITHUB_JOB"), "test-coverage"))
 
 if (!test_all) {
     RcppParallel::setThreadOptions (numThreads = 2)
 }
 
 test_that ("dists", {
-    expect_silent (graph <- weight_streetnet (hampi))
+    graph <- weight_streetnet (hampi)
     nf <- 100
     nt <- 50
     set.seed (1)
@@ -76,7 +74,7 @@ test_that ("dists", {
 })
 
 test_that ("dists-pairwise", {
-    expect_silent (graph <- weight_streetnet (hampi))
+    graph <- weight_streetnet (hampi)
     n <- 50
     set.seed (1)
     from <- sample (graph$from_id, size = n)
@@ -189,6 +187,48 @@ test_that ("all dists", {
     expect_equal (nrow (d), nrow (v))
 })
 
+test_that ("to-from-as-integerish", {
+    # Integer-ish to-from cols (#254 from @luukvdmeer)
+    graph <- data.frame (
+        from = c (1, 2, 2, 2, 3, 3, 4, 4),
+        to = c (2, 1, 3, 4, 2, 4, 3, 1),
+        d = c (1, 2, 1, 3, 2, 1, 2, 1)
+    )
+    expect_silent (d0 <- dodgr_dists (graph, from = 1, to = 2))
+    expect_silent (d1 <- dodgr_dists (graph, from = 1L, to = 2L))
+    expect_identical (d0, d1)
+    v <- dodgr_vertices (graph)
+    # Verts are numeric, but 'graph$from' has them in sequence, so:
+    expect_identical (v$id, as.numeric (seq_along (unique (graph$from))))
+
+    graph <- data.frame (
+        from = c (1, 3, 2, 2, 3, 3, 4, 4), # no longer in sequence!
+        to = c (2, 1, 3, 4, 2, 4, 3, 1),
+        d = c (1, 2, 1, 3, 2, 1, 2, 1)
+    )
+    expect_silent (d2 <- dodgr_dists (graph, from = 1, to = 2))
+    expect_silent (d3 <- dodgr_dists (graph, from = 1L, to = 2L))
+    v <- dodgr_vertices (graph)
+    expect_false (identical (v$id, as.numeric (seq_along (unique (graph$from)))))
+    expect_true (rownames (d2) == "1")
+    expect_true (rownames (d3) == "1")
+    expect_false (colnames (d2) == "2")
+    expect_false (colnames (d3) == "2")
+    real_id <- v$id [2] # = 3
+    expect_true (colnames (d2) == as.character (real_id))
+    expect_true (colnames (d3) == as.character (real_id))
+
+    graph <- data.frame (
+        from = as.character (c (1, 3, 2, 2, 3, 3, 4, 4)),
+        to = as.character (c (2, 1, 3, 4, 2, 4, 3, 1)),
+        d = c (1, 2, 1, 3, 2, 1, 2, 1)
+    )
+    d4 <- dodgr_dists (graph, from = "1", to = "2")
+    expect_equal (rownames (d4), "1")
+    expect_equal (colnames (d4), "2")
+
+})
+
 test_that ("to-from-cols", {
     graph <- weight_streetnet (hampi)
     nf <- 100
@@ -274,26 +314,10 @@ test_that ("heaps", {
         dodgr_dists (graph, from = from, to = to, heap = "wrong heap"),
         "'arg' should be one of"
     )
-    expect_silent (d0 <- dodgr_dists (graph,
-        from = from,
-        to = to,
-        heap = "BHeap"
-    ))
-    expect_silent (d1 <- dodgr_dists (graph,
-        from = from,
-        to = to,
-        heap = "FHeap"
-    ))
-    expect_silent (d3 <- dodgr_dists (graph,
-        from = from,
-        to = to,
-        heap = "TriHeap"
-    ))
-    expect_silent (d4 <- dodgr_dists (graph,
-        from = from,
-        to = to,
-        heap = "TriHeapExt"
-    ))
+    d0 <- dodgr_dists (graph, from = from, to = to, heap = "BHeap")
+    d1 <- dodgr_dists (graph, from = from, to = to, heap = "FHeap")
+    d3 <- dodgr_dists (graph, from = from, to = to, heap = "TriHeap")
+    d4 <- dodgr_dists (graph, from = from, to = to, heap = "TriHeapExt")
     # This is a compound message that starts "Calculating shortest paths ..."
     # and then "Extended TriHeaps can not be calculated in parallel
     # That can't be tested, so just generic expect_message here
@@ -301,7 +325,7 @@ test_that ("heaps", {
         from = from, to = to,
         heap = "TriHeapExt", quiet = FALSE
     ))
-    expect_silent (d5 <- dodgr_dists (graph, from = from, to = to, heap = "Heap23"))
+    d5 <- dodgr_dists (graph, from = from, to = to, heap = "Heap23")
 
     d4 <- dodgr_dists (graph,
         from = from,
@@ -325,7 +349,7 @@ test_that ("heaps", {
 })
 
 test_that ("graph columns", {
-    expect_silent (graph <- weight_streetnet (hampi))
+    graph <- weight_streetnet (hampi)
     nf <- 100
     nt <- 50
     set.seed (1)
@@ -355,7 +379,7 @@ test_that ("graph columns", {
 })
 
 test_that ("negative weights", {
-    expect_silent (graph <- weight_streetnet (hampi))
+    graph <- weight_streetnet (hampi)
     nf <- 100
     nt <- 50
     set.seed (1)

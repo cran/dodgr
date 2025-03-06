@@ -1,14 +1,19 @@
 #' Aggregate flows throughout a network.
 #'
 #' Aggregate flows throughout a network based on an input matrix of flows
-#' between all pairs of `from` and `to` points.
+#' between all pairs of `from` and `to` points. Flows are calculated by default
+#' on contracted graphs, via the `contract = TRUE` parameter. (These are
+#' derived by reducing the input graph down to junction vertices only, by
+#' joining all intermediate edges between each junction.) If changes to the
+#' input graph do not prompt changes to resultant flows, and the default
+#' `contract = TRUE` is used, it may be that calculations are using previously
+#' cached versions of the contracted graph. If so, please use either
+#' \link{clear_dodgr_cache} to remove the cached version, or
+#' \link{dodgr_cache_off} prior to initial graph construction to switch the
+#' cache off completely.
 #'
 #' @param graph `data.frame` or equivalent object representing the network
 #' graph (see Details)
-#' @param from Vector or matrix of points **from** which aggregate flows are to
-#' be calculated (see Details)
-#' @param to Vector or matrix of points **to** which aggregate flows are to be
-#' calculated (see Details)
 #' @param flows Matrix of flows with `nrow(flows)==length(from)` and
 #' `ncol(flows)==length(to)`.
 #' @param pairwise If `TRUE`, aggregate flows only only paths connecting the
@@ -29,8 +34,10 @@
 #' when flow matrices represent spatial interaction models, in which case this
 #' parameter effectively reduces the radius from each `from` point over which
 #' flows are aggregated. To remove any such effect, set `tol = 0`.
-#' @param quiet If `FALSE`, display progress messages on screen.
-#' @inheritParams dodgr_flows_si
+#' @param norm_sums Standardise sums from all origin points, so sum of flows
+#' throughout entire network equals sum of densities from all origins (see
+#' Note).
+#' @inheritParams dodgr_dists
 #' @return Modified version of graph with additional `flow` column added.
 #'
 #' @note Spatial Interaction models are often fitted through trialling a range
@@ -225,6 +232,7 @@ dodgr_flows_aggregate <- function (graph,
 
     if (contract) { # map contracted flows back onto full graph
         graph <- uncontract_graph (graph, edge_map, graph_full)
+        graph$flow [is.na (graph$flow)] <- 0
     }
     if (to_from_indices$compound) {
         graph <- uncompound_junctions (
@@ -232,6 +240,7 @@ dodgr_flows_aggregate <- function (graph,
             "flow",
             to_from_indices$compound_junction_map
         )
+        graph$flow [is.na (graph$flow)] <- 0
     }
 
     return (graph)
@@ -240,7 +249,15 @@ dodgr_flows_aggregate <- function (graph,
 #' Aggregate flows dispersed from each point in a network.
 #'
 #' Disperse flows throughout a network based on a input vectors of origin points
-#' and associated densities
+#' and associated densities. Flows are calculated by default on contracted
+#' graphs, via the `contract = TRUE` parameter. (These are derived by reducing
+#' the input graph down to junction vertices only, by joining all intermediate
+#' edges between each junction.) If changes to the input graph do not prompt
+#' changes to resultant flows, and the default `contract = TRUE` is used, it
+#' may be that calculations are using previously cached versions of the
+#' contracted graph. If so, please use either \link{clear_dodgr_cache} to
+#' remove the cached version, or \link{dodgr_cache_off} prior to initial graph
+#' construction to switch the cache off completely.
 #'
 #' @inheritParams dodgr_flows_aggregate
 #' @param graph `data.frame` or equivalent object representing the network
@@ -361,6 +378,7 @@ dodgr_flows_disperse <- function (graph,
 
     if (contract) { # map contracted flows back onto full graph
         graph <- uncontract_graph (graph, edge_map, graph_full)
+        graph$flow [is.na (graph$flow)] <- 0
     }
     if (to_from_indices$compound) {
         flow_cols <- grep ("^flow", names (graph), value = TRUE)
@@ -369,6 +387,7 @@ dodgr_flows_disperse <- function (graph,
             flow_cols,
             to_from_indices$compound_junction_map
         )
+        graph$flow [is.na (graph$flow)] <- 0
     }
 
     return (graph)
@@ -378,7 +397,15 @@ dodgr_flows_disperse <- function (graph,
 #'
 #' Aggregate flows throughout a network using an exponential Spatial Interaction
 #' (SI) model between a specified set of origin and destination points, and
-#' associated vectors of densities.
+#' associated vectors of densities. Flows are calculated by default on
+#' contracted graphs, via the `contract = TRUE` parameter. (These are derived
+#' by reducing the input graph down to junction vertices only, by joining all
+#' intermediate edges between each junction.) If changes to the input graph do
+#' not prompt changes to resultant flows, and the default `contract = TRUE` is
+#' used, it may be that calculations are using previously cached versions of
+#' the contracted graph. If so, please use either \link{clear_dodgr_cache} to
+#' remove the cached version, or \link{dodgr_cache_off} prior to initial graph
+#' construction to switch the cache off completely.
 #'
 #' @inheritParams dodgr_flows_aggregate
 #' @param k Width of exponential spatial interaction function (exp (-d / k)),
@@ -388,9 +415,6 @@ dodgr_flows_disperse <- function (graph,
 #' for each 'from' point, so 'nrow(k)==length(from)'. See Note.
 #' @param dens_from Vector of densities at origin ('from') points
 #' @param dens_to Vector of densities at destination ('to') points
-#' @param norm_sums Standardise sums from all origin points, so sum of flows
-#' throughout entire network equals sum of densities from all origins (see
-#' Note).
 #' @return Modified version of graph with additional `flow` column added.
 #'
 #' @note Spatial Interaction models are often fitted through trialling a range
@@ -533,6 +557,7 @@ dodgr_flows_si <- function (graph,
 
     if (contract) { # map contracted flows back onto full graph
         graph <- uncontract_graph (graph, edge_map, graph_full)
+        graph$flow [is.na (graph$flow)] <- 0
     }
     if (to_from_indices$compound) {
         flow_cols <- grep ("^flow", names (graph), value = TRUE)
@@ -541,6 +566,7 @@ dodgr_flows_si <- function (graph,
             flow_cols,
             to_from_indices$compound_junction_map
         )
+        graph$flow [is.na (graph$flow)] <- 0
     }
 
     return (graph)

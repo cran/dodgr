@@ -1,5 +1,5 @@
-test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") |
-    identical (Sys.getenv ("GITHUB_WORKFLOW"), "test-coverage"))
+test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") ||
+    identical (Sys.getenv ("GITHUB_JOB"), "test-coverage"))
 
 if (!test_all) {
     RcppParallel::setThreadOptions (numThreads = 2)
@@ -7,7 +7,7 @@ if (!test_all) {
 
 test_that ("categorical nearest dists", {
 
-    expect_silent (graph <- weight_streetnet (hampi))
+    graph <- weight_streetnet (hampi)
 
     nf <- 50
     nt <- 100

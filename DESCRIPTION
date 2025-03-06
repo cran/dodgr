@@ -1,6 +1,6 @@
 Package: dodgr
 Title: Distances on Directed Graphs
-Version: 0.4.1
+Version: 0.4.2
 Authors@R: c(
     person("Mark", "Padgham", , "mark.padgham@email.com", role = c("aut", "cre")),
     person("Andreas", "Petutschnig", role = "aut"),
@@ -8,10 +8,11 @@ Authors@R: c(
     person("Robin", "Lovelace", role = "ctb"),
     person("Andrew", "Smith", role = "ctb"),
     person("Malcolm", "Morgan", role = "ctb"),
+    person("Andrea", "Gilardi", role="ctb", comment = c(ORCID = "0000-0002-9424-7439")),
     person("Shane", "Saunders", role = "cph",
            comment = "Original author of included code for priority heaps"),
     person("Stanislaw", "Adaszewski", role = "cph",
-           comment = "author of include concaveman-cpp code")
+           comment = "author of include concaveman-cpp code") 
   )
 Description: Distances on dual-weighted directed graphs using
     priority-queue shortest paths (Padgham (2019) <doi:10.32866/6945>).
@@ -36,18 +37,19 @@ VignetteBuilder: knitr
 Encoding: UTF-8
 LazyData: true
 NeedsCompilation: yes
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 SystemRequirements: GNU make
-Packaged: 2024-07-04 12:00:03 UTC; smexus
+Packaged: 2025-03-06 10:23:50 UTC; smexus
 Author: Mark Padgham [aut, cre],
   Andreas Petutschnig [aut],
   David Cooley [aut],
   Robin Lovelace [ctb],
   Andrew Smith [ctb],
   Malcolm Morgan [ctb],
+  Andrea Gilardi [ctb] (<https://orcid.org/0000-0002-9424-7439>),
   Shane Saunders [cph] (Original author of included code for priority
     heaps),
   Stanislaw Adaszewski [cph] (author of include concaveman-cpp code)
 Maintainer: Mark Padgham <mark.padgham@email.com>
 Repository: CRAN
-Date/Publication: 2024-07-07 20:10:02 UTC
+Date/Publication: 2025-03-06 12:30:02 UTC

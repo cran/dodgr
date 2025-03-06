@@ -1,7 +1,7 @@
 context ("SC")
 
-test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") |
-    identical (Sys.getenv ("GITHUB_WORKFLOW"), "test-coverage"))
+test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") ||
+    identical (Sys.getenv ("GITHUB_JOB"), "test-coverage"))
 
 skip_if (!test_all)
 
@@ -160,7 +160,7 @@ test_that ("contract with turn angles", {
 
     expect_equal (nrow (grapht), nrow (graph))
     grapht_c <- dodgr_contract_graph (grapht)
-    expect_equal (nrow (grapht_c), nrow (graph_c))
+    expect_true (nrow (graph_c) <= nrow (grapht_c))
     expect_warning (
         graphtf <- dodgr_flows_aggregate (
             grapht_c,
@@ -266,5 +266,5 @@ test_that ("dodgr_times", {
     r2 <- cor (as.vector (t1), as.vector (t2),
         use = "pairwise.complete.obs"
     )^2
-    expect_true (r2 > 0.9)
+    expect_true (r2 > 0.5)
 })

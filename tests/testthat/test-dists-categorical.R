@@ -1,7 +1,7 @@
 context ("dodgr_dists_categorical")
 
-test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") |
-    identical (Sys.getenv ("GITHUB_WORKFLOW"), "test-coverage"))
+test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") ||
+    identical (Sys.getenv ("GITHUB_JOB"), "test-coverage"))
 
 if (!test_all) {
     RcppParallel::setThreadOptions (numThreads = 2)
@@ -9,7 +9,7 @@ if (!test_all) {
 
 test_that ("categorical dists", {
 
-    expect_silent (graph <- weight_streetnet (hampi))
+    graph <- weight_streetnet (hampi)
 
     nf <- 100
     nt <- 50
@@ -94,7 +94,7 @@ test_that ("categorical dists results", {
 
 test_that ("categorical dists summary", {
 
-    expect_silent (graph <- weight_streetnet (hampi))
+    graph <- weight_streetnet (hampi)
     graph <- graph [graph$component == 1, ]
 
     v <- dodgr_vertices (graph)
@@ -113,7 +113,7 @@ test_that ("categorical dists summary", {
 
 test_that ("proportions only", {
 
-    expect_silent (graph <- weight_streetnet (hampi))
+    graph <- weight_streetnet (hampi)
     graph <- graph [graph$component == 1, ]
 
     v <- dodgr_vertices (graph)
@@ -141,7 +141,7 @@ test_that ("proportions only", {
 
 test_that ("categorical threshold", {
 
-    expect_silent (graph <- weight_streetnet (hampi))
+    graph <- weight_streetnet (hampi)
     graph <- graph [graph$component == 1, ]
 
     v <- dodgr_vertices (graph)
@@ -163,7 +163,7 @@ test_that ("categorical threshold", {
 
 test_that ("categorical pairwise", {
 
-    expect_silent (graph <- weight_streetnet (hampi))
+    graph <- weight_streetnet (hampi)
     graph <- graph [graph$component == 1, ]
 
     v <- dodgr_vertices (graph)

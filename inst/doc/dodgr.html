@@ -11,7 +11,7 @@
 
 <meta name="author" content="Mark Padgham" />
 
-<meta name="date" content="2024-07-04" />
+<meta name="date" content="2025-03-06" />
 
 <title>dodgr</title>
 
@@ -1522,7 +1522,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">dodgr</h1>
 <h4 class="author">Mark Padgham</h4>
-<h4 class="date">2024-07-04</h4>
+<h4 class="date">2025-03-06</h4>
 
 </div>
 
@@ -1894,7 +1894,7 @@ analyses of large graphs which may otherwise take too long to
 compute.</p>
 <pre class="r"><code>graph_sub &lt;- dodgr_sample (graph, nverts = 100)
 nrow (graph_sub)</code></pre>
-<pre><code>## [1] 200</code></pre>
+<pre><code>## [1] 199</code></pre>
 <p>The random sample has around twice as many edges as vertices, in
 accordance with the statistics calculated above.</p>
 <pre class="r"><code>nrow (dodgr_vertices (graph_sub))</code></pre>
@@ -2055,17 +2055,17 @@ vertices).</p>
 <pre><code>## # A tibble: 11 × 6
 ##    expression                 min   median `itr/sec` mem_alloc `gc/sec`
 ##    &lt;bch:expr&gt;            &lt;bch:tm&gt; &lt;bch:tm&gt;     &lt;dbl&gt; &lt;bch:byt&gt;    &lt;dbl&gt;
-##  1 BHeap                   1.59ms   1.73ms      571.    39.1KB     10.5
-##  2 FHeap                   1.61ms   1.71ms      577.    39.1KB     10.5
-##  3 TriHeap                 1.63ms   1.78ms      553.    39.1KB     12.7
-##  4 TriHeapExt              1.41ms   1.46ms      665.    42.1KB     12.0
-##  5 Heap23                  1.62ms   1.74ms      561.    39.1KB     10.5
-##  6 BHeap_contracted        1.45ms   1.56ms      631.    11.7KB     10.4
-##  7 FHeap_contracted        1.45ms   1.53ms      637.    11.7KB     12.6
-##  8 TriHeap_contracted      1.44ms   1.59ms      623.    11.7KB     10.4
-##  9 TriHeapExt_contracted   1.15ms   1.22ms      805.    11.7KB     14.7
-## 10 Heap23_contracted       1.43ms   1.58ms      626.    11.7KB     10.4
-## 11 igraph                597.37µs 647.37µs     1526.   315.3KB     14.8</code></pre>
+##  1 BHeap                    1.4ms   1.48ms      670.   34.52KB     12.6
+##  2 FHeap                    1.4ms   1.46ms      680.   34.52KB     10.4
+##  3 TriHeap                 1.41ms   1.48ms      671.   34.52KB     12.7
+##  4 TriHeapExt              1.27ms   1.29ms      763.   37.55KB     12.5
+##  5 Heap23                  1.41ms   1.48ms      669.   34.52KB     12.6
+##  6 BHeap_contracted        1.22ms   1.28ms      776.    2.36KB     12.5
+##  7 FHeap_contracted        1.22ms   1.27ms      781.    2.36KB     12.6
+##  8 TriHeap_contracted      1.22ms   1.27ms      777.    2.36KB     14.8
+##  9 TriHeapExt_contracted   1.07ms   1.09ms      913.    2.36KB     14.7
+## 10 Heap23_contracted       1.22ms   1.27ms      771.    2.36KB     14.4
+## 11 igraph                647.29µs 683.15µs     1390.  453.11KB     14.7</code></pre>
 <p>The key column of that <code>data.frame</code> is
 <code>relative</code>, which quantifies the relative performance of each
 test in relation to the best which is given a score of 1.
@@ -2122,8 +2122,8 @@ two junction vertices (or between the submitted <code>verts</code>,
 which may or may not be junctions). Relative sizes are</p>
 <pre class="r"><code>nrow (graph); nrow (grc); nrow (grc) / nrow (graph)</code></pre>
 <pre><code>## [1] 6813</code></pre>
-<pre><code>## [1] 772</code></pre>
-<pre><code>## [1] 0.1133128</code></pre>
+<pre><code>## [1] 748</code></pre>
+<pre><code>## [1] 0.1097901</code></pre>
 <p>equivalent to the removal of around 90% of all edges. The difference
 in routing efficiency can then be seen with the following code</p>
 <pre class="r"><code>from &lt;- sample (grc$from_id, size = 100)
@@ -2136,8 +2136,8 @@ bench::mark (
 <pre><code>## # A tibble: 2 × 6
 ##   expression      min   median `itr/sec` mem_alloc `gc/sec`
 ##   &lt;bch:expr&gt; &lt;bch:tm&gt; &lt;bch:tm&gt;     &lt;dbl&gt; &lt;bch:byt&gt;    &lt;dbl&gt;
-## 1 full         9.96ms  10.21ms      96.7    1.24MB     2.06
-## 2 contracted   2.16ms   2.28ms     437.   282.98KB     8.33</code></pre>
+## 1 full         10.2ms  10.77ms      91.2    1.24MB     0   
+## 2 contracted    2.1ms   2.22ms     450.   280.59KB     8.33</code></pre>
 <p>And contracting the graph has a similar effect of speeding up
 pairwise routing between these 100 points. All routing algorithms scale
 non-linearly with size, and relative improvements in efficiency will be
@@ -2153,14 +2153,14 @@ the vertex ID values in the graph.</p>
 contracted graphs:</p>
 <pre class="r"><code>grc &lt;- dodgr_contract_graph (graph)
 nrow (grc)</code></pre>
-<pre><code>## [1] 772</code></pre>
+<pre><code>## [1] 748</code></pre>
 <pre class="r"><code>verts &lt;- sample (dodgr_vertices (graph)$id, size = 100)
 head (verts) # a character vector</code></pre>
-<pre><code>## [1] &quot;339577280&quot;  &quot;8690943515&quot; &quot;8634836983&quot; &quot;4046458346&quot; &quot;2588155772&quot;
-## [6] &quot;3697937579&quot;</code></pre>
+<pre><code>## [1] &quot;8618022291&quot; &quot;2195425060&quot; &quot;8618022267&quot; &quot;8632960973&quot; &quot;7799711118&quot;
+## [6] &quot;1398747980&quot;</code></pre>
 <pre class="r"><code>grc &lt;- dodgr_contract_graph (graph, verts)
 nrow (grc)</code></pre>
-<pre><code>## [1] 955</code></pre>
+<pre><code>## [1] 934</code></pre>
 <p>Retaining the nominated vertices yields a graph with considerably
 more edges than the fully contracted graph excluding these vertices. The
 <a href="https://UrbanAnalyst.github.io/dodgr/reference/dodgr_distances.html"><code>dodgr_distances()</code></a>
@@ -2206,29 +2206,16 @@ length (dp)</code></pre>
 <p>The result (<code>dp</code>) is a list of 10 items, each of which
 contains 5 vectors. An example is,</p>
 <pre class="r"><code>dp [[1]] [[1]]</code></pre>
-<pre><code>##   [1] &quot;4337853841&quot; &quot;4337853840&quot; &quot;4337853838&quot; &quot;4337853835&quot; &quot;4337853839&quot;
-##   [6] &quot;4337853837&quot; &quot;4337853836&quot; &quot;2608163913&quot; &quot;2608163908&quot; &quot;2608163907&quot;
-##  [11] &quot;2608163906&quot; &quot;2608163903&quot; &quot;2608163902&quot; &quot;2608163900&quot; &quot;2608163899&quot;
-##  [16] &quot;2608163898&quot; &quot;2608163897&quot; &quot;2608163896&quot; &quot;2608163895&quot; &quot;2608163894&quot;
-##  [21] &quot;2608163893&quot; &quot;3921512085&quot; &quot;3921512080&quot; &quot;3921512084&quot; &quot;3921512083&quot;
-##  [26] &quot;3921512082&quot; &quot;3921512081&quot; &quot;2608076457&quot; &quot;2608076455&quot; &quot;2608076453&quot;
-##  [31] &quot;2608076451&quot; &quot;3921512086&quot; &quot;2608076449&quot; &quot;2608076447&quot; &quot;2608076439&quot;
-##  [36] &quot;2608076437&quot; &quot;2608076428&quot; &quot;2608076427&quot; &quot;2608076425&quot; &quot;2608076422&quot;
-##  [41] &quot;2608076421&quot; &quot;2608076419&quot; &quot;2608076417&quot; &quot;2608076413&quot; &quot;980499593&quot; 
-##  [46] &quot;2608159680&quot; &quot;980499652&quot;  &quot;980499691&quot;  &quot;5351394458&quot; &quot;977473069&quot; 
-##  [51] &quot;977472926&quot;  &quot;977472850&quot;  &quot;977472947&quot;  &quot;977472717&quot;  &quot;977472755&quot; 
-##  [56] &quot;977473123&quot;  &quot;5351394453&quot; &quot;977472618&quot;  &quot;5351394452&quot; &quot;5351394451&quot;
-##  [61] &quot;977472990&quot;  &quot;5351394449&quot; &quot;5351394450&quot; &quot;977473143&quot;  &quot;977472907&quot; 
-##  [66] &quot;977473010&quot;  &quot;977472776&quot;  &quot;977472811&quot;  &quot;4552228189&quot; &quot;2627480728&quot;
-##  [71] &quot;6410121123&quot; &quot;977473047&quot;  &quot;1388483451&quot; &quot;977472969&quot;  &quot;977473072&quot; 
-##  [76] &quot;977472830&quot;  &quot;977472872&quot;  &quot;1388483120&quot; &quot;1388483756&quot; &quot;977472640&quot; 
-##  [81] &quot;977472736&quot;  &quot;1388482235&quot; &quot;1388482943&quot; &quot;1204772663&quot; &quot;1204772860&quot;
-##  [86] &quot;1388483168&quot; &quot;1204772888&quot; &quot;1204772807&quot; &quot;1204772748&quot; &quot;1388483001&quot;
-##  [91] &quot;1388482296&quot; &quot;1388483784&quot; &quot;1204772914&quot; &quot;1204772726&quot; &quot;3921523906&quot;
-##  [96] &quot;3921523912&quot; &quot;3921523907&quot; &quot;3921523908&quot; &quot;3921523910&quot; &quot;3921523909&quot;
-## [101] &quot;7794286132&quot; &quot;7794286133&quot; &quot;3921523911&quot; &quot;3921524454&quot; &quot;7794286134&quot;
-## [106] &quot;3921524455&quot; &quot;7794286135&quot; &quot;7794286136&quot; &quot;7794286137&quot; &quot;7794286138&quot;
-## [111] &quot;7794286139&quot; &quot;7794286140&quot; &quot;7794286141&quot;</code></pre>
+<pre><code>##  [1] &quot;977478646&quot;  &quot;339059757&quot;  &quot;1148815018&quot; &quot;2636406745&quot; &quot;3921513385&quot;
+##  [6] &quot;3921513379&quot; &quot;3921513381&quot; &quot;3921513382&quot; &quot;3921513380&quot; &quot;3697938719&quot;
+## [11] &quot;3697938718&quot; &quot;3697938720&quot; &quot;3697938717&quot; &quot;3697938721&quot; &quot;2627476996&quot;
+## [16] &quot;2627476993&quot; &quot;2627476991&quot; &quot;2627476990&quot; &quot;2627476988&quot; &quot;2627476983&quot;
+## [21] &quot;2627476981&quot; &quot;980400495&quot;  &quot;980400742&quot;  &quot;980400857&quot;  &quot;980400874&quot; 
+## [26] &quot;980400974&quot;  &quot;7794390728&quot; &quot;2636572486&quot; &quot;980400414&quot;  &quot;1054866475&quot;
+## [31] &quot;1054865355&quot; &quot;980400593&quot;  &quot;7794390727&quot; &quot;1054860350&quot; &quot;980400807&quot; 
+## [36] &quot;1054867492&quot; &quot;339574165&quot;  &quot;4474520806&quot; &quot;1604033316&quot; &quot;339574164&quot; 
+## [41] &quot;4474520807&quot; &quot;339574161&quot;  &quot;4474520808&quot; &quot;339574160&quot;  &quot;1715805190&quot;
+## [46] &quot;339574159&quot;</code></pre>
 <p>For spatial graphs, the coordinates of these paths can be obtained by
 extracting the vertices with <code>dodgr_vertices()</code> and matching
 the vertex IDs:</p>
@@ -2236,12 +2223,12 @@ the vertex IDs:</p>
 path1 &lt;- verts [match (dp [[1]] [[1]], verts$id), ]
 head (path1)</code></pre>
 <pre><code>##              id        x        y component    n
-## 5490 4337853841 76.45993 15.34383         2 2712
-## 5488 4337853840 76.45993 15.34378         2 2711
-## 5486 4337853838 76.45985 15.34372         2 2710
-## 5484 4337853835 76.45967 15.34368         2 2709
-## 5482 4337853839 76.45956 15.34374         2 2708
-## 5480 4337853837 76.45945 15.34371         2 2707</code></pre>
+## 514   977478646 76.46016 15.33485         1  260
+## 268   339059757 76.46019 15.33505         1  137
+## 4317 1148815018 76.46016 15.33505         1 2159
+## 4318 2636406745 76.45995 15.33508         1 2160
+## 5086 3921513385 76.45894 15.33516         1 2520
+## 6790 3921513379 76.45894 15.33508         1 3327</code></pre>
 <p>Paths calculated on contracted graphs will of course have fewer
 vertices than those calculated on full graphs.</p>
 </div>

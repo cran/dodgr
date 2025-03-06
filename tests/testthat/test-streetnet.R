@@ -1,10 +1,8 @@
-context ("dodgr streetnet")
-
 dodgr_cache_off ()
 clear_dodgr_cache ()
 
-test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") |
-    identical (Sys.getenv ("GITHUB_WORKFLOW"), "test-coverage"))
+test_all <- (identical (Sys.getenv ("MPADGE_LOCAL"), "true") ||
+    identical (Sys.getenv ("GITHUB_JOB"), "test-coverage"))
 # used below in a skip_if call
 
 test_that ("streetnet bbox", {
@@ -248,5 +246,26 @@ test_that ("streetnet times", {
             wt_profile = list (1)
         ),
         "Custom named profiles must be vectors"
+    )
+})
+
+test_that ("weight_streetnet runs with non-LINESTRING sfc", {
+    # See #246
+    skip_if_not_installed ("sf")
+
+    toy <- sf::st_as_sf (
+        data.frame (highway = "primary", osm_id = 1:2),
+        geometry = sf::st_sfc (
+            sf::st_linestring (rbind (c (0, 0), c (1, 1))),
+            sf::st_multilinestring (
+                list (
+                    sf::st_linestring (rbind (c (1, 1), c (2, 2)))
+                )
+            )
+        )
+    )
+    expect_warning (
+        weight_streetnet (toy),
+        "not a LINESTRING"
     )
 })
