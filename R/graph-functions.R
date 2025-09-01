@@ -30,7 +30,7 @@ dodgr_graph_cols <- function (graph) {
         yto <- which (nms %in% c ("yto", "to_lat"))
         if (length (yto) == 0) yto <- NA
     } else {
-        edge_id <- find_edge_id_col(graph)
+        edge_id <- find_edge_id_col (graph)
 
         d_col <- find_d_col (graph)
         w_col <- find_w_col (graph)
@@ -482,9 +482,12 @@ insert_one_edge <- function (graph, index, x, y, gr_cols) {
         y = graph [[gr_cols$yto]] [index + 1]
     )
     if (is_graph_spatial (graph)) {
-        requireNamespace ("geodist")
-        d1 <- geodist::geodist (xy1, c (x = x, y = y), measure = "geodesic")
-        d2 <- geodist::geodist (xy2, c (x = x, y = y), measure = "geodesic")
+        # Get geodist measure, noting that graph has no hash at this stage, so
+        # full calculation will be executed.
+        measure <- get_geodist_measure (graph)
+
+        d1 <- geodist::geodist (xy1, c (x = x, y = y), measure = measure)
+        d2 <- geodist::geodist (xy2, c (x = x, y = y), measure = measure)
     } else {
         d1 <- sqrt ((xy1 [1] - x)^2 + (xy1 [2] - y)^2)
         d2 <- sqrt ((x - xy2 [1])^2 + (y - xy2 [2])^2)
@@ -503,10 +506,10 @@ insert_one_edge <- function (graph, index, x, y, gr_cols) {
     graph [index + 1, gr_cols$d_weighted] <- d2 * wt
 
     if (!is.na (gr_cols$time)) {
-        graph [index, gr_cols$time] <- graph [index, gr_cols$d] *
-            time_scale
-        graph [index, gr_cols$time_weighted] <-
-            graph [index, gr_cols$time] * time_wt
+        graph [index, gr_cols$time] <- d1 * time_scale
+        graph [index + 1, gr_cols$time] <- d2 * time_scale
+        graph [index, gr_cols$time_weighted] <- d1 * time_scale * time_wt
+        graph [index + 1, gr_cols$time_weighted] <- d2 * time_scale * time_wt
     }
 
     graph$edge_id [index] <- paste0 (graph$edge_id [index], "_a")

@@ -164,6 +164,33 @@ test_that ("streetnet column names", {
     h$oneway [index] <- "yes"
     graph4 <- weight_streetnet (h, wt_profile = "bicycle")
     expect_identical (nrow (graph2), nrow (graph4))
+
+    # Different encodings for oneway columns
+    h <- hampi
+    h$oneway [1] <- "no"
+    h$oneway [2] <- "maybe"
+    expect_warning (
+        graph5 <- weight_streetnet (h, wt_profile = "bicycle"),
+        "'oneway' column has ambiguous values"
+    )
+    expect_equal (nrow (graph5), nrow (graph0))
+
+    h$oneway [2] <- NA_character_
+    h$oneway [h$oneway == "no"] <- "false"
+    h$oneway [h$oneway == "yes"] <- "true"
+    graph6 <- weight_streetnet (h, wt_profile = "bicycle")
+    expect_equal (nrow (graph5), nrow (graph6))
+
+    h$oneway [h$oneway == "false"] <- 0
+    h$oneway [h$oneway == "true"] <- 1
+    storage.mode (h$oneway) <- "numeric"
+    graph7 <- weight_streetnet (h, wt_profile = "bicycle")
+    expect_equal (nrow (graph5), nrow (graph7))
+
+    h$oneway <- as.logical (h$oneway)
+    h$oneway [2] <- h$oneway [3] <- TRUE
+    graph8 <- weight_streetnet (h, wt_profile = "bicycle")
+    expect_lt (nrow (graph8), nrow (graph7))
 })
 
 test_that ("wt_profile", {
@@ -268,4 +295,48 @@ test_that ("weight_streetnet runs with non-LINESTRING sfc", {
         weight_streetnet (toy),
         "not a LINESTRING"
     )
+})
+
+test_that ("geodesic distances", {
+
+    skip_if_not_installed ("sf")
+
+    expect_error (
+        get_geodist_measure ("a"),
+        "Graph appears to be spatial yet unable to extract coordinates"
+    )
+
+
+    options ("dodgr_dist_measure" = NULL)
+    graph <- weight_streetnet (hampi)
+    expect_equal (get_geodist_measure (graph), "cheap")
+
+    msg <- paste0 (
+        "Only graphs created from this point on with ",
+        "\\'weight_streetnet\\(\\)\\' will use the geodesic ",
+        "measure."
+    )
+    # graphs don't exist in test environments:
+    # expect_message (dodgr_streetnet_geodesic (), msg)
+    dodgr_streetnet_geodesic ()
+    expect_equal (get_geodist_measure (graph), "geodesic")
+    op <- getOption ("dodgr_dist_measure")
+    expect_length (op, 1L)
+    expect_named (op, "all")
+    expect_equal (op, c (all = "geodesic"))
+
+    graph_gd <- weight_streetnet (hampi)
+    dist_diff <- graph$d - graph_gd$d
+    # SD of difference in distances should be > 10cm:
+    expect_true (sd (dist_diff) > 0.1)
+
+    msg <- paste0 (
+        "Only graphs created from this point on with ",
+        "\\'weight_streetnet\\(\\)\\' will revert to ",
+        "default measures"
+    )
+    # expect_message (dodgr_streetnet_geodesic (unset = TRUE), msg)
+    dodgr_streetnet_geodesic (unset = TRUE)
+    op <- getOption ("dodgr_dist_measure")
+    expect_null (op)
 })

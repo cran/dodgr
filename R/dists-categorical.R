@@ -1,4 +1,21 @@
-#' Cumulative distances along different edge categories
+#' @title Cumulative distances along different edge categories
+#'
+#' @description The main \link{dodgr_distances} function calculates distances
+#' between input sets of origin and destination points, and returns a single
+#' matrix of numeric distances. This function aggregates distances along
+#' categories of edges or segments, and returns an overall distance matrix
+#' (identical to the result of \link{dodgr_distances}), along with one
+#' additional matrix for each edge category.
+#'
+#' Edges types must be specified in a column of the input graph named
+#' "edge_type". If this has two types of values (for example, "a"
+#' and "b"), then the function will return two additional distance matrices,
+#' one of total lengths of distances between all pairs of points traversed
+#' along edges of the first type, "a", and one of aggregated distances along
+#' edges of type "b".
+#'
+#' See the description of \link{dodgr_distances} for details on the expected
+#' format of input graphs.
 #'
 #' @inheritParams dodgr_dists
 #' @param graph `data.frame` or equivalent object representing the network
@@ -54,6 +71,9 @@
 #' v <- dodgr_vertices (graph)
 #' from <- to <- v$id [1:100]
 #' d <- dodgr_dists_categorical (graph, from, to)
+#' # Internal 'summary' method to summarise results:
+#' summary (d)
+#'
 #' class (d)
 #' length (d)
 #' sapply (d, dim)
@@ -276,7 +296,23 @@ process_threshold_dmat <- function (d, from_index, vert_map, edge_type_table) {
 #' @param object A 'dodgr_dists_categorical' object
 #' @param ... Extra parameters currently not used
 #' @return The summary statistics (invisibly)
+#'
 #' @family misc
+#'
+#' @examples
+#' # Prepare a graph for categorical routing by including an "edge_type" column
+#' graph <- weight_streetnet (hampi, wt_profile = "foot")
+#' graph <- graph [graph$component == 1, ]
+#' graph$edge_type <- graph$highway
+#' # Define start and end points for categorical distances; using all vertices
+#' # here.
+#' length (unique (graph$edge_type)) # Number of categories
+#' v <- dodgr_vertices (graph)
+#' from <- to <- v$id [1:100]
+#' d <- dodgr_dists_categorical (graph, from, to)
+#' # Internal 'summary' method to summarise results:
+#' summary (d)
+#'
 #' @export
 summary.dodgr_dists_categorical <- function (object, ...) {
 

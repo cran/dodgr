@@ -11,12 +11,9 @@ skip_if (!test_all)
 #    add_osm_feature (key = "highway") %>%
 #    osmdata_sc ()
 
-source ("../sc-conversion-fns.R")
-
 test_that ("SC", {
     expect_silent (hsc <- sf_to_sc (hampi))
     # This all exists just to test the next line:
-    requireNamespace ("geodist")
     requireNamespace ("dplyr")
     expect_silent (net_sc <- weight_streetnet (hsc))
     expect_is (net_sc, "data.frame")
@@ -137,15 +134,16 @@ test_that ("contract with turn angles", {
     ))
     expect_silent (graph_c <- dodgr_contract_graph (graph))
     expect_silent (v <- dodgr_vertices (graph_c))
+    set.seed (1L)
     n <- 100
-    pts <- sample (v$id, size = n)
-    pts <- pts [which (pts %in% graph_c$.vx0 & pts %in% graph_c$.vx1)]
+    pts_f <- sample (graph_c$.vx0, size = n)
+    pts_t <- sample (graph_c$.vx1, size = n)
     fmat <- array (1, dim = c (n, n))
 
     # aggregate flows from graph without turning angles:
     expect_silent (graphf <- dodgr_flows_aggregate (graph_c,
-        from = pts,
-        to = pts,
+        from = pts_f,
+        to = pts_t,
         flows = fmat,
         contract = FALSE
     ))
@@ -164,8 +162,8 @@ test_that ("contract with turn angles", {
     expect_warning (
         graphtf <- dodgr_flows_aggregate (
             grapht_c,
-            from = pts,
-            to = pts,
+            from = pts_f,
+            to = pts_t,
             flows = fmat,
             contract = FALSE
         ),
@@ -177,8 +175,8 @@ test_that ("contract with turn angles", {
     expect_silent (
         graphtf <- dodgr_flows_aggregate (
             grapht,
-            from = pts,
-            to = pts,
+            from = pts_f,
+            to = pts_t,
             flows = fmat,
             contract = FALSE
         )
@@ -198,7 +196,7 @@ test_that ("contract with turn angles", {
         graphtf <-
             dodgr_flows_disperse (
                 grapht_c,
-                from = pts,
+                from = pts_f,
                 dens = rep (1, n)
             ),
         paste0 (
@@ -207,7 +205,7 @@ test_that ("contract with turn angles", {
         )
     )
     expect_silent (
-        graphtf <- dodgr_flows_disperse (grapht, from = pts, dens = rep (1, n))
+        graphtf <- dodgr_flows_disperse (grapht, from = pts_f, dens = rep (1, n))
     )
 })
 

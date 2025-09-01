@@ -11,7 +11,7 @@
 
 <meta name="author" content="Mark Padgham" />
 
-<meta name="date" content="2025-03-06" />
+<meta name="date" content="2025-09-01" />
 
 <title>dodgr</title>
 
@@ -1522,7 +1522,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">dodgr</h1>
 <h4 class="author">Mark Padgham</h4>
-<h4 class="date">2025-03-06</h4>
+<h4 class="date">2025-09-01</h4>
 
 </div>
 
@@ -1706,12 +1706,12 @@ dim (graph)</code></pre>
 ## 5        1       5 2398958028 76.47621 15.34174 1427116077 76.47628 15.34179
 ## 6        1       6 1427116077 76.47628 15.34179 2398958028 76.47621 15.34174
 ##            d d_weighted highway   way_id component      time time_weighted
-## 1 130.000241 130.000241    path 28565950         1 93.600174     93.600174
-## 2 130.000241 130.000241    path 28565950         1 93.600174     93.600174
-## 3   8.890622   8.890622    path 28565950         1  6.401248      6.401248
-## 4   8.890622   8.890622    path 28565950         1  6.401248      6.401248
-## 5   9.307736   9.307736    path 28565950         1  6.701570      6.701570
-## 6   9.307736   9.307736    path 28565950         1  6.701570      6.701570</code></pre>
+## 1 129.761207 129.761207    path 28565950         1 93.428069     93.428069
+## 2 129.761207 129.761207    path 28565950         1 93.428069     93.428069
+## 3   8.874244   8.874244    path 28565950         1  6.389455      6.389455
+## 4   8.874244   8.874244    path 28565950         1  6.389455      6.389455
+## 5   9.311222   9.311222    path 28565950         1  6.704080      6.704080
+## 6   9.311222   9.311222    path 28565950         1  6.704080      6.704080</code></pre>
 <p>Note that the actual graph contains around 30 times as many edges as
 there are streets, indicating that each street is composed on average of
 around 30 individual segments. The individual points or vertices from
@@ -1765,12 +1765,12 @@ graph_min &lt;- graph [, which (names (graph) %in% cols)]
 graph_min &lt;- dodgr_components (graph_min)
 head (graph_min)</code></pre>
 <pre><code>##   edge_id    from_id      to_id          d component
-## 1       1  339318500  339318502 130.000241         1
-## 2       2  339318502  339318500 130.000241         1
-## 3       3  339318502 2398958028   8.890622         1
-## 4       4 2398958028  339318502   8.890622         1
-## 5       5 2398958028 1427116077   9.307736         1
-## 6       6 1427116077 2398958028   9.307736         1</code></pre>
+## 1       1  339318500  339318502 129.761207         1
+## 2       2  339318502  339318500 129.761207         1
+## 3       3  339318502 2398958028   8.874244         1
+## 4       4 2398958028  339318502   8.874244         1
+## 5       5 2398958028 1427116077   9.311222         1
+## 6       6 1427116077 2398958028   9.311222         1</code></pre>
 <p>The <code>component</code> column column can be used to select or
 filter any component in a graph. It is particularly useful to ensure
 routing calculations consider only connected vertices through simply
@@ -1894,7 +1894,7 @@ analyses of large graphs which may otherwise take too long to
 compute.</p>
 <pre class="r"><code>graph_sub &lt;- dodgr_sample (graph, nverts = 100)
 nrow (graph_sub)</code></pre>
-<pre><code>## [1] 199</code></pre>
+<pre><code>## [1] 203</code></pre>
 <p>The random sample has around twice as many edges as vertices, in
 accordance with the statistics calculated above.</p>
 <pre class="r"><code>nrow (dodgr_vertices (graph_sub))</code></pre>
@@ -1938,7 +1938,7 @@ graph:</p>
 <pre class="r"><code>d &lt;- dodgr_dists (graph, from = xy)
 dim (d); range (d, na.rm = TRUE)</code></pre>
 <pre><code>## [1]  100 3337</code></pre>
-<pre><code>## [1]     0.00 14926.04</code></pre>
+<pre><code>## [1]     0.00 14915.93</code></pre>
 <p>If the <code>to</code> argument is also specified, the matrix
 returned will have rows matching <code>from</code> and columns matching
 <code>to</code></p>
@@ -2001,12 +2001,12 @@ considered above, these vertex names were contained in the columns,
 <code>dodgr</code> graph requires is,</p>
 <pre class="r"><code>head (graph [, names (graph) %in% c (&quot;from_id&quot;, &quot;to_id&quot;, &quot;d&quot;)])</code></pre>
 <pre><code>##      from_id      to_id          d
-## 1  339318500  339318502 130.000241
-## 2  339318502  339318500 130.000241
-## 3  339318502 2398958028   8.890622
-## 4 2398958028  339318502   8.890622
-## 5 2398958028 1427116077   9.307736
-## 6 1427116077 2398958028   9.307736</code></pre>
+## 1  339318500  339318502 129.761207
+## 2  339318502  339318500 129.761207
+## 3  339318502 2398958028   8.874244
+## 4 2398958028  339318502   8.874244
+## 5 2398958028 1427116077   9.311222
+## 6 1427116077 2398958028   9.311222</code></pre>
 <p>in which case the <code>from</code> values submitted to
 <code>dodgr_dists()</code> (and <code>to</code>, if given) must directly
 name the vertices in the <code>from_id</code> and <code>to_id</code>
@@ -2055,17 +2055,17 @@ vertices).</p>
 <pre><code>## # A tibble: 11 × 6
 ##    expression                 min   median `itr/sec` mem_alloc `gc/sec`
 ##    &lt;bch:expr&gt;            &lt;bch:tm&gt; &lt;bch:tm&gt;     &lt;dbl&gt; &lt;bch:byt&gt;    &lt;dbl&gt;
-##  1 BHeap                    1.4ms   1.48ms      670.   34.52KB     12.6
-##  2 FHeap                    1.4ms   1.46ms      680.   34.52KB     10.4
-##  3 TriHeap                 1.41ms   1.48ms      671.   34.52KB     12.7
-##  4 TriHeapExt              1.27ms   1.29ms      763.   37.55KB     12.5
-##  5 Heap23                  1.41ms   1.48ms      669.   34.52KB     12.6
-##  6 BHeap_contracted        1.22ms   1.28ms      776.    2.36KB     12.5
-##  7 FHeap_contracted        1.22ms   1.27ms      781.    2.36KB     12.6
-##  8 TriHeap_contracted      1.22ms   1.27ms      777.    2.36KB     14.8
-##  9 TriHeapExt_contracted   1.07ms   1.09ms      913.    2.36KB     14.7
-## 10 Heap23_contracted       1.22ms   1.27ms      771.    2.36KB     14.4
-## 11 igraph                647.29µs 683.15µs     1390.  453.11KB     14.7</code></pre>
+##  1 BHeap                   2.34ms    2.6ms      373.    47.4KB     8.39
+##  2 FHeap                   2.39ms   2.65ms      349.    47.4KB     8.41
+##  3 TriHeap                 2.23ms   2.56ms      377.    47.4KB     8.39
+##  4 TriHeapExt              1.93ms   2.19ms      454.    50.4KB    10.7 
+##  5 Heap23                  2.32ms   2.61ms      360.    47.4KB     8.37
+##  6 BHeap_contracted        2.16ms   2.44ms      387.    20.7KB     8.37
+##  7 FHeap_contracted        2.19ms   2.41ms      399.    20.7KB     8.36
+##  8 TriHeap_contracted      2.26ms   2.46ms      385.    20.7KB     8.32
+##  9 TriHeapExt_contracted   1.69ms   1.89ms      519.    20.7KB    10.5 
+## 10 Heap23_contracted       2.14ms   2.45ms      389.    20.7KB     8.37
+## 11 igraph                808.94µs  916.9µs      949.   464.6KB    10.6</code></pre>
 <p>The key column of that <code>data.frame</code> is
 <code>relative</code>, which quantifies the relative performance of each
 test in relation to the best which is given a score of 1.
@@ -2136,8 +2136,8 @@ bench::mark (
 <pre><code>## # A tibble: 2 × 6
 ##   expression      min   median `itr/sec` mem_alloc `gc/sec`
 ##   &lt;bch:expr&gt; &lt;bch:tm&gt; &lt;bch:tm&gt;     &lt;dbl&gt; &lt;bch:byt&gt;    &lt;dbl&gt;
-## 1 full         10.2ms  10.77ms      91.2    1.24MB     0   
-## 2 contracted    2.1ms   2.22ms     450.   280.59KB     8.33</code></pre>
+## 1 full        12.68ms     14ms      68.8    1.24MB     2.02
+## 2 contracted   2.51ms   2.83ms     328.   280.59KB     4.10</code></pre>
 <p>And contracting the graph has a similar effect of speeding up
 pairwise routing between these 100 points. All routing algorithms scale
 non-linearly with size, and relative improvements in efficiency will be
@@ -2156,11 +2156,11 @@ nrow (grc)</code></pre>
 <pre><code>## [1] 748</code></pre>
 <pre class="r"><code>verts &lt;- sample (dodgr_vertices (graph)$id, size = 100)
 head (verts) # a character vector</code></pre>
-<pre><code>## [1] &quot;8618022291&quot; &quot;2195425060&quot; &quot;8618022267&quot; &quot;8632960973&quot; &quot;7799711118&quot;
-## [6] &quot;1398747980&quot;</code></pre>
+<pre><code>## [1] &quot;3338186940&quot; &quot;7794251345&quot; &quot;7793361777&quot; &quot;2398957890&quot; &quot;8615359671&quot;
+## [6] &quot;980400857&quot;</code></pre>
 <pre class="r"><code>grc &lt;- dodgr_contract_graph (graph, verts)
 nrow (grc)</code></pre>
-<pre><code>## [1] 934</code></pre>
+<pre><code>## [1] 932</code></pre>
 <p>Retaining the nominated vertices yields a graph with considerably
 more edges than the fully contracted graph excluding these vertices. The
 <a href="https://UrbanAnalyst.github.io/dodgr/reference/dodgr_distances.html"><code>dodgr_distances()</code></a>
@@ -2188,12 +2188,12 @@ head (graph)</code></pre>
 ## 5        1       5 2398958028 76.47621 15.34174 1427116077 76.47628 15.34179
 ## 6        1       6 1427116077 76.47628 15.34179 2398958028 76.47621 15.34174
 ##            d d_weighted highway   way_id component      time time_weighted
-## 1 130.000241 130.000241    path 28565950         1 93.600174     93.600174
-## 2 130.000241 130.000241    path 28565950         1 93.600174     93.600174
-## 3   8.890622   8.890622    path 28565950         1  6.401248      6.401248
-## 4   8.890622   8.890622    path 28565950         1  6.401248      6.401248
-## 5   9.307736   9.307736    path 28565950         1  6.701570      6.701570
-## 6   9.307736   9.307736    path 28565950         1  6.701570      6.701570</code></pre>
+## 1 129.761207 129.761207    path 28565950         1 93.428069     93.428069
+## 2 129.761207 129.761207    path 28565950         1 93.428069     93.428069
+## 3   8.874244   8.874244    path 28565950         1  6.389455      6.389455
+## 4   8.874244   8.874244    path 28565950         1  6.389455      6.389455
+## 5   9.311222   9.311222    path 28565950         1  6.704080      6.704080
+## 6   9.311222   9.311222    path 28565950         1  6.704080      6.704080</code></pre>
 <p>The columns of <code>from_id</code> and <code>to_id</code> contain
 the names of the vertices. To extract shortest paths between some of
 these, first take some small samples of <code>from</code> and
@@ -2206,16 +2206,40 @@ length (dp)</code></pre>
 <p>The result (<code>dp</code>) is a list of 10 items, each of which
 contains 5 vectors. An example is,</p>
 <pre class="r"><code>dp [[1]] [[1]]</code></pre>
-<pre><code>##  [1] &quot;977478646&quot;  &quot;339059757&quot;  &quot;1148815018&quot; &quot;2636406745&quot; &quot;3921513385&quot;
-##  [6] &quot;3921513379&quot; &quot;3921513381&quot; &quot;3921513382&quot; &quot;3921513380&quot; &quot;3697938719&quot;
-## [11] &quot;3697938718&quot; &quot;3697938720&quot; &quot;3697938717&quot; &quot;3697938721&quot; &quot;2627476996&quot;
-## [16] &quot;2627476993&quot; &quot;2627476991&quot; &quot;2627476990&quot; &quot;2627476988&quot; &quot;2627476983&quot;
-## [21] &quot;2627476981&quot; &quot;980400495&quot;  &quot;980400742&quot;  &quot;980400857&quot;  &quot;980400874&quot; 
-## [26] &quot;980400974&quot;  &quot;7794390728&quot; &quot;2636572486&quot; &quot;980400414&quot;  &quot;1054866475&quot;
-## [31] &quot;1054865355&quot; &quot;980400593&quot;  &quot;7794390727&quot; &quot;1054860350&quot; &quot;980400807&quot; 
-## [36] &quot;1054867492&quot; &quot;339574165&quot;  &quot;4474520806&quot; &quot;1604033316&quot; &quot;339574164&quot; 
-## [41] &quot;4474520807&quot; &quot;339574161&quot;  &quot;4474520808&quot; &quot;339574160&quot;  &quot;1715805190&quot;
-## [46] &quot;339574159&quot;</code></pre>
+<pre><code>##   [1] &quot;8618022271&quot; &quot;8618022258&quot; &quot;8618022270&quot; &quot;8618022269&quot; &quot;8618022268&quot;
+##   [6] &quot;8618022267&quot; &quot;8618022266&quot; &quot;8618022265&quot; &quot;8618022264&quot; &quot;8618022263&quot;
+##  [11] &quot;8618022259&quot; &quot;8618022262&quot; &quot;8618022261&quot; &quot;8618022260&quot; &quot;1668645436&quot;
+##  [16] &quot;8615501945&quot; &quot;339574837&quot;  &quot;339577276&quot;  &quot;8615501947&quot; &quot;339577277&quot; 
+##  [21] &quot;2717241325&quot; &quot;339577279&quot;  &quot;339577280&quot;  &quot;6162061978&quot; &quot;339577283&quot; 
+##  [26] &quot;1427080647&quot; &quot;1427080646&quot; &quot;8615501943&quot; &quot;339577286&quot;  &quot;8615501944&quot;
+##  [31] &quot;339577287&quot;  &quot;8615501951&quot; &quot;8615501952&quot; &quot;339577289&quot;  &quot;339577292&quot; 
+##  [36] &quot;1376768330&quot; &quot;1376768904&quot; &quot;2398957716&quot; &quot;8615501941&quot; &quot;1376768543&quot;
+##  [41] &quot;7793239563&quot; &quot;8615501940&quot; &quot;1376769137&quot; &quot;1376768847&quot; &quot;1376768484&quot;
+##  [46] &quot;7793239564&quot; &quot;1376769045&quot; &quot;4506481428&quot; &quot;1376768697&quot; &quot;1376769196&quot;
+##  [51] &quot;6414886574&quot; &quot;1376768817&quot; &quot;1376768447&quot; &quot;6414886575&quot; &quot;1376769017&quot;
+##  [56] &quot;6414886576&quot; &quot;1376768754&quot; &quot;6414886577&quot; &quot;1376768386&quot; &quot;1376768961&quot;
+##  [61] &quot;6414886578&quot; &quot;1376768601&quot; &quot;5351820954&quot; &quot;1376769087&quot; &quot;5974503432&quot;
+##  [66] &quot;1376768725&quot; &quot;5351820955&quot; &quot;1376768356&quot; &quot;5974503433&quot; &quot;5351820956&quot;
+##  [71] &quot;5974503434&quot; &quot;1376768931&quot; &quot;5974503435&quot; &quot;1376768660&quot; &quot;1376768299&quot;
+##  [76] &quot;1376768873&quot; &quot;5974503436&quot; &quot;1376768511&quot; &quot;5974503437&quot; &quot;2398957668&quot;
+##  [81] &quot;2398957682&quot; &quot;1427116026&quot; &quot;2398957694&quot; &quot;2398957702&quot; &quot;2398957704&quot;
+##  [86] &quot;338512648&quot;  &quot;2398957707&quot; &quot;2398957710&quot; &quot;2398957712&quot; &quot;2398957714&quot;
+##  [91] &quot;2398957724&quot; &quot;676635816&quot;  &quot;2398957727&quot; &quot;2398957730&quot; &quot;7793239560&quot;
+##  [96] &quot;2398957740&quot; &quot;286632883&quot;  &quot;2398957746&quot; &quot;2398957747&quot; &quot;2588146032&quot;
+## [101] &quot;2588146091&quot; &quot;2588146120&quot; &quot;2588146042&quot; &quot;2588146050&quot; &quot;2588146081&quot;
+## [106] &quot;2588146089&quot; &quot;2588146101&quot; &quot;2588146103&quot; &quot;2588146098&quot; &quot;7793361765&quot;
+## [111] &quot;7793361766&quot; &quot;2588146125&quot; &quot;2588146020&quot; &quot;2588146127&quot; &quot;7793361767&quot;
+## [116] &quot;7793361769&quot; &quot;7793361768&quot; &quot;7793361770&quot; &quot;2588146068&quot; &quot;5351820916&quot;
+## [121] &quot;5351820915&quot; &quot;5351820914&quot; &quot;5351820913&quot; &quot;5974426258&quot; &quot;5351820911&quot;
+## [126] &quot;5974426265&quot; &quot;5974426272&quot; &quot;5351820910&quot; &quot;5351820909&quot; &quot;5974426280&quot;
+## [131] &quot;5351820908&quot; &quot;5351820907&quot; &quot;5351820906&quot; &quot;5351820905&quot; &quot;5351820904&quot;
+## [136] &quot;5351820903&quot; &quot;5351820902&quot; &quot;5351820901&quot; &quot;5974426271&quot; &quot;5351820900&quot;
+## [141] &quot;5974426279&quot; &quot;5351820899&quot; &quot;5351820897&quot; &quot;5974426287&quot; &quot;5974426293&quot;
+## [146] &quot;5351820895&quot; &quot;5351820893&quot; &quot;5351820919&quot; &quot;5351820892&quot; &quot;5974426256&quot;
+## [151] &quot;5351820891&quot; &quot;5351820890&quot; &quot;5351820889&quot; &quot;5351820888&quot; &quot;5974426278&quot;
+## [156] &quot;5351820887&quot; &quot;5351820886&quot; &quot;5974426286&quot; &quot;5974426292&quot; &quot;5351820885&quot;
+## [161] &quot;5974426298&quot; &quot;5351820884&quot; &quot;5351820883&quot; &quot;5351820882&quot; &quot;5974426291&quot;
+## [166] &quot;5351820881&quot;</code></pre>
 <p>For spatial graphs, the coordinates of these paths can be obtained by
 extracting the vertices with <code>dodgr_vertices()</code> and matching
 the vertex IDs:</p>
@@ -2223,12 +2247,12 @@ the vertex IDs:</p>
 path1 &lt;- verts [match (dp [[1]] [[1]], verts$id), ]
 head (path1)</code></pre>
 <pre><code>##              id        x        y component    n
-## 514   977478646 76.46016 15.33485         1  260
-## 268   339059757 76.46019 15.33505         1  137
-## 4317 1148815018 76.46016 15.33505         1 2159
-## 4318 2636406745 76.45995 15.33508         1 2160
-## 5086 3921513385 76.45894 15.33516         1 2520
-## 6790 3921513379 76.45894 15.33508         1 3327</code></pre>
+## 6520 8618022271 76.46891 15.31800         1 3204
+## 6518 8618022258 76.46891 15.31800         1 3203
+## 6516 8618022270 76.46892 15.31799         1 3202
+## 6514 8618022269 76.46907 15.31799         1 3201
+## 6512 8618022268 76.46908 15.31799         1 3200
+## 6510 8618022267 76.46908 15.31798         1 3199</code></pre>
 <p>Paths calculated on contracted graphs will of course have fewer
 vertices than those calculated on full graphs.</p>
 </div>
