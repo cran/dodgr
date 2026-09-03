@@ -5,6 +5,8 @@
 #include <algorithm> // std::fill, std::reverse
 #include <iostream>
 #include <fstream>
+#include <unordered_map>
+#include <utility> // std::pair
 
 #include <Rcpp.h>
 // [[Rcpp::plugins(cpp11)]]
@@ -79,7 +81,8 @@ Rcpp::NumericMatrix rcpp_get_sp_dists_paired_par (const Rcpp::DataFrame graph,
         Rcpp::IntegerVector fromi,
         Rcpp::IntegerVector toi,
         const std::string& heap_type,
-        const bool is_spatial);
+        const bool is_spatial,
+        const bool do_bidirectional);
 
 Rcpp::NumericMatrix rcpp_get_iso (const Rcpp::DataFrame graph,
         const Rcpp::DataFrame vert_map_in,
@@ -97,7 +100,8 @@ Rcpp::List rcpp_get_paths_pairwise (const Rcpp::DataFrame graph,
                            const Rcpp::DataFrame vert_map_in,
                            Rcpp::IntegerVector fromi,
                            Rcpp::IntegerVector toi_in,
-                           const std::string& heap_type);
+                           const std::string& heap_type,
+                           const bool do_bidirectional);
 
 // in run_sp_categorical:
 Rcpp::NumericMatrix rcpp_get_sp_dists_categorical (const Rcpp::DataFrame graph,

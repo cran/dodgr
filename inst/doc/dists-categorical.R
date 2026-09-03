@@ -23,13 +23,17 @@ s <- summary (d)
 
 ## ----prop-only----------------------------------------------------------------
 dodgr_dists_categorical (graph, from, to,
-                         proportions_only = TRUE)
+    proportions_only = TRUE
+)
 
 ## ----prop-only-benchmark, warning = FALSE-------------------------------------
-bench::mark (full = dodgr_dists_categorical (graph, from, to),
-             prop_only = dodgr_dists_categorical (graph, from, to,
-                                                  proportions_only = TRUE),
-             check = FALSE, time_unit = "s") [, 1:3]
+bench::mark (
+    full = dodgr_dists_categorical (graph, from, to),
+    prop_only = dodgr_dists_categorical (graph, from, to,
+        proportions_only = TRUE
+    ),
+    check = FALSE, time_unit = "s"
+) [, 1:3]
 
 ## ----dists-dlimit-------------------------------------------------------------
 dlimit <- 2000 # in metres
@@ -39,16 +43,21 @@ head (d)
 
 ## ----hist-path----------------------------------------------------------------
 hist (d$path / d$distance,
-      xlab = "Relative proportions of trips along paths", main = "")
+    xlab = "Relative proportions of trips along paths", main = ""
+)
 
 ## ----hist-track---------------------------------------------------------------
 hist (d$service / d$distance,
-      xlab = "Relative proportions of trips along service ways", main = "")
+    xlab = "Relative proportions of trips along service ways", main = ""
+)
 
 ## ----benchmark3, warning = FALSE----------------------------------------------
-bench::mark (full = dodgr_dists_categorical (graph, from, to),
-             prop_only = dodgr_dists_categorical (graph, from, to,
-                                                  proportions_only = TRUE),
-             dlimit = dodgr_dists_categorical (graph, from, dlimit = 2000),
-             check = FALSE, time_unit = "s") [, 1:3]
+bench::mark (
+    full = dodgr_dists_categorical (graph, from, to),
+    prop_only = dodgr_dists_categorical (graph, from, to,
+        proportions_only = TRUE
+    ),
+    dlimit = dodgr_dists_categorical (graph, from, dlimit = 2000),
+    check = FALSE, time_unit = "s"
+) [, 1:3]
 

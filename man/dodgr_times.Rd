@@ -4,7 +4,14 @@
 \alias{dodgr_times}
 \title{Calculate matrix of pair-wise travel times between points.}
 \usage{
-dodgr_times(graph, from = NULL, to = NULL, shortest = FALSE, heap = "BHeap")
+dodgr_times(
+  graph,
+  from = NULL,
+  to = NULL,
+  shortest = FALSE,
+  pairwise = FALSE,
+  heap = "BHeap"
+)
 }
 \arguments{
 \item{graph}{\code{data.frame} or equivalent object representing the network
@@ -15,8 +22,8 @@ from either \pkg{sf} or \pkg{silicate} ("sc") data, generated with
 The \code{from} and \code{to} columns of \code{graph} may be either single
 columns of numeric or character values specifying the numbers or names of
 graph vertices, or combinations to two columns specifying geographical
-(longitude and latitude,) coordinates. In the latter case, almost any sensible
-combination of names will be accepted (for example, \verb{fromx, fromy},
+(longitude and latitude,) coordinates. In the latter case, almost any
+sensible combination of names will be accepted (for example, \verb{fromx, fromy},
 \verb{from_x, from_y}, or \verb{fr_lat, fr_lon}.)
 
 Note that longitude and latitude values are always interpreted in 'dodgr' to
@@ -53,6 +60,9 @@ routes will only be approximate when derived from \pkg{sf}-format data
 generated with the \pkg{osmdata} function \code{osmdata_sf()}, and will be much
 more accurate when derived from \code{sc}-format data generated with
 \code{osmdata_sc()}. See \link{weight_streetnet} for details.}
+
+\item{pairwise}{If \code{TRUE}, calculate distances only between the ordered
+pairs of \code{from} and \code{to}.}
 
 \item{heap}{Type of heap to use in priority queue. Options include
 Fibonacci Heap (default; \code{FHeap}), Binary Heap (\code{BHeap}),
@@ -143,11 +153,12 @@ d <- dodgr_dists (graph, from = xy, to = xy)
 }
 }
 \seealso{
-Other distances: 
-\code{\link{dodgr_distances}()},
-\code{\link{dodgr_dists}()},
-\code{\link{dodgr_dists_categorical}()},
-\code{\link{dodgr_dists_nearest}()},
-\code{\link{dodgr_paths}()}
+Other distances:
+\code{\link[=dodgr_distances]{dodgr_distances()}},
+\code{\link[=dodgr_dists]{dodgr_dists()}},
+\code{\link[=dodgr_dists_categorical]{dodgr_dists_categorical()}},
+\code{\link[=dodgr_dists_nearest]{dodgr_dists_nearest()}},
+\code{\link[=dodgr_paths]{dodgr_paths()}},
+\code{\link[=dodgr_paths_expand]{dodgr_paths_expand()}}
 }
 \concept{distances}

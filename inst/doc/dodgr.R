@@ -2,9 +2,11 @@
 library (dodgr)
 
 ## ----sample-graph1, echo = FALSE----------------------------------------------
-graph <- data.frame (from = c ("A", "B", "B", "B", "C", "C", "D", "D"),
-                     to = c ("B", "A", "C", "D", "B", "D", "C", "A"),
-                     d = c (1, 2, 1, 3, 2, 1, 2, 1))
+graph <- data.frame (
+    from = c ("A", "B", "B", "B", "C", "C", "D", "D"),
+    to = c ("B", "A", "C", "D", "B", "D", "C", "A"),
+    d = c (1, 2, 1, 3, 2, 1, 2, 1)
+)
 graph
 
 ## ----sample-dists1------------------------------------------------------------
@@ -12,10 +14,12 @@ dodgr_dists (graph)
 dodgr_dists (graph, from = c ("A", "C"), to = c ("B", "C", "D"))
 
 ## ----sample-graph2, echo = FALSE----------------------------------------------
-graph <- data.frame (from = c ("A", "B", "B", "B", "C", "C", "D", "D"),
-                     to = c ("B", "A", "C", "D", "B", "D", "C", "A"),
-                     w = c (1, 2, 1, 3, 2, 1, 2, 1),
-                     d = c (1, 1, 1, 1, 1, 1, 1, 1))
+graph <- data.frame (
+    from = c ("A", "B", "B", "B", "C", "C", "D", "D"),
+    to = c ("B", "A", "C", "D", "B", "D", "C", "A"),
+    w = c (1, 2, 1, 3, 2, 1, 2, 1),
+    d = c (1, 1, 1, 1, 1, 1, 1, 1)
+)
 graph
 dodgr_dists (graph)
 
@@ -23,7 +27,8 @@ dodgr_dists (graph)
 # bb <- osmdata::getbb ("york uk")
 # npts <- 1000
 # xy <- apply (bb, 1, function (i) min (i) + runif (npts) * diff (i))
-# bb; head (xy)
+# bb
+# head (xy)
 
 ## ----york-bb, echo = FALSE----------------------------------------------------
 bb <- rbind (c (-1.241536, -0.9215361), c (53.799056, 54.1190555))
@@ -38,14 +43,15 @@ cbind (x, y)
 # net <- dodgr_streetnet (bb)
 # net <- weight_streetnet (net, wt_profile = "foot")
 # system.time (
-#             d <- dodgr_dists (net, from = xy, to = xy)
-#             )
+#     d <- dodgr_dists (net, from = xy, to = xy)
+# )
 
 ## ----dists-york-time, echo = FALSE--------------------------------------------
 c (user = 38.828, system = 0.036, elapsed = 5.424)
 
 ## ----dists-york-structure, eval = FALSE---------------------------------------
-# dim (d); range (d, na.rm = TRUE)
+# dim (d)
+# range (d, na.rm = TRUE)
 
 ## ----dists-york-output, echo = FALSE------------------------------------------
 c (1000, 1000)
@@ -89,7 +95,7 @@ head (graph)
 
 ## ----hampi-verts--------------------------------------------------------------
 vt <- dodgr_vertices (graph)
-head(vt)
+head (vt)
 
 ## ----hampi-verts-out----------------------------------------------------------
 dim (vt)
@@ -129,11 +135,15 @@ names (os_roads_bristol)
 ## ----wt-bristol---------------------------------------------------------------
 colnm <- "formOfWay"
 table (os_roads_bristol [[colnm]])
-wts <- data.frame (name = "custom",
-                   way = unique (os_roads_bristol [[colnm]]),
-                   value = c (0.1, 0.2, 0.8, 1))
-net <- weight_streetnet (os_roads_bristol, wt_profile = wts,
-                         type_col = colnm, id_col = "identifier")
+wts <- data.frame (
+    name = "custom",
+    way = unique (os_roads_bristol [[colnm]]),
+    value = c (0.1, 0.2, 0.8, 1)
+)
+net <- weight_streetnet (os_roads_bristol,
+    wt_profile = wts,
+    type_col = colnm, id_col = "identifier"
+)
 
 ## ----dodgr-sample-------------------------------------------------------------
 graph_sub <- dodgr_sample (graph, nverts = 100)
@@ -145,12 +155,15 @@ nrow (dodgr_vertices (graph_sub))
 ## ----verts-to-points----------------------------------------------------------
 vt <- dodgr_vertices (graph)
 n <- 100 # number of points to generate
-xy <- data.frame (x = min (vt$x) + runif (n) * diff (range (vt$x)),
-                  y = min (vt$y) + runif (n) * diff (range (vt$y)))
+xy <- data.frame (
+    x = min (vt$x) + runif (n) * diff (range (vt$x)),
+    y = min (vt$y) + runif (n) * diff (range (vt$y))
+)
 
 ## ----dodogr-dists-structure---------------------------------------------------
 d <- dodgr_dists (graph, from = xy)
-dim (d); range (d, na.rm = TRUE)
+dim (d)
+range (d, na.rm = TRUE)
 
 ## ----dodogr-dists-structure2--------------------------------------------------
 d <- dodgr_dists (graph, from = xy, to = xy [1:10, ])
@@ -173,8 +186,10 @@ graph_connected <- graph [graph$component == 1, ]
 # }
 
 ## ----york-streetnet-output, eval = FALSE--------------------------------------
-# vapply (c (0, 0.05, 0.1, 0.2), function (i) routed_points (i, pts = xy),
-#         numeric (1))
+# vapply (
+#     c (0, 0.05, 0.1, 0.2), function (i) routed_points (i, pts = xy),
+#     numeric (1)
+# )
 
 ## ----york-streetntet-values, echo = FALSE-------------------------------------
 c (0.04007477, 0.02326452, 0.02131992, 0)
@@ -202,7 +217,9 @@ compare_heaps (graph, nverts = 100)
 grc <- dodgr_contract_graph (graph)
 
 ## ----contract-graph-structure-------------------------------------------------
-nrow (graph); nrow (grc); nrow (grc) / nrow (graph)
+nrow (graph)
+nrow (grc)
+nrow (grc) / nrow (graph)
 
 ## ----benchmark1, eval = TRUE--------------------------------------------------
 from <- sample (grc$from_id, size = 100)
@@ -211,7 +228,7 @@ bench::mark (
     full = dodgr_dists (graph, from = from, to = to),
     contracted = dodgr_dists (grc, from = from, to = to),
     check = FALSE # numeric rounding errors can lead to differences
-    )
+)
 
 ## ----contracted-with-verts----------------------------------------------------
 grc <- dodgr_contract_graph (graph)
@@ -239,8 +256,9 @@ length (dp)
 
 ## ----echo = FALSE-------------------------------------------------------------
 # make sure there are some paths:
-maxlen <- max (unlist (lapply (dp, function (i)
-                               max (unlist (lapply (i, length))))))
+maxlen <- max (unlist (lapply (dp, function (i) {
+    max (unlist (lapply (i, length)))
+})))
 if (maxlen > 0) {
 
     n <- 0

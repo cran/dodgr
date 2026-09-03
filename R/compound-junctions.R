@@ -48,8 +48,7 @@ join_junctions_to_graph <- function (graph, wt_profile, wt_profile_file,
         edge_map <- data.frame (
             "edge" = res$graph$edge_,
             "e_in" = res$graph$old_edge_in,
-            "e_out" = res$graph$old_edge_out,
-            stringsAsFactors = FALSE
+            "e_out" = res$graph$old_edge_out
         )
         res$graph$old_edge_in <- res$graph$old_edge_out <- NULL
 
@@ -65,6 +64,12 @@ join_junctions_to_graph <- function (graph, wt_profile, wt_profile_file,
         )))
         names (resbind) <- names (graph)
         resbind [, which (names (graph) %in% names (res$graph))] <- res$graph
+        if ("object_" %in% names (graph)) {
+            # SC graphs:
+            index <- match (resbind$object_, graph$object_)
+            index_col <- which (!names (graph) %in% names (res$graph))
+            resbind [, index_col] <- graph [index, index_col]
+        }
         graph <- rbind (graph, resbind)
     }
     list (graph = graph, edge_map = edge_map)
@@ -129,7 +134,7 @@ extract_turn_restrictions <- function (x) {
     ))
 }
 
-#' Remove turn restrictions
+#' Remove turn restrictions and replace with compound junctions.
 #'
 #' @param x The original `sc` object which ,when generated from
 #' `dodgr_streetnet_sc`, includes turn restriction data
@@ -141,31 +146,76 @@ remove_turn_restrictions <- function (graph, res) {
 
     # These are the attributes inserted in initial streeetnet construction via
     # the previous `extract_turn_restrictions` function.
-    rw_no <- attr (graph, "turn_restriction_no")
-    rw_only <- attr (graph, "turn_restriction_only")
+    rw_no <- attr (graph, "turn_restrictions_no")
+    rw_only <- attr (graph, "turn_restrictions_only")
 
-    index0 <- match (rw_no$node, graph$.vx1) # in-edges
-    index1 <- match (rw_no$node, graph$.vx0) # out-edges
-    in_edges <- graph$edge_ [index0 [which (!is.na (index0))]]
-    out_edges <- graph$edge_ [index1 [which (!is.na (index1))]]
-    index <- which (res$edge_map$e_in %in% in_edges &
-        res$edge_map$e_out %in% out_edges)
-    no_turn_edges <- res$edge_map$edge [index]
+    # rw_no <- dplyr::filter (rw_no, node == node_id)
 
-    index0 <- match (rw_only$node, graph$.vx1) # in-edges
-    index1 <- match (rw_only$node, graph$.vx0) # out-edges
-    in_edges <- graph$edge_ [index0 [which (!is.na (index0))]]
-    out_edges <- graph$edge_ [index1 [which (!is.na (index1))]]
-    # index of turns to edges other than "only" turn edges, so also to edges
-    # which are to be excluded:
-    index <- which (res$edge_map$e_in %in% in_edges &
-        !res$edge_map$e_out %in% out_edges)
-    no_turn_edges <- unique (c (no_turn_edges, res$edge_map$edge [index]))
+    # indices of edges which have to be removed:
+    index_in <- which (
+        graph$object_ %in% rw_no$from & graph$.vx1 %in% rw_no$node
+    )
+    # indices of edges extending out of compound junctions:
+    index_out <- which (
+        graph$object_ %in% rw_no$to & graph$.vx0 %in% rw_no$node
+    )
+    graph_in <- graph [index_in, ]
+    graph_out <- graph [index_out, ]
+    edges_to_remove <- unique (graph$edge_ [c (index_in, index_out)])
 
-    res$graph <- res$graph [which (!res$graph$edge_ %in% no_turn_edges), ]
-    res$edge_map <- res$edge_map [
-        which (!res$edge_map$edge %in% no_turn_edges),
-    ]
+    # Note that "in" and "out" generally won't be balanced, becasuse
+    # restrictions may exist in an OSM dataset for which a terminal node may
+    # not actually exist due to geographical restrictions. This has important
+    # implications below.
+
+    # Then construct new compound edges:
+    index_out_other <- which (
+        graph$.vx0 %in% rw_no$node & !graph$edge_ %in% graph_out$edge_
+    )
+    graph_out_compound <- graph [index_out_other, ]
+    graph_in <- graph_in [which (graph_in$.vx1 %in% graph_out_compound$.vx0), ]
+
+    index <- match (graph_out_compound$.vx0, graph_in$.vx1)
+    # Because "in" and "out" aren't necessarily balanced, "index" may have NA
+    # values.
+    if (length (index) > 0L) {
+        graph_out_compound$.vx0 <- graph_in$.vx0 [index]
+        graph_out_compound$object_ <-
+            paste0 (graph_in$object_ [index], "_", graph_out_compound$object_)
+        graph_out_compound$d <- graph_in$d [index] + graph_out_compound$d
+        graph_out_compound$d_weighted <-
+            graph_in$d_weighted [index] + graph_out_compound$d_weighted
+        graph_out_compound$time <- graph_in$time [index] + graph_out_compound$time
+        graph_out_compound$time_weighted <-
+            graph_in$time_weighted [index] + graph_out_compound$time_weighted
+
+        index <- which (!is.na (graph_out_compound$.vx0) & !is.na (graph_out_compound$.vx1))
+        graph_out_compound <- graph_out_compound [index, ]
+
+        # Extend edge map:
+        res$edge_map <- rbind (
+            res$edge_map,
+            data.frame (
+                edge = paste0 ("j_", rcpp_gen_hash (length (index), 10)),
+                e_in = graph_in$edge_ [index],
+                e_out = graph_out_compound$edge_
+            )
+        )
+    }
+
+    # Replace original edges from graph with ones to junctions point only, and
+    # add new compound ones:
+    gr_cols <- dodgr_graph_cols (graph)
+    graph_to_juncts <- res$graph [which (res$graph$edge_ %in% edges_to_remove), ]
+    if (nrow (graph_to_juncts) > 0L) {
+        graph_to_juncts [[gr_cols$to]] <- paste0 (graph_to_juncts [[gr_cols$to]], "_end")
+    }
+
+    res$graph <- rbind (
+        res$graph [which (!res$graph$edge_ %in% edges_to_remove), ],
+        graph_out_compound,
+        graph_to_juncts
+    )
 
     return (res)
 }
